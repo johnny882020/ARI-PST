@@ -6,7 +6,7 @@ import { buildFixture, sampleBody } from '../../../apps/api/test/support/fixture
 process.env.TEST_DATABASE_URL = process.env.DB_RUNTIME_URL!; process.env.TEST_ADMIN_DATABASE_URL = process.env.DB_ADMIN_URL!;
 const h = await startHarness(); const f = await buildFixture(h);
 const c = await h.session(f.coord);
-const dx = ['mb_shh', 'mb_g3', 'epn_pfa', 'neuroblastoma', 'wilms'];
+const dx = ['mb_shh', 'mb_wnt', 'dmg_h3k27', 'ependymoma_posterior_fossa', 'pilocytic_astrocytoma'];
 let ok = 0, fail: string[] = [];
 for (let i = 0; i < 60; i++) {
   const center = i % 3 === 0 ? f.centerB : f.centerA;
