@@ -250,7 +250,7 @@ CREATE TABLE portal.requests (
   CHECK (char_length(research_question) <= 4000), CHECK (char_length(planned_use) <= 4000),
   CHECK (char_length(funding_sources) <= 1000), CHECK (char_length(applicant_ethics_ref) <= 100),
   CHECK ((status = 'closed') = (close_reason IS NOT NULL)),
-  CHECK (status = 'draft' OR text_wiped_at IS NOT NULL OR (research_question IS NOT NULL AND applicant_ethics_ref IS NOT NULL
+  CHECK (status = 'draft' OR submitted_at IS NULL OR text_wiped_at IS NOT NULL OR (research_question IS NOT NULL AND applicant_ethics_ref IS NOT NULL
                               AND planned_use IS NOT NULL AND funding_sources IS NOT NULL)));
 CREATE UNIQUE INDEX ux_req_idem ON portal.requests (applicant_user_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
 CREATE INDEX ix_req_status ON portal.requests (status, state_entered_at);

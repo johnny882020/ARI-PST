@@ -4,9 +4,15 @@ import { U, admin, as, asBg, baseFixtures, closeAll, fails, pool, q } from './he
 beforeAll(baseFixtures);
 afterAll(closeAll);
 const verify = () => asBg(async (c) => (await c.query('SELECT * FROM audit.verify_chain()')).rows);
-const tamper = async (sql, params) => {
+/** Apply a tamper inside a transaction, verify as the background verifier, then roll everything back. */
+const tamperVerify = async (sql, params = []) => {
   const c = await admin().connect();
-  try { await c.query('BEGIN'); await c.query(`SET LOCAL session_replication_role = replica`); await c.query(sql, params); await c.query('COMMIT'); } finally { c.release(); }
+  try {
+    await c.query('BEGIN'); await c.query(`SET LOCAL session_replication_role = replica`);
+    await c.query(sql, params);
+    await c.query('SET SESSION AUTHORIZATION app_readonly_bg');
+    return (await c.query('SELECT * FROM audit.verify_chain()')).rows;
+  } finally { await c.query('ROLLBACK').catch(() => {}); await c.query('RESET SESSION AUTHORIZATION').catch(() => {}); c.release(); }
 };
 
 describe('audit log (RT-09)', () => {
@@ -51,27 +57,18 @@ describe('audit log (RT-09)', () => {
     const lost = await q(admin(), `SELECT count(*)::int n FROM audit.audit_events WHERE action='sample.view' AND occurred_at > now() - interval '1 second' AND actor_user_id='${U.resA}'`);
     expect(lost[0].n).toBe(0);                                                                      // the rolled-back business event is gone, the denial is not
   });
-  it('chain verifies; any tampered byte, deleted row or edited head is detected', async () => {
+  it('chain verifies; any tampered byte, forged hash or deleted row is detected', async () => {
     expect(await verify()).toEqual([]);
-    const [row] = await q(admin(), `SELECT lane, lane_seq FROM audit.audit_events ORDER BY occurred_at LIMIT 1 OFFSET 2`);
-    await tamper(`UPDATE audit.audit_events SET object_id='tampered' WHERE lane=$1 AND lane_seq=$2`, [row.lane, row.lane_seq]);
-    let res = await verify();
-    expect(res).toEqual([expect.objectContaining({ lane: row.lane, broken_seq: String(row.lane_seq), reason: 'hash_mismatch' })]);
-    await tamper(`UPDATE audit.audit_events SET object_id=NULL WHERE lane=$1 AND lane_seq=$2`, [row.lane, row.lane_seq]);
-    expect(await verify()).toEqual([]);                                                              // restored byte for byte
-    // a forged rewrite without the key cannot be made consistent: recompute with plain sha256 fails
-    await tamper(`UPDATE audit.audit_events SET entry_hash = sha256(entry_hash) WHERE lane=$1 AND lane_seq=$2`, [row.lane, row.lane_seq]);
-    expect((await verify()).length).toBe(1);
-    await tamper(`UPDATE audit.audit_events SET entry_hash = (SELECT entry_hash FROM (SELECT 1) x, LATERAL (SELECT prev_hash AS entry_hash FROM audit.audit_events WHERE lane=$1 AND lane_seq=$2 + 1) y) WHERE lane=$1 AND lane_seq=$2`, [row.lane, row.lane_seq]);
-  });
-  it('a deleted event is detected as a gap', async () => {
-    const [row] = await q(admin(), `SELECT lane, lane_seq FROM audit.audit_events e WHERE lane_seq > 1 AND EXISTS (SELECT 1 FROM audit.audit_events n WHERE n.lane=e.lane AND n.lane_seq=e.lane_seq+1) ORDER BY occurred_at LIMIT 1`);
-    // restore is impossible after a delete, so snapshot and put it back
-    const saved = (await q(admin(), `SELECT * FROM audit.audit_events WHERE lane=$1 AND lane_seq=$2`, [row.lane, row.lane_seq]))[0];
-    await tamper(`DELETE FROM audit.audit_events WHERE lane=$1 AND lane_seq=$2`, [row.lane, row.lane_seq]);
-    expect((await verify()).some((r) => r.reason === 'gap')).toBe(true);
-    const cols = Object.keys(saved);
-    await tamper(`INSERT INTO audit.audit_events (${cols.join(',')}) SELECT ${cols.map((_, i) => `$${i + 1}`).join(',')}`.replace(/\$(\d+)/g, (m, n) => `$${n}`), cols.map((k) => saved[k]).map((v) => (v && typeof v === 'object' && !(v instanceof Buffer) && !(v instanceof Date) ? JSON.stringify(v) : v)));
+    const [row] = await q(admin(), `SELECT lane, lane_seq FROM audit.audit_events e WHERE EXISTS (SELECT 1 FROM audit.audit_events n WHERE n.lane=e.lane AND n.lane_seq=e.lane_seq+1) ORDER BY occurred_at LIMIT 1`);
+    const where = [row.lane, row.lane_seq];
+    expect(await tamperVerify(`UPDATE audit.audit_events SET object_id='tampered' WHERE lane=$1 AND lane_seq=$2`, where))
+      .toEqual([expect.objectContaining({ lane: row.lane, broken_seq: String(row.lane_seq), reason: 'hash_mismatch' })]);
+    expect(await tamperVerify(`UPDATE audit.audit_events SET outcome='deny' WHERE lane=$1 AND lane_seq=$2`, where)).toHaveLength(1);
+    // an attacker without the HMAC key cannot repair the entry with a plain SHA-256
+    expect(await tamperVerify(`UPDATE audit.audit_events SET object_id='x', entry_hash = sha256(convert_to('x','UTF8')) WHERE lane=$1 AND lane_seq=$2`, where)).toHaveLength(1);
+    expect((await tamperVerify(`DELETE FROM audit.audit_events WHERE lane=$1 AND lane_seq=$2`, where)).some((r) => r.reason === 'gap')).toBe(true);
+    expect(await tamperVerify(`UPDATE audit.chain_head SET last_seq = last_seq + 1 WHERE lane=$1`, [row.lane])).toEqual([expect.objectContaining({ reason: 'head_mismatch' })]);
+    expect(await verify()).toEqual([]);                                                              // nothing persisted
   });
   it('no global lock: concurrent writers do not block each other and the chain stays valid and gapless', async () => {
     await baseFixtures();
@@ -109,6 +106,13 @@ describe('audit log (RT-09)', () => {
     expect((await q(admin(), `SELECT count(*)::int n FROM audit.audit_events WHERE action IN ('audit.verify.ok','audit.verify.fail')`))[0].n).toBeGreaterThan(2);
   });
   it('request transitions and role changes are audited with server-side actor', async () => {
+    const rid = await as('resA', async (c) => (await q(c, `SELECT portal.request_create('audit-test-key-1') id`))[0].id);
+    await as('resA', (c) => c.query('SELECT portal.request_withdraw($1)', [rid]));
+    await as('adminA', (c) => c.query(`SELECT portal.change_propose('k_policy','{"field_set":"audit_t","k":9}')`));
+    const cid = (await q(admin(), `SELECT id FROM portal.change_requests WHERE payload->>'field_set'='audit_t'`))[0].id;
+    await as('comA', (c) => c.query('SELECT portal.change_approve($1,10)', [cid]));
+    await admin().query(`DELETE FROM portal.k_policies WHERE field_set='audit_t'`);
+    await as('comA', (c) => c.query('SELECT * FROM audit.read_events()'));
     const rows = await q(admin(), `SELECT DISTINCT action FROM audit.audit_events`);
     const actions = rows.map((r) => r.action);
     for (const a of ['request.state_changed', 'role.grant', 'k.change', 'audit.read']) expect(actions).toContain(a);

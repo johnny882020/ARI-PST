@@ -202,6 +202,7 @@ END $$;
 
 -- ---------- grants (before ownership hand-over) ----------
 REVOKE ALL ON ALL TABLES IN SCHEMA audit FROM PUBLIC;
+REVOKE ALL ON audit.audit_events FROM app_migrator;                      -- the owner holds no privilege on the log either
 GRANT SELECT, INSERT ON audit.audit_events TO app_audit_writer;       -- the ONLY role with INSERT
 GRANT DELETE ON audit.audit_events TO app_audit_writer;                -- retention purge only (trigger-gated)
 GRANT SELECT, UPDATE ON audit.chain_head TO app_audit_writer;
