@@ -90,7 +90,11 @@ export interface UserRepo {
   list(q: { status?: string; role?: string; cursor?: string; limit: number; researchersOnly?: boolean }): Promise<Page<UserRecord>>;
   create(u: { id: string; email: string; displayName: string; locale: 'he' | 'en'; status: UserRecord['status']; institution?: string | null; isIsraeliAcademic?: boolean }): Promise<UserRecord>;
   update(id: string, p: { displayName?: string; status?: UserRecord['status']; locale?: 'he' | 'en'; emailVerifiedAt?: string }): Promise<UserRecord | null>;
-  grantRole(a: { id: string; userId: string; role: Role; centerId: string | null; grantedBy: string }): Promise<RoleAssignmentRecord>;
+  grantRole(a: { id: string; userId: string; role: Role; centerId: string | null; grantedBy: string; approvedBy?: string }): Promise<RoleAssignmentRecord>;
+  registerResearcher(r: { id: string; email: string; displayName: string; institution: string; isIsraeliAcademic: boolean; locale: 'he' | 'en' }): Promise<boolean>;
+  updateSelf(id: string, p: { displayName?: string; locale?: 'he' | 'en' }): Promise<void>;
+  approveRegistration(userId: string): Promise<void>;
+  rejectRegistration(userId: string): Promise<void>;
   revokeRole(userId: string, assignmentId: string): Promise<boolean>;
   activeRoles(userId: string): Promise<RoleAssignmentRecord[]>;
   pendingRegistrations(limit: number): Promise<Array<{ id: string; email: string; displayName: string; institution: string | null; isIsraeliAcademic: boolean; createdAt: string }>>;
@@ -144,7 +148,7 @@ export interface RequestRepo {
   steps(id: string, includeInternal: boolean): Promise<RequestStepRecord[]>;
   upsertStep(id: string, key: StepKey, centerId: string | null, p: { status?: RequestStepRecord['status']; publicNote?: string; internalNote?: string }, actorUserId: string): Promise<RequestStepRecord>;
   resolveSamples(requestId: string, itemId: string, sampleIds: string[], by: string): Promise<boolean>;
-  castVote(requestId: string, voterUserId: string, vote: VoteValue, comment: string | null): Promise<VoteRecord>;
+  castVote(requestId: string, voterUserId: string, vote: VoteValue, comment: string | null, rationaleCode: string | null): Promise<VoteRecord>;
   votes(requestId: string): Promise<VoteRecord[]>;
   committeeConfig(): Promise<CommitteeConfig>;
   recordDecision(requestId: string, outcome: DecisionOutcome, rationale: string | null, decidedBy: string): Promise<DecisionRecord>;
@@ -168,10 +172,11 @@ export interface GovernanceRepo {
   setK(fieldSet: string, k: number, by: string): Promise<void>;
   getKPolicies(): Promise<Array<{ fieldSet: string; k: number }>>;
   setCommitteeConfig(c: CommitteeConfig): Promise<void>;
+  metrics(): Promise<{ samplesTotal: number; centersFeeding: number; registeredResearchers: number; searchesLast30d: number; coordinatorEnteredShare: number }>;
   config(): Promise<Record<string, unknown>>;
 }
 export interface OutboxRepo {
-  enqueue(o: { id: string; template: string; toUserId: string | null; toEmail: string | null; locale: 'he' | 'en'; params: Record<string, string> }): Promise<void>;
+  enqueue(o: { id: string; template: string; toRole?: Role | null; toUserId: string | null; toEmail: string | null; locale: 'he' | 'en'; params: Record<string, string> }): Promise<void>;
   claimPending(limit: number): Promise<Array<{ id: string; template: string; toEmail: string | null; locale: 'he' | 'en'; params: Record<string, string>; attempts: number }>>;
   markSent(id: string): Promise<void>;
   markFailed(id: string, giveUp: boolean): Promise<void>;
@@ -224,7 +229,7 @@ export interface AuthPort {
   consumeChallenge(token: string, peek?: boolean): Promise<{ userId: string; attempts: number } | null>;
   failChallenge(token: string): Promise<void>;
   // Sessions (server-side)
-  createSession(userId: string, opts: { mfaAt: number; ipHash: string | null; roles: RoleAssignmentRecord[]; displayName: string; locale: 'he' | 'en' }): Promise<SessionRecord>;
+  createSession(userId: string, opts: { mfaAt: number | null; ipHash: string | null; roles: RoleAssignmentRecord[]; displayName: string; locale: 'he' | 'en' }): Promise<SessionRecord>;
   getSession(id: string): Promise<SessionRecord | null>;
   touchSession(id: string, now: number): Promise<void>;
   stepUpSession(id: string, now: number): Promise<void>;
@@ -232,6 +237,10 @@ export interface AuthPort {
   revokeSession(id: string): Promise<void>;
   revokeAllForUser(userId: string): Promise<void>;
   hasMfa(userId: string): Promise<boolean>;
+  activeRolesFor(userId: string): Promise<RoleAssignmentRecord[]>;
+  profileFor(userId: string): Promise<{ email: string; displayName: string; locale: 'he' | 'en' } | null>;
+  markEmailVerified(userId: string, activate: boolean): Promise<void>;
+  storePasswordHash(userId: string, hash: string): Promise<void>;
   mfaFactorsFor(userId: string): Promise<MfaFactor[]>;
   recordLoginSuccess(userId: string): Promise<void>;
   /** Email verification tokens. */
@@ -250,5 +259,5 @@ export interface ObjectStorePort {
 export interface MailMessage { to: string; subject: string; text: string; html?: string }
 export interface Mailer { send(m: MailMessage): Promise<void> }
 export interface NotifyPort {
-  enqueue(tx: Tx, n: { template: string; toUserId?: string | null; toEmail?: string | null; locale?: 'he' | 'en'; params?: Record<string, string> }): Promise<void>;
+  enqueue(tx: Tx, n: { template: string; toRole?: Role; toUserId?: string | null; toEmail?: string | null; locale?: 'he' | 'en'; params?: Record<string, string> }): Promise<void>;
 }

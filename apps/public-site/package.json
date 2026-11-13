@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:build": "vitest run tests/build",
-    "test:a11y": "node tests/a11y/axe.mjs",
+    "test:a11y": "vitest run tests/a11y",
     "lhci": "lhci autorun --config=./lighthouserc.json",
     "predev": "node scripts/vendor-decap.mjs",
     "prebuild": "node scripts/vendor-decap.mjs",

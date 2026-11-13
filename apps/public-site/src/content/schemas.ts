@@ -88,7 +88,7 @@ export const pageSchema = z
     support_links: z.array(z.object({ label: z.string(), url: z.string(), org: z.string() })).optional(),
     contact_cta: z.string().optional(),
     // join / contact
-    office_role_email: z.string().email().optional(),
+    office_role_email: z.email().optional(),
     form_notice: z.string().optional(),
     consent_text: z.string().optional(),
     success_text: z.string().optional(),
@@ -138,7 +138,7 @@ export const partnerSchema = z.object({
   ...pageBase,
   name: z.string().min(1),
   country: z.string().min(1),
-  url: z.string().url().startsWith('https://').optional(),
+  url: z.url().startsWith('https://').optional(),
   summary: z.string().min(1),
   type: z.enum(['pediatric-oncology', 'research-network', 'hospital', 'university', 'other']),
   order: z.number().int().default(100),
@@ -151,7 +151,7 @@ export const centerSchema = z.object({
   kind: z.enum(['hospital', 'research-center', 'biobank']),
   status: z.enum(['participating', 'planned']),
   summary: z.string().min(1),
-  url: z.string().url().startsWith('https://').optional(),
+  url: z.url().startsWith('https://').optional(),
   order: z.number().int().default(100),
 });
 

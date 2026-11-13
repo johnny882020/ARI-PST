@@ -22,7 +22,7 @@ export function isLocale(v: unknown): v is Locale {
 }
 
 /** Key shape: area.screen.element (lowerCamel segments, 2+ segments). */
-export const KEY_PATTERN = /^[a-z][a-zA-Z0-9]*(\.[a-zA-Z0-9]+)+$/;
+export const KEY_PATTERN = /^[a-z][a-zA-Z0-9]*(\.[a-zA-Z0-9_]+)+$/;
 
 /** Locale of a browser Accept-Language style value; falls back to the default (he). */
 export function negotiateLocale(preferred: readonly string[] | undefined): Locale {

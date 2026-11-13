@@ -24,6 +24,6 @@ const notice = d.needs_review ? t(locale, 'reviewNotice') : '';
   <h1>{d.title}</h1>
   {d.intro && <p class="lead">{d.intro}</p>}
   {notice && <p class="notice" role="note">{notice}</p>}
-  <ul class="grid">{partners.map((x) => <li class="card"><h3><bdi>{x.data.name}</bdi></h3><p class="muted small">{t(locale, 'country')}: {x.data.country}</p><p>{x.data.summary}</p>{x.data.url && <p><a href={x.data.url} rel="noopener">{x.data.url.replace('https://', '')}</a></p>}</li>)}</ul>
+  <ul class="grid">{partners.map((x) => <li class="card"><h2 class="card-title"><bdi>{x.data.name}</bdi></h2><p><span class="chip"><bdi>{x.data.title}</bdi></span></p><p class="muted small">{t(locale, 'country')}: {x.data.country}</p><p>{x.data.summary}</p>{x.data.url && <p><a href={x.data.url} rel="noopener">{x.data.url.replace('https://', '')}</a></p>}</li>)}</ul>
   <p class="muted small">{t(locale, 'partnersNameOnly')}</p>
 </BaseLayout>

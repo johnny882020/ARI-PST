@@ -2,12 +2,10 @@
 import { render } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Crumbs from "../../components/Crumbs.astro";
-import { LOCALES, LEGAL_SLUGS, type Locale } from "../../content/schemas";
+import { LOCALES, type Locale } from "../../content/schemas";
 import { t, fmtDate } from "../../i18n/ui";
-import { path } from "../../lib/paths";
+import { path, LEGAL_URL_SLUG as URL_SLUG } from "../../lib/paths";
 import { list, hasTranslation } from "../../lib/content";
-// URL slug 'analytics-notice' maps to legal entry 'analytics'.
-const URL_SLUG: Record<string, string> = { privacy: 'privacy', terms: 'terms', accessibility: 'accessibility', analytics: 'analytics-notice' };
 export async function getStaticPaths() {
   const out = [];
   for (const locale of LOCALES) for (const e of await list('legal', locale)) out.push({ params: { locale, legal: URL_SLUG[e.data.slug] }, props: { entry: e } });
@@ -20,7 +18,6 @@ const { Content } = await render(entry);
 const hasOther = await hasTranslation('legal', locale === 'he' ? 'en' : 'he', d.slug);
 const slug = URL_SLUG[d.slug]!;
 const crumbs = [{ name: t(locale, 'home'), path: path(locale) }, { name: d.title, path: path(locale, slug) }];
-void LEGAL_SLUGS;
 ---
 <BaseLayout locale={locale} title={d.title} description={d.description} slug={slug} hasOther={hasOther} crumbs={crumbs}>
   <Crumbs locale={locale} crumbs={crumbs} />

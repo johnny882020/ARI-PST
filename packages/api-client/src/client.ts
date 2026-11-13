@@ -1,7 +1,7 @@
 import createClient, { type Middleware } from "openapi-fetch";
 import type { paths } from "./generated/schema";
 import type { ExtPaths } from "./ext";
-import { toApiProblem, type ApiProblem } from "./problem";
+import { toApiProblem } from "./problem";
 
 export type AllPaths = paths & ExtPaths;
 
@@ -59,21 +59,17 @@ export function createApiClient(opts: ApiClientOptions = {}) {
 
 export type ApiClient = ReturnType<typeof createApiClient>;
 
-type Result<D, E> = Promise<
-  { data: D; error?: never; response: Response } | { data?: never; error: E; response: Response }
->;
+type Res = { data?: unknown; error?: unknown; response: Response };
 
 /** Unwraps an openapi-fetch result: returns data, or throws ApiProblem. */
-export async function unwrap<D, E>(p: Result<D, E>): Promise<D> {
+export async function unwrap<R extends Res>(p: Promise<R>): Promise<NonNullable<R["data"]>> {
   const r = await p;
-  if (r.error !== undefined || !r.response.ok) {
-    throw toApiProblem(r.error, r.response) satisfies ApiProblem;
-  }
-  return r.data as D;
+  if (r.error !== undefined || !r.response.ok) throw toApiProblem(r.error, r.response);
+  return r.data as NonNullable<R["data"]>;
 }
 
 /** Same as unwrap but for 204 responses: resolves void. */
-export async function unwrapVoid<E>(p: Promise<{ error?: E; response: Response }>): Promise<void> {
+export async function unwrapVoid(p: Promise<{ error?: unknown; response: Response }>): Promise<void> {
   const r = await p;
   if (r.error !== undefined || !r.response.ok) throw toApiProblem(r.error, r.response);
 }

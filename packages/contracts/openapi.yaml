@@ -35,6 +35,7 @@ paths:
     post:
       tags: [auth]
       operationId: login
+      x-roles: public
       summary: Start a session with email and password. Returns the next step.
       security: []
       requestBody:
@@ -54,6 +55,7 @@ paths:
     post:
       tags: [auth]
       operationId: verifyMfa
+      x-roles: public
       summary: Complete login with a TOTP code or a passkey assertion.
       security: []
       requestBody:
@@ -75,6 +77,7 @@ paths:
     post:
       tags: [auth]
       operationId: webauthnOptions
+      x-roles: public
       summary: Get WebAuthn challenge options for a passkey login.
       security: []
       requestBody:
@@ -97,6 +100,7 @@ paths:
     post:
       tags: [auth]
       operationId: logout
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: End the current session.
       responses:
         '204': { description: Session ended. }
@@ -104,6 +108,7 @@ paths:
     get:
       tags: [auth]
       operationId: getAuthSession
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Read the current session, role set and active center (alias of GET /session).
       responses:
         '200':
@@ -117,6 +122,7 @@ paths:
     get:
       tags: [samples]
       operationId: listSamples
+      x-roles: [center_clinician, national_coordinator]
       summary: List sample rows. Roles center_clinician (own center only) and national_coordinator.
       description: External roles get 403. Use /search/aggregate instead.
       parameters:
@@ -147,6 +153,7 @@ paths:
     post:
       tags: [samples]
       operationId: createSample
+      x-roles: [national_coordinator]
       summary: Create one sample record (minimal entry screen). national_coordinator only.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -169,6 +176,7 @@ paths:
     get:
       tags: [samples]
       operationId: getSample
+      x-roles: [center_clinician, national_coordinator]
       summary: Read one sample. Clinician only for own center.
       responses:
         '200':
@@ -180,6 +188,7 @@ paths:
     patch:
       tags: [samples]
       operationId: updateSample
+      x-roles: [national_coordinator]
       summary: Update fields of a sample. national_coordinator only. Sets updatedAt.
       parameters:
         - name: If-Match
@@ -204,6 +213,7 @@ paths:
     post:
       tags: [samples]
       operationId: verifySample
+      x-roles: [center_clinician, national_coordinator]
       summary: Confirm the record is still correct. Sets lastVerifiedAt to now.
       parameters:
         - $ref: '#/components/parameters/SampleIdPath'
@@ -217,6 +227,7 @@ paths:
     post:
       tags: [samples]
       operationId: retireSample
+      x-roles: [national_coordinator]
       summary: Soft delete. The record leaves search at once. Purge follows the retention policy.
       parameters:
         - $ref: '#/components/parameters/SampleIdPath'
@@ -227,6 +238,7 @@ paths:
     post:
       tags: [search]
       operationId: searchAggregate
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member]
       summary: Count samples that match filters. k-anonymous. All roles except anonymous.
       description: |
         Returns a count or a suppressed marker. Never returns rows or ids.
@@ -247,6 +259,7 @@ paths:
     post:
       tags: [search]
       operationId: searchFacets
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member]
       summary: Facet counts for the current filters. k-anonymous.
       requestBody:
         required: true
@@ -264,6 +277,7 @@ paths:
     get:
       tags: [search]
       operationId: suggestTerms
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member]
       summary: Smart search. Map free text (he or en) to diagnosis terms.
       parameters:
         - name: q
@@ -286,6 +300,7 @@ paths:
     get:
       tags: [search]
       operationId: listDiagnoses
+      x-roles: public
       summary: Diagnosis vocabulary tree with labels in he and en.
       security:
         - sessionCookie: []
@@ -307,6 +322,7 @@ paths:
     get:
       tags: [requests]
       operationId: listRequests
+      x-roles: [researcher_il, center_clinician, national_coordinator, committee_member]
       summary: List requests. Applicant sees own. Coordinator and committee see all they may see.
       parameters:
         - $ref: '#/components/parameters/Cursor'
@@ -323,6 +339,7 @@ paths:
     post:
       tags: [requests]
       operationId: createRequest
+      x-roles: [researcher_il]
       summary: Create a draft request. researcher_il only.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -345,6 +362,7 @@ paths:
     get:
       tags: [requests]
       operationId: getRequest
+      x-roles: [researcher_il, center_clinician, national_coordinator, committee_member]
       summary: Read one request with items and visible steps.
       responses:
         '200':
@@ -356,6 +374,7 @@ paths:
     patch:
       tags: [requests]
       operationId: updateRequestDraft
+      x-roles: [researcher_il]
       summary: Edit a draft request.
       requestBody:
         required: true
@@ -373,6 +392,7 @@ paths:
     post:
       tags: [requests]
       operationId: addRequestItem
+      x-roles: [researcher_il]
       summary: Add a cart item. It holds search criteria, not sample ids.
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -392,6 +412,7 @@ paths:
     delete:
       tags: [requests]
       operationId: removeRequestItem
+      x-roles: [researcher_il]
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
         - name: itemId
@@ -404,6 +425,7 @@ paths:
     post:
       tags: [requests]
       operationId: submitRequest
+      x-roles: [researcher_il]
       summary: Submit a draft. All form fields must be set.
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -419,6 +441,7 @@ paths:
     get:
       tags: [requests]
       operationId: listRequestSteps
+      x-roles: [researcher_il, center_clinician, national_coordinator, committee_member]
       summary: Steps and public notes. Applicant sees public fields only.
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -438,6 +461,7 @@ paths:
     patch:
       tags: [requests]
       operationId: updateRequestStep
+      x-roles: [national_coordinator]
       summary: Change a step status or add a note. national_coordinator only.
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -461,6 +485,7 @@ paths:
     put:
       tags: [requests]
       operationId: resolveRequestSamples
+      x-roles: [national_coordinator]
       summary: Coordinator links an item to concrete sample ids. Never shown to the applicant.
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -482,6 +507,7 @@ paths:
     put:
       tags: [requests]
       operationId: castVote
+      x-roles: [committee_member]
       summary: Committee member casts or changes own vote until a decision exists.
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -506,6 +532,7 @@ paths:
     get:
       tags: [requests]
       operationId: listDecisions
+      x-roles: [researcher_il, national_coordinator, committee_member]
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
       responses:
@@ -523,6 +550,7 @@ paths:
     post:
       tags: [requests]
       operationId: recordDecision
+      x-roles: [committee_member]
       summary: Record the committee decision. Needs N approving votes (configuration).
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -548,6 +576,7 @@ paths:
     get:
       tags: [import]
       operationId: listImportJobs
+      x-roles: [national_coordinator]
       summary: List import jobs. national_coordinator only.
       parameters:
         - $ref: '#/components/parameters/Cursor'
@@ -561,6 +590,7 @@ paths:
     post:
       tags: [import]
       operationId: createImportJob
+      x-roles: [national_coordinator]
       summary: Upload a CSV or XLSX file. Always starts as a dry run.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -589,6 +619,7 @@ paths:
     get:
       tags: [import]
       operationId: getImportJob
+      x-roles: [national_coordinator]
       parameters:
         - $ref: '#/components/parameters/JobIdPath'
       responses:
@@ -601,6 +632,7 @@ paths:
     get:
       tags: [import]
       operationId: listImportRows
+      x-roles: [national_coordinator]
       summary: Row results. Row number, field names, rule codes. No cell values.
       parameters:
         - $ref: '#/components/parameters/JobIdPath'
@@ -619,6 +651,7 @@ paths:
     get:
       tags: [import]
       operationId: downloadImportReport
+      x-roles: [national_coordinator]
       summary: Rejection report as CSV. Audited as a download.
       parameters:
         - $ref: '#/components/parameters/JobIdPath'
@@ -632,6 +665,7 @@ paths:
     get:
       tags: [import]
       operationId: downloadImportResultMap
+      x-roles: [national_coordinator]
       summary: CSV of rowNo and sampleCode for created rows. Kept 30 days. Audited as a download.
       parameters:
         - $ref: '#/components/parameters/JobIdPath'
@@ -645,6 +679,7 @@ paths:
     post:
       tags: [import]
       operationId: commitImportJob
+      x-roles: [national_coordinator]
       summary: Commit a validated dry run. Creates a child job in mode commit.
       parameters:
         - $ref: '#/components/parameters/JobIdPath'
@@ -670,6 +705,7 @@ paths:
     get:
       tags: [import]
       operationId: downloadImportTemplate
+      x-roles: [national_coordinator]
       summary: Empty template with header row and a data dictionary sheet.
       parameters:
         - name: format
@@ -688,6 +724,7 @@ paths:
     get:
       tags: [audit]
       operationId: queryAuditEvents
+      x-roles: [system_admin, national_coordinator, committee_member]
       summary: Query the audit log. system_admin only. Querying is itself audited.
       parameters:
         - $ref: '#/components/parameters/Cursor'
@@ -710,6 +747,7 @@ paths:
     post:
       tags: [audit]
       operationId: verifyAuditChain
+      x-roles: [system_admin]
       summary: Recompute the hash chain. Returns the first broken sequence number or null.
       requestBody:
         content:
@@ -735,6 +773,7 @@ paths:
     get:
       tags: [admin]
       operationId: listCenters
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: List centers (public fields). All authenticated roles.
       responses:
         '200':
@@ -751,6 +790,7 @@ paths:
     post:
       tags: [admin]
       operationId: createCenter
+      x-roles: [system_admin]
       summary: Create a center. system_admin only.
       requestBody:
         required: true
@@ -772,6 +812,7 @@ paths:
     get:
       tags: [admin]
       operationId: getCenter
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       responses:
         '200':
           description: The center.
@@ -781,6 +822,7 @@ paths:
     patch:
       tags: [admin]
       operationId: updateCenter
+      x-roles: [system_admin]
       requestBody:
         required: true
         content:
@@ -796,6 +838,7 @@ paths:
     get:
       tags: [samples]
       operationId: getCenterStaleness
+      x-roles: [center_clinician, national_coordinator]
       summary: Freshness summary and SLA for one center. Clinician (own center) and coordinator.
       parameters:
         - name: centerId
@@ -812,6 +855,7 @@ paths:
     get:
       tags: [samples]
       operationId: listEthicsApprovals
+      x-roles: [center_clinician, national_coordinator]
       parameters:
         - { name: centerId, in: query, schema: { $ref: '#/components/schemas/CenterId' } }
       responses:
@@ -829,6 +873,7 @@ paths:
     post:
       tags: [samples]
       operationId: createEthicsApproval
+      x-roles: [national_coordinator]
       summary: Register an approval reference. national_coordinator only.
       requestBody:
         required: true
@@ -845,6 +890,7 @@ paths:
     get:
       tags: [admin]
       operationId: listUsers
+      x-roles: [system_admin, national_coordinator]
       summary: List users. system_admin and national_coordinator (researchers only).
       parameters:
         - $ref: '#/components/parameters/Cursor'
@@ -859,6 +905,7 @@ paths:
     post:
       tags: [admin]
       operationId: inviteUser
+      x-roles: [system_admin]
       summary: Invite a user. Email is verified before activation.
       requestBody:
         required: true
@@ -881,6 +928,7 @@ paths:
     get:
       tags: [admin]
       operationId: getUser
+      x-roles: [system_admin, national_coordinator]
       responses:
         '200':
           description: The user.
@@ -890,6 +938,7 @@ paths:
     patch:
       tags: [admin]
       operationId: updateUser
+      x-roles: [system_admin]
       summary: Change status or name. Suspension ends sessions at once.
       requestBody:
         required: true
@@ -910,6 +959,7 @@ paths:
     post:
       tags: [admin]
       operationId: grantRole
+      x-roles: [system_admin]
       summary: Grant a role. Separation of duties is enforced. center_clinician needs centerId.
       parameters:
         - name: userId
@@ -927,6 +977,11 @@ paths:
                 role: { $ref: '#/components/schemas/Role' }
                 centerId: { $ref: '#/components/schemas/CenterId' }
       responses:
+        '202':
+          description: Privileged role. Waiting for a second system_admin to approve.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Approval' }
         '201':
           description: Granted.
           content:
@@ -937,6 +992,7 @@ paths:
     delete:
       tags: [admin]
       operationId: revokeRole
+      x-roles: [system_admin]
       parameters:
         - name: userId
           in: path
@@ -953,6 +1009,7 @@ paths:
     get:
       tags: [auth]
       operationId: csrfBootstrap
+      x-roles: public
       summary: Returns the CSRF token for this browser and sets the __Host-csrf cookie. Call before login.
       security: []
       responses:
@@ -961,6 +1018,7 @@ paths:
     post:
       tags: [auth]
       operationId: register
+      x-roles: public
       summary: Researcher self-registration. Account stays pending until a national_coordinator approves it and the email is verified.
       security: []
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RegisterRequest' } } } }
@@ -972,6 +1030,7 @@ paths:
     post:
       tags: [auth]
       operationId: verifyEmail
+      x-roles: public
       summary: Confirm the email address with the emailed token. Also sets the first password for invited users.
       security: []
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/VerifyEmailRequest' } } } }
@@ -982,6 +1041,7 @@ paths:
     post:
       tags: [auth]
       operationId: changePassword
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Change own password. Ends all other sessions.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ChangePasswordRequest' } } } }
       responses:
@@ -991,6 +1051,7 @@ paths:
     post:
       tags: [auth]
       operationId: stepUp
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Re-confirm the second factor. Needed for sensitive actions (age 5 minutes or less).
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StepUpRequest' } } } }
       responses:
@@ -1000,6 +1061,7 @@ paths:
     post:
       tags: [auth]
       operationId: enrollTotpStart
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Start TOTP enrolment. Returns the secret once.
       responses:
         '200': { description: Secret., content: { application/json: { schema: { $ref: '#/components/schemas/TotpEnrollment' } } } }
@@ -1007,6 +1069,7 @@ paths:
     post:
       tags: [auth]
       operationId: enrollTotpConfirm
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Confirm TOTP with a code. First confirmation also returns recovery codes once.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TotpConfirmRequest' } } } }
       responses:
@@ -1016,6 +1079,7 @@ paths:
     post:
       tags: [auth]
       operationId: webauthnRegisterOptions
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Passkey registration options (WebAuthn).
       responses:
         '200': { description: Options., content: { application/json: { schema: { type: object, additionalProperties: true } } } }
@@ -1023,6 +1087,7 @@ paths:
     post:
       tags: [auth]
       operationId: webauthnRegisterVerify
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Verify the passkey registration response.
       requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
       responses:
@@ -1032,6 +1097,7 @@ paths:
     post:
       tags: [auth]
       operationId: regenerateRecoveryCodes
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Replace the recovery codes. Shown once. Needs a fresh step-up.
       responses:
         '200': { description: New codes., content: { application/json: { schema: { $ref: '#/components/schemas/RecoveryCodes' } } } }
@@ -1040,6 +1106,7 @@ paths:
     get:
       tags: [auth]
       operationId: getMe
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Own profile, roles and enrolled factors.
       responses:
         '200': { description: Profile., content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
@@ -1047,6 +1114,7 @@ paths:
     patch:
       tags: [auth]
       operationId: updateMe
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Change own display name or locale.
       requestBody: { required: true, content: { application/merge-patch+json: { schema: { $ref: '#/components/schemas/MeUpdate' } } } }
       responses:
@@ -1056,6 +1124,7 @@ paths:
     get:
       tags: [auth]
       operationId: getSessionInfo
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Current session, expiry and step-up state.
       responses:
         '200': { description: Session., content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
@@ -1064,6 +1133,7 @@ paths:
     post:
       tags: [auth]
       operationId: extendSession
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Keep the session alive (resets the idle timer, never the absolute limit).
       responses:
         '200': { description: Extended., content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
@@ -1072,6 +1142,7 @@ paths:
     post:
       tags: [observability]
       operationId: reportClientError
+      x-roles: public
       summary: Browser error beacon. Class and route only. No messages, no user text.
       security: []
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ClientError' } } } }
@@ -1082,6 +1153,7 @@ paths:
     post:
       tags: [observability]
       operationId: reportCsp
+      x-roles: public
       summary: CSP violation report endpoint.
       security: []
       requestBody:
@@ -1095,6 +1167,7 @@ paths:
     post:
       tags: [public]
       operationId: submitPublicForm
+      x-roles: public
       summary: Join or contact form from the public site. Delivered by email to the operator. Not stored.
       security: []
       parameters:
@@ -1108,12 +1181,14 @@ paths:
     get:
       tags: [requests]
       operationId: getRequestCart
+      x-roles: [researcher_il]
       summary: The applicant's current cart (the open draft request).
       responses:
         '200': { description: Cart., content: { application/json: { schema: { $ref: '#/components/schemas/RequestCart' } } } }
     put:
       tags: [requests]
       operationId: putRequestCart
+      x-roles: [researcher_il]
       summary: Replace the cart items. Creates the draft request when none exists.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RequestCartPut' } } } }
       responses:
@@ -1124,6 +1199,7 @@ paths:
     post:
       tags: [samples]
       operationId: flagSample
+      x-roles: [center_clinician, national_coordinator]
       summary: Flag a record for review (reason code only). Clinician of own center or coordinator.
       parameters:
         - $ref: '#/components/parameters/SampleIdPath'
@@ -1135,6 +1211,7 @@ paths:
     post:
       tags: [requests]
       operationId: transitionRequest
+      x-roles: [researcher_il, national_coordinator, committee_member]
       summary: Move the request to another state. Allowed actor per transition is fixed by the state machine and the database.
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -1147,6 +1224,7 @@ paths:
     get:
       tags: [requests]
       operationId: listVotes
+      x-roles: [committee_member, national_coordinator]
       summary: Votes on a request. Committee and coordinator.
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -1157,6 +1235,7 @@ paths:
     get:
       tags: [center-ingestion]
       operationId: listStaleness
+      x-roles: [national_coordinator]
       summary: Freshness summary for every center. Coordinator.
       responses:
         '200': { description: Summaries., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/CenterSummary' } } } } } } }
@@ -1164,6 +1243,7 @@ paths:
     get:
       tags: [admin]
       operationId: getMetrics
+      x-roles: [national_coordinator, committee_member, system_admin]
       summary: Success metrics (REQ-066). Counts only.
       responses:
         '200': { description: Metrics., content: { application/json: { schema: { $ref: '#/components/schemas/Metrics' } } } }
@@ -1171,6 +1251,7 @@ paths:
     get:
       tags: [admin]
       operationId: listPendingRegistrations
+      x-roles: [national_coordinator]
       summary: Researcher registrations waiting for approval. national_coordinator.
       responses:
         '200': { description: Pending., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Registration' } } } } } } }
@@ -1178,6 +1259,7 @@ paths:
     post:
       tags: [admin]
       operationId: approveRegistration
+      x-roles: [national_coordinator]
       summary: Approve a registration. Grants researcher_il or researcher_intl. Needs step-up.
       parameters:
         - { name: userId, in: path, required: true, schema: { type: string, pattern: '^usr_[0-9A-HJKMNP-TV-Z]{26}$' } }
@@ -1189,6 +1271,7 @@ paths:
     post:
       tags: [admin]
       operationId: rejectRegistration
+      x-roles: [national_coordinator]
       summary: Reject a registration. The account is closed.
       parameters:
         - { name: userId, in: path, required: true, schema: { type: string, pattern: '^usr_[0-9A-HJKMNP-TV-Z]{26}$' } }
@@ -1199,6 +1282,7 @@ paths:
     get:
       tags: [admin]
       operationId: getGovernanceConfig
+      x-roles: [system_admin, national_coordinator, committee_member]
       summary: k policies and committee N-of-M. The k value is shown to admins only.
       responses:
         '200': { description: Config., content: { application/json: { schema: { $ref: '#/components/schemas/GovernanceConfig' } } } }
@@ -1206,6 +1290,7 @@ paths:
     post:
       tags: [admin]
       operationId: proposeKChange
+      x-roles: [system_admin]
       summary: Propose a k change (k 5 or more). A different system_admin must approve. Needs step-up.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/KChange' } } } }
       responses:
@@ -1215,6 +1300,7 @@ paths:
     post:
       tags: [admin]
       operationId: proposeCommitteeConfigChange
+      x-roles: [system_admin]
       summary: Propose a change of N-of-M. A different system_admin must approve.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CommitteeConfigChange' } } } }
       responses:
@@ -1224,6 +1310,7 @@ paths:
     get:
       tags: [admin]
       operationId: listApprovals
+      x-roles: [system_admin]
       summary: Pending and decided governance changes.
       responses:
         '200': { description: Approvals., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Approval' } } } } } } }
@@ -1231,6 +1318,7 @@ paths:
     post:
       tags: [admin]
       operationId: approveGovernanceChange
+      x-roles: [system_admin]
       summary: Approve or reject a pending change. The approver must differ from the proposer. Needs step-up.
       parameters:
         - { name: approvalId, in: path, required: true, schema: { type: string } }
@@ -1243,6 +1331,7 @@ paths:
     get:
       tags: [admin]
       operationId: listOutbox
+      x-roles: [system_admin]
       summary: Notification outbox status (no recipients, no content). system_admin.
       responses:
         '200': { description: Outbox., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/OutboxItem' } } } } } } }
@@ -1251,6 +1340,7 @@ paths:
     get:
       tags: [observability]
       operationId: livez
+      x-roles: public
       summary: Process is alive.
       security: []
       responses:
@@ -1260,6 +1350,7 @@ paths:
     get:
       tags: [observability]
       operationId: readyz
+      x-roles: public
       summary: Database reachable and migrations at the expected level.
       security: []
       responses:
@@ -1445,12 +1536,12 @@ components:
         filters: { $ref: '#/components/schemas/SearchFilters' }
     AggregateResult:
       type: object
-      required: [suppressed, label, k]
+      required: [suppressed, label]
       properties:
         count: { type: [integer, 'null'], description: Null when suppressed. }
         suppressed: { type: boolean }
-        label: { type: string, description: 'Display text. Examples: "42", "5-9", "<5".' }
-        k: { type: integer, minimum: 2 }
+        label: { type: string, description: 'Display text: the count as text, or too_few when suppressed. The threshold is never shown to external roles.' }
+        k: { type: integer, minimum: 2, description: 'Only returned to national_coordinator.' }
         resolvedFilters: { $ref: '#/components/schemas/SearchFilters' }
     FacetRequest:
       type: object
@@ -1476,7 +1567,7 @@ components:
         suppressed: { type: boolean }
     FacetResult:
       type: object
-      required: [facets, k]
+      required: [facets]
       properties:
         k: { type: integer }
         facets:

@@ -20,5 +20,5 @@ const crumbs = [{ name: t(locale, 'home'), path: path(locale) }, { name: d.title
   <Crumbs locale={locale} crumbs={crumbs} />
   <h1>{d.title}</h1>
   <p class="lead">{d.intro}</p>
-  <ul class="grid">{areas.map((a) => <li class="card"><h3><a href={path(locale, `research/${a.data.slug}`)}>{a.data.name}</a></h3><p>{a.data.summary}</p></li>)}</ul>
+  <ul class="grid">{areas.map((a) => <li class="card"><h2 class="card-title"><a href={path(locale, `research/${a.data.slug}`)}>{a.data.name}</a></h2><p>{a.data.summary}</p></li>)}</ul>
 </BaseLayout>

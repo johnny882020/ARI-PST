@@ -40,12 +40,12 @@ a:hover { color: var(--color-primary-hover); }
   .navlist { flex-direction: row; flex-wrap: wrap; padding: 0; }
 }
 
-main { flex: 1; inline-size: 100%; max-inline-size: var(--container); margin-inline: auto; padding: var(--space-6) var(--gutter) var(--space-9); }
+main { flex: 1; inline-size: 100%; max-inline-size: var(--container); margin-inline: auto; padding-block: var(--space-6) var(--space-9); padding-inline: var(--gutter); }
 main:focus { outline: none; }
 h1, h2 { font-family: var(--font-display); line-height: var(--lh-tight); }
 h1 { font-size: var(--fs-h1); margin-block: 0 var(--space-4); }
 h2 { font-size: var(--fs-h3); margin-block: var(--space-7) var(--space-4); }
-h3 { font-size: var(--fs-h4); margin-block: 0 var(--space-2); line-height: var(--lh-snug); }
+h3, .card .card-title { font-size: var(--fs-h4); margin-block: 0 var(--space-2); line-height: var(--lh-snug); font-family: inherit; }
 p, li { max-inline-size: var(--measure); }
 .lead { font-size: var(--fs-lead); color: var(--color-text-muted); }
 .muted { color: var(--color-text-muted); }

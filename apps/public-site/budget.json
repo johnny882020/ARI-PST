@@ -1,0 +1,29 @@
+[
+  {
+    "path": "/*",
+    "resourceSizes": [
+      {
+        "resourceType": "script",
+        "budget": 50
+      },
+      {
+        "resourceType": "stylesheet",
+        "budget": 60
+      },
+      {
+        "resourceType": "font",
+        "budget": 120
+      },
+      {
+        "resourceType": "total",
+        "budget": 800
+      }
+    ],
+    "resourceCounts": [
+      {
+        "resourceType": "third-party",
+        "budget": 1
+      }
+    ]
+  }
+]

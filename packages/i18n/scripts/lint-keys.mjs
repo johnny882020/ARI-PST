@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "messages");
 const he = JSON.parse(readFileSync(join(dir, "he.json"), "utf8"));
 const en = JSON.parse(readFileSync(join(dir, "en.json"), "utf8"));
-const KEY = /^[a-z][a-zA-Z0-9]*(\.[a-zA-Z0-9]+)+$/;
+const KEY = /^[a-z][a-zA-Z0-9]*(\.[a-zA-Z0-9_]+)+$/;
 const errors = [];
 for (const k of Object.keys(en)) if (!(k in he)) errors.push(`missing in he: ${k}`);
 for (const k of Object.keys(he)) if (!(k in en)) errors.push(`missing in en: ${k}`);

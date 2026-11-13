@@ -19,7 +19,7 @@ export default defineConfig({
   integrations: [
     sitemap({
       i18n: { defaultLocale: 'he', locales: { he: 'he-IL', en: 'en-US' } },
-      filter: (url) => !/\/404\/?$/.test(url),
+      filter: (url) => !/\/404\/?$/.test(url) && new URL(url).pathname !== '/',
     }),
     postBuild(),
   ],

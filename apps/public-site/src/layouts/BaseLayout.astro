@@ -27,7 +27,7 @@ const { locale, title, description, slug = '', hasOther = true, ogType = 'websit
 const s = await settings(locale);
 const other = otherLocale(locale);
 const topSlug = slug.split('/')[0];
-const fullTitle = slug === '' ? `${title} | ${s.site_name}` : `${title} | ${s.site_name}`;
+const fullTitle = `${title} | ${s.site_name}`;
 const canonical = abs(path(locale, slug));
 const links = hreflangLinks(locale, slug, hasOther);
 const robots = noindex || NOINDEX_ALL ? 'noindex, nofollow' : 'index, follow';
@@ -72,7 +72,7 @@ const footerLinks = [
           <span>ARI-PST<small>× Tech4Cancer</small></span>
         </a>
         <div class="tools">
-          <a class="btn btn-sm" href={switchHref} hreflang={other} lang={other} aria-label={t(locale, 'switchToLabel')} data-umami-event="language_switch">{LANG_NAME[other]}</a>
+          <a class="btn btn-sm" href={switchHref} hreflang={other} lang={other} data-umami-event="language_switch">{LANG_NAME[other]}</a>
           <a class="btn btn-primary btn-sm" href={PORTAL_URL} data-umami-event="login_entry_click">{t(locale, 'login')}</a>
         </div>
         <div class="nav-wrap">

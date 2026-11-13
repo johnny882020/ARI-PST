@@ -8,3 +8,6 @@ export { LOCALES };
 
 /** Slug of a page within a locale, from the pathname (`/he/news/x/` -> `news/x`). */
 export const slugFromPath = (pathname: string): string => pathname.replace(/^\/(he|en)\/?/, '').replace(/\/$/, '');
+
+/** URL slug of each legal entry ('analytics' is served at /analytics-notice/). */
+export const LEGAL_URL_SLUG: Record<string, string> = { privacy: 'privacy', terms: 'terms', accessibility: 'accessibility', analytics: 'analytics-notice' };

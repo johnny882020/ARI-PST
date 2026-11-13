@@ -32,7 +32,7 @@ export function useErrorText() {
   return (msg: string | undefined): string | undefined => {
     if (!msg) return undefined;
     if (msg.startsWith("server.")) return t(RULE_KEYS[msg.slice(7)] ?? "form.error.format");
-    return t((msg as MessageKey) in ({} as Record<string, never>) ? "form.error.required" : (msg as MessageKey));
+    return t(msg as MessageKey);
   };
 }
 

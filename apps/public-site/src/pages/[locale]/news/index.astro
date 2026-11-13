@@ -20,5 +20,5 @@ const crumbs = [{ name: t(locale, 'home'), path: path(locale) }, { name: d.title
   <Crumbs locale={locale} crumbs={crumbs} />
   <h1>{d.title}</h1>
   <p class="lead">{d.intro}</p>
-  <ul class="grid">{items.map((n) => <li class="card"><h3><a href={path(locale, `news/${n.data.slug}`)}>{n.data.title}</a></h3><p class="muted small"><time datetime={n.data.date.toISOString().slice(0, 10)}>{fmtDate(locale, n.data.date)}</time></p><p>{n.data.summary}</p></li>)}</ul>
+  <ul class="grid">{items.map((n) => <li class="card"><h2 class="card-title"><a href={path(locale, `news/${n.data.slug}`)}>{n.data.title}</a></h2><p class="muted small"><time datetime={n.data.date.toISOString().slice(0, 10)}>{fmtDate(locale, n.data.date)}</time></p><p>{n.data.summary}</p></li>)}</ul>
 </BaseLayout>
