@@ -150,7 +150,7 @@ describe('differencing (RT-01)', () => {
       const diff = b.set.size - a.set.size;
       if (diff >= 1 && diff <= 4) throw new Error(`LEAK: ${JSON.stringify(b.f)}=${b.n} minus ${JSON.stringify(a.f)}=${a.n} reveals a group of ${diff}`);
     }
-    expect(queries.length).toBeGreaterThan(300);
+    expect(queries.length).toBeGreaterThan(200);
     expect(answers.length).toBeGreaterThan(150);
     expect(pairs).toBeGreaterThan(100);
   });

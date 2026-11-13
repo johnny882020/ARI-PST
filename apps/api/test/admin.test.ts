@@ -97,9 +97,12 @@ describe('audit log', () => {
     const v = await h.call(a1, 'POST', '/api/v1/audit-events/verify', { body: {} }); expect(v.status, v.body).toBe(200); expect(v.json.intact).toBe(true);
     // tampering is detected
     await h.admin.query('ALTER TABLE audit.audit_events DISABLE TRIGGER trg_audit_no_update');
-    await h.admin.query(`UPDATE audit.audit_events SET object_id = 'tampered' WHERE ctid = (SELECT ctid FROM audit.audit_events ORDER BY occurred_at LIMIT 1)`);
-    await h.admin.query('ALTER TABLE audit.audit_events ENABLE TRIGGER trg_audit_no_update');
+    const first = (await h.admin.query(`SELECT id, object_id FROM audit.audit_events ORDER BY occurred_at LIMIT 1`)).rows[0];
+    await h.admin.query(`UPDATE audit.audit_events SET object_id = 'tampered' WHERE id = $1`, [first.id]);
     const v2 = await h.call(a1, 'POST', '/api/v1/audit-events/verify', { body: {} }); expect(v2.json.intact).toBe(false);
+    await h.admin.query(`UPDATE audit.audit_events SET object_id = $2 WHERE id = $1`, [first.id, first.object_id]);   // restore for the other suites
+    expect((await h.call(a1, 'POST', '/api/v1/audit-events/verify', { body: {} })).json.intact).toBe(true);
+    await h.admin.query('ALTER TABLE audit.audit_events ENABLE TRIGGER trg_audit_no_update');
   });
 });
 
