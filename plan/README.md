@@ -22,5 +22,5 @@ Reading order:
 | `requests/` | all | Cross-agent requests |
 | `10-review/` | R1, R2 | Findings |
 
-Still to come after review: `decision-register.md`, `traceability-matrix.csv`.
+Wave 3 files: `11-integration/canonical-decisions.md`, `decision-register.md`, `traceability-matrix.csv` (REQ coverage: design 72/72, tests 63/72; 9 REQs are Phase 0 or later gate items).
 Not yet verified: Render facts (docs were unreachable), legal items, Mermaid rendering.

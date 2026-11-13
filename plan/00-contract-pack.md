@@ -192,3 +192,6 @@ User friendly · Reliable · Highly secure and private · Apple-style design · 
 - ASSUMPTION-03 confirmed: researchers **self-register, then national_coordinator approves**.
 - Phase 1 = fully functional (all roles, permissions, DB, security layers). Real data stays blocked by GATE-PROD-DATA.
 - Render account: owner's own. Deploy only after the owner links the repo and gives the API key through a secure form.
+
+## 12. Wave 3 canonical decisions
+Binding. See `plan/11-integration/canonical-decisions.md`. It fixes the request-state enum, session/cookie/origin model, DB role model, health endpoints, retention, k floor, and the thin Phase 1 slice. It wins over any agent plan.

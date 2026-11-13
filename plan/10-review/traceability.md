@@ -85,7 +85,7 @@ Severity: Critical = blocks build or breaks a binding rule. High = causes rework
 | C-23 | Low | **Deploy health URL mismatch inside A7.** Staging `/healthz` at root, prod `/api/healthz`. | Follow C-05 and C-03. |
 | C-24 | Low | **Index size assumption.** A1 100,000 records; A4 and A8 50,000; A9 "thousands to tens of thousands". | Document 100k as design max. |
 | C-25 | Low | **Gender and quote forms.** `רכז/ת` (pack, A5 tracker text) vs `רכז`/`רכזות` (A5 buttons, A8 UAT). | See section 6. |
-| C-26 | Low | **A3 `SameSite` text in `03-data-integration/openapi/openapi.yaml` line 63 vs A2.** Part of C-03. | See C-03. |
+| C-26 | Low | **Cookie text in `openapi.yaml` line 63** says `SameSite=Strict` and `ari_session`. Part of C-03. | See C-03. |
 
 Count by severity: Critical 2 (C-01, C-03). High 6 (C-02, C-04, C-05, C-06, C-07, C-10). Medium 10 (C-08, C-09, C-11, C-12, C-13, C-14, C-15, C-16, C-17, C-18). Low 8 (C-19..C-26).
 
@@ -120,7 +120,7 @@ Findings.
 - The register `text` column is the source line as extracted. Some rows (for example OPEN-A5-01..04) show a shared line. Read the source file for the full text.
 
 ## 5. External facts (check 4)
-Method: counted `UNVERIFIED` tags (about 190 across 48 files); sampled claims about Render, laws, standards, and tools.
+Method: counted `UNVERIFIED` tags (190 across 59 files); sampled claims about Render, laws, standards, and tools.
 
 Good practice found.
 - A7 `08-research-log.md` and A9 `00-index.md` list facts with source, date and status.
@@ -161,7 +161,7 @@ Role names in Hebrew are not defined for the seven roles. The mockup shows `מנ
 ## 7. Artifact validation (check 6)
 | Artifact | Tool | Result |
 |---|---|---|
-| YAML: `openapi.yaml`, `error-codes.yaml`, `import-columns.yaml`, `synthetic-generator.yaml`, 12 files in `07-devops-cicd/examples` (render.yaml, render.staging.yaml, dependabot.yml, 8 workflows) | PyYAML `safe_load_all` | All parse |
+| YAML: `openapi.yaml`, `error-codes.yaml`, `import-columns.yaml`, `synthetic-generator.yaml`, 11 files in `07-devops-cicd/examples` (render.yaml, render.staging.yaml, dependabot.yml, 8 workflows) | PyYAML `safe_load_all` | All parse |
 | JSON: `lighthouserc.json` | `json.load` | Parses |
 | CSV: `test-catalog.csv` | `csv` | 113 lines, 5 columns on every line |
 | CSV drafts written here | `csv` | Fixed column counts (matrix 9, register 7) |
@@ -174,7 +174,6 @@ Role names in Hebrew are not defined for the seven roles. The mockup shows `מנ
 Notes from validation.
 - SQL: `k_policies` allows k >= 2 (C-08). Roles and schemas differ from A1 and A2 (C-06).
 - `render.yaml`: `autoDeployTrigger: checksPass` for the public site and `"off"` for protected services. Consistent with the pack. Key names tagged UNVERIFIED by A7.
-- No plan file outside `plan/00-contract-pack.md` sits at plan root. File ownership looks respected (no cross-folder writes seen in file placement).
 
 ## 8. Recommended order of fixes
 1. Critical: C-01 (state enum, one source in `packages/contracts`), C-03 (same-origin ADR; verify Render proxy).

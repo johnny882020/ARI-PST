@@ -1,6 +1,6 @@
 # ARI-PST Portal — Master Plan
 
-Version 0.1 (pre-review). Date: 2026-11-13. Source: the Doc v1.0 and `plan/00-contract-pack.md`.
+Version 0.2 (reviewed). Date: 2026-11-13. Canonical fixes: `plan/11-integration/canonical-decisions.md`.
 Review findings from R1 and R2 are patched in later. Status of each is in `plan/10-review/`.
 Needs legal review: every legal and regulatory item in this plan.
 
