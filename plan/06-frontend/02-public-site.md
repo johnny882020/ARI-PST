@@ -75,7 +75,7 @@ Content validation: Zod schemas in `content/config.ts` are the single definition
 ## 4. SEO (REQ-023)
 
 - `<html lang dir>` set per locale.
-- `<link rel="alternate" hreflang="he|en|x-default">` on every page that has both locales. `x-default` points to `/he/`... Not to the language-chooser unless one exists. If `translation_status: pending`, omit the missing alternate.
+- `<link rel="alternate" hreflang="he|en|x-default">` on every page that has both locales. `x-default` points to the `he` page (default locale). If `translation_status: pending`, omit the missing alternate.
 - Canonical URL on every page (absolute, https, no trailing-slash variation).
 - Sitemap: `@astrojs/sitemap` with `i18n` option so each entry has `xhtml:link` alternates. `robots.txt` references it. `lastmod` from `updated`.
 - Open Graph + Twitter card tags; per-locale `og:locale`.

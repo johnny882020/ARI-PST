@@ -733,7 +733,7 @@ Scenario: Events have no identifiers
 
 Scenario: Metrics report
   When I open the metrics page as national_coordinator
-  Then I see the six pilot metrics from 05-roadmap-and-metrics.md
+  Then I see the pilot metrics M1 to M7 from 05-roadmap-and-metrics.md
 ```
 
 ## I. Story coverage map

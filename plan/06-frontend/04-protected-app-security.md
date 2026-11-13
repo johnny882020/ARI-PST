@@ -167,7 +167,7 @@ Response shape (illustrative, A1/A3 own the contract):
 ```
 
 UI behavior:
-- Suppressed cell shows `< 5` text? **No.** Do not show the threshold number next to a specific cell (it leaks that value is 1–4). Show "Not shown" with an info icon. The explanation text (tooltip + footnote, also readable without hover) says: "Small numbers are hidden to protect privacy. They are included in the broader group."
+- A suppressed cell must not show the threshold (for example "< 5"). That would leak that the value is 1–4. Show "Not shown" with an info icon. The explanation text (tooltip + footnote, also readable without hover) says: "Small numbers are hidden to protect privacy. They are included in the broader group."
 - Merged group is labelled "Other (grouped)" with a footnote.
 - The global note shows the policy once: "Counts are shown only when the group is large enough to protect privacy." Threshold value shown only on the help page, if A2 agrees (OPEN-A6-05).
 - Charts: suppressed bars are hatched, not zero-height. Provide text alternative table. Never plot `0` for suppressed.
