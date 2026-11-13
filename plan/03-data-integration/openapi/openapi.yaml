@@ -1,0 +1,1472 @@
+openapi: 3.1.0
+info:
+  title: ARI-PST Portal API
+  version: 1.0.0-draft
+  summary: Contract for the protected-area API (Phase 1 core resources).
+  description: |
+    Contract-first. This file is a fragment set for A3 resources. A1 merges it into packages/contracts.
+    Rules:
+    - Base path is /api/v1. Breaking change means a new major path (/api/v2).
+    - JSON is camelCase. Dates are ISO 8601 UTC. Collection month is YYYY-MM.
+    - Errors use RFC 9457 Problem Details with media type application/problem+json.
+    - No patient identifiers in any request, response or error. Synthetic data only until GATE-PROD-DATA.
+    - External roles never receive sample rows. They get aggregate resources only.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: https://portal.example.invalid/api/v1
+    description: Placeholder. Real hosts set in infra.
+tags:
+  - name: auth
+  - name: samples
+  - name: search
+  - name: requests
+  - name: import
+  - name: audit
+  - name: admin
+security:
+  - sessionCookie: []
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Start a session with email and password. Returns the next step.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Credentials accepted. A second factor is required.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResult' }
+        '401': { $ref: '#/components/responses/Problem401' }
+        '429': { $ref: '#/components/responses/Problem429' }
+  /auth/mfa/verify:
+    post:
+      tags: [auth]
+      operationId: verifyMfa
+      summary: Complete login with a TOTP code or a passkey assertion.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MfaVerifyRequest' }
+      responses:
+        '200':
+          description: Session created. Cookie is set (HttpOnly, Secure, SameSite=Strict).
+          headers:
+            Set-Cookie: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        '401': { $ref: '#/components/responses/Problem401' }
+        '429': { $ref: '#/components/responses/Problem429' }
+  /auth/webauthn/options:
+    post:
+      tags: [auth]
+      operationId: webauthnOptions
+      summary: Get WebAuthn challenge options for a passkey login.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challengeToken]
+              properties:
+                challengeToken: { type: string }
+      responses:
+        '200':
+          description: Options object as defined by the WebAuthn standard.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/Problem401' }
+  /auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: End the current session.
+      responses:
+        '204': { description: Session ended. }
+  /auth/session:
+    get:
+      tags: [auth]
+      operationId: getSession
+      summary: Read the current session, role set and active center.
+      responses:
+        '200':
+          description: Current session.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        '401': { $ref: '#/components/responses/Problem401' }
+
+  /samples:
+    get:
+      tags: [samples]
+      operationId: listSamples
+      summary: List sample rows. Roles center_clinician (own center only) and national_coordinator.
+      description: External roles get 403. Use /search/aggregate instead.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: centerId
+          in: query
+          schema: { $ref: '#/components/schemas/CenterId' }
+        - name: diagnosisCode
+          in: query
+          schema: { type: string }
+        - name: sampleType
+          in: query
+          schema: { $ref: '#/components/schemas/SampleType' }
+        - name: availability
+          in: query
+          schema: { $ref: '#/components/schemas/Availability' }
+        - name: staleness
+          in: query
+          schema: { type: string, enum: [fresh, due_soon, stale] }
+      responses:
+        '200':
+          description: A page of samples.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SamplePage' }
+        '403': { $ref: '#/components/responses/Problem403' }
+    post:
+      tags: [samples]
+      operationId: createSample
+      summary: Create one sample record (minimal entry screen). national_coordinator only.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SampleCreate' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sample' }
+        '403': { $ref: '#/components/responses/Problem403' }
+        '422': { $ref: '#/components/responses/Problem422' }
+  /samples/{sampleId}:
+    parameters:
+      - $ref: '#/components/parameters/SampleIdPath'
+    get:
+      tags: [samples]
+      operationId: getSample
+      summary: Read one sample. Clinician only for own center.
+      responses:
+        '200':
+          description: The sample.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sample' }
+        '404': { $ref: '#/components/responses/Problem404' }
+    patch:
+      tags: [samples]
+      operationId: updateSample
+      summary: Update fields of a sample. national_coordinator only. Sets updatedAt.
+      parameters:
+        - name: If-Match
+          in: header
+          required: true
+          description: ETag from the last read. Prevents lost updates.
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema: { $ref: '#/components/schemas/SampleUpdate' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sample' }
+        '412': { $ref: '#/components/responses/Problem412' }
+        '422': { $ref: '#/components/responses/Problem422' }
+  /samples/{sampleId}/verify:
+    post:
+      tags: [samples]
+      operationId: verifySample
+      summary: Confirm the record is still correct. Sets lastVerifiedAt to now.
+      parameters:
+        - $ref: '#/components/parameters/SampleIdPath'
+      responses:
+        '200':
+          description: Verified.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sample' }
+  /samples/{sampleId}/retire:
+    post:
+      tags: [samples]
+      operationId: retireSample
+      summary: Soft delete. The record leaves search at once. Purge follows the retention policy.
+      parameters:
+        - $ref: '#/components/parameters/SampleIdPath'
+      responses:
+        '204': { description: Retired. }
+
+  /search/aggregate:
+    post:
+      tags: [search]
+      operationId: searchAggregate
+      summary: Count samples that match filters. k-anonymous. All roles except anonymous.
+      description: |
+        Returns a count or a suppressed marker. Never returns rows or ids.
+        If the filtered set is smaller than k, the result is suppressed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SearchRequest' }
+      responses:
+        '200':
+          description: Aggregate result.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AggregateResult' }
+        '429': { $ref: '#/components/responses/Problem429' }
+  /search/facets:
+    post:
+      tags: [search]
+      operationId: searchFacets
+      summary: Facet counts for the current filters. k-anonymous.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FacetRequest' }
+      responses:
+        '200':
+          description: Facet buckets.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FacetResult' }
+        '429': { $ref: '#/components/responses/Problem429' }
+  /search/suggest:
+    get:
+      tags: [search]
+      operationId: suggestTerms
+      summary: Smart search. Map free text (he or en) to diagnosis terms.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        '200':
+          description: Ranked diagnosis suggestions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/DiagnosisSuggestion' }
+  /diagnoses:
+    get:
+      tags: [search]
+      operationId: listDiagnoses
+      summary: Diagnosis vocabulary tree with labels in he and en.
+      security:
+        - sessionCookie: []
+        - {}
+      responses:
+        '200':
+          description: Vocabulary.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/DiagnosisTerm' }
+
+  /requests:
+    get:
+      tags: [requests]
+      operationId: listRequests
+      summary: List requests. Applicant sees own. Coordinator and committee see all they may see.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/RequestStatus' }
+      responses:
+        '200':
+          description: A page of requests.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RequestPage' }
+    post:
+      tags: [requests]
+      operationId: createRequest
+      summary: Create a draft request. researcher_il only.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestCreate' }
+      responses:
+        '201':
+          description: Draft created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Request' }
+        '403': { $ref: '#/components/responses/Problem403' }
+        '409': { $ref: '#/components/responses/Problem409' }
+  /requests/{requestId}:
+    parameters:
+      - $ref: '#/components/parameters/RequestIdPath'
+    get:
+      tags: [requests]
+      operationId: getRequest
+      summary: Read one request with items and visible steps.
+      responses:
+        '200':
+          description: The request.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Request' }
+        '404': { $ref: '#/components/responses/Problem404' }
+    patch:
+      tags: [requests]
+      operationId: updateRequestDraft
+      summary: Edit a draft request.
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema: { $ref: '#/components/schemas/RequestCreate' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Request' }
+        '409': { $ref: '#/components/responses/Problem409' }
+  /requests/{requestId}/items:
+    post:
+      tags: [requests]
+      operationId: addRequestItem
+      summary: Add a cart item. It holds search criteria, not sample ids.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestItemCreate' }
+      responses:
+        '201':
+          description: Added.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RequestItem' }
+        '422': { $ref: '#/components/responses/Problem422' }
+  /requests/{requestId}/items/{itemId}:
+    delete:
+      tags: [requests]
+      operationId: removeRequestItem
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Removed. }
+  /requests/{requestId}/submit:
+    post:
+      tags: [requests]
+      operationId: submitRequest
+      summary: Submit a draft. All form fields must be set.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Submitted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Request' }
+        '422': { $ref: '#/components/responses/Problem422' }
+  /requests/{requestId}/steps:
+    get:
+      tags: [requests]
+      operationId: listRequestSteps
+      summary: Steps and public notes. Applicant sees public fields only.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Steps in order.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/RequestStep' }
+  /requests/{requestId}/steps/{stepKey}:
+    patch:
+      tags: [requests]
+      operationId: updateRequestStep
+      summary: Change a step status or add a note. national_coordinator only.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+        - name: stepKey
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/StepKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestStepUpdate' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RequestStep' }
+        '409': { $ref: '#/components/responses/Problem409' }
+  /requests/{requestId}/resolved-samples:
+    put:
+      tags: [requests]
+      operationId: resolveRequestSamples
+      summary: Coordinator links an item to concrete sample ids. Never shown to the applicant.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [itemId, sampleIds]
+              properties:
+                itemId: { type: string }
+                sampleIds:
+                  type: array
+                  items: { $ref: '#/components/schemas/SampleId' }
+      responses:
+        '204': { description: Linked. }
+  /requests/{requestId}/votes:
+    put:
+      tags: [requests]
+      operationId: castVote
+      summary: Committee member casts or changes own vote until a decision exists.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vote]
+              properties:
+                vote: { type: string, enum: [approve, reject, abstain] }
+                comment: { type: string, maxLength: 1000 }
+      responses:
+        '200':
+          description: Vote stored.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Vote' }
+        '409': { $ref: '#/components/responses/Problem409' }
+  /requests/{requestId}/decisions:
+    get:
+      tags: [requests]
+      operationId: listDecisions
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Decisions. Rationale is visible to committee and coordinator only.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Decision' }
+    post:
+      tags: [requests]
+      operationId: recordDecision
+      summary: Record the committee decision. Needs N approving votes (configuration).
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome]
+              properties:
+                outcome: { type: string, enum: [approved, rejected, needs_info] }
+                rationale: { type: string, maxLength: 2000 }
+      responses:
+        '201':
+          description: Decision recorded.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Decision' }
+        '409': { $ref: '#/components/responses/Problem409' }
+
+  /import-jobs:
+    get:
+      tags: [import]
+      operationId: listImportJobs
+      summary: List import jobs. national_coordinator only.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: A page of jobs.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportJobPage' }
+    post:
+      tags: [import]
+      operationId: createImportJob
+      summary: Upload a CSV or XLSX file. Always starts as a dry run.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  contentEncoding: base64
+                  description: CSV (UTF-8) or XLSX. Max 10 MB. Max 20000 rows.
+                centerId: { $ref: '#/components/schemas/CenterId' }
+      responses:
+        '202':
+          description: Accepted. Validation runs in the background.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportJob' }
+        '413': { $ref: '#/components/responses/Problem413' }
+        '422': { $ref: '#/components/responses/Problem422' }
+  /import-jobs/{jobId}:
+    get:
+      tags: [import]
+      operationId: getImportJob
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+      responses:
+        '200':
+          description: Job with counters.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportJob' }
+  /import-jobs/{jobId}/rows:
+    get:
+      tags: [import]
+      operationId: listImportRows
+      summary: Row results. Row number, field names, rule codes. No cell values.
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: outcome
+          in: query
+          schema: { type: string, enum: [accepted, warning, rejected] }
+      responses:
+        '200':
+          description: A page of row results.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportRowPage' }
+  /import-jobs/{jobId}/report:
+    get:
+      tags: [import]
+      operationId: downloadImportReport
+      summary: Rejection report as CSV. Audited as a download.
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+      responses:
+        '200':
+          description: CSV report.
+          content:
+            text/csv:
+              schema: { type: string }
+  /import-jobs/{jobId}/commit:
+    post:
+      tags: [import]
+      operationId: commitImportJob
+      summary: Commit a validated dry run. Creates a child job in mode commit.
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileSha256]
+              properties:
+                fileSha256: { type: string, pattern: '^[0-9a-f]{64}$', description: Must match the validated file. }
+                acceptWarnings: { type: boolean, default: false }
+      responses:
+        '202':
+          description: Commit started.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportJob' }
+        '409': { $ref: '#/components/responses/Problem409' }
+  /import-templates/{format}:
+    get:
+      tags: [import]
+      operationId: downloadImportTemplate
+      summary: Empty template with header row and a data dictionary sheet.
+      parameters:
+        - name: format
+          in: path
+          required: true
+          schema: { type: string, enum: [csv, xlsx] }
+      responses:
+        '200':
+          description: Template file.
+          content:
+            text/csv: { schema: { type: string } }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, contentEncoding: base64 }
+
+  /audit-events:
+    get:
+      tags: [audit]
+      operationId: queryAuditEvents
+      summary: Query the audit log. system_admin only. Querying is itself audited.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { name: actorUserId, in: query, schema: { type: string } }
+        - { name: action, in: query, schema: { type: string, pattern: '^[a-z_]+\.[a-z_]+$' } }
+        - { name: objectType, in: query, schema: { type: string } }
+        - { name: objectId, in: query, schema: { type: string } }
+        - { name: outcome, in: query, schema: { type: string, enum: [success, denied, error] } }
+      responses:
+        '200':
+          description: A page of events, newest first.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditPage' }
+        '403': { $ref: '#/components/responses/Problem403' }
+  /audit-events/verify:
+    post:
+      tags: [audit]
+      operationId: verifyAuditChain
+      summary: Recompute the hash chain. Returns the first broken sequence number or null.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fromSeq: { type: integer, minimum: 1 }
+                toSeq: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Result.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [intact]
+                properties:
+                  intact: { type: boolean }
+                  firstBrokenSeq: { type: [integer, 'null'] }
+
+  /centers:
+    get:
+      tags: [admin]
+      operationId: listCenters
+      summary: List centers (public fields). All authenticated roles.
+      responses:
+        '200':
+          description: Centers.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Center' }
+    post:
+      tags: [admin]
+      operationId: createCenter
+      summary: Create a center. system_admin only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CenterWrite' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Center' }
+  /centers/{centerId}:
+    parameters:
+      - name: centerId
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/CenterId' }
+    get:
+      tags: [admin]
+      operationId: getCenter
+      responses:
+        '200':
+          description: The center.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Center' }
+    patch:
+      tags: [admin]
+      operationId: updateCenter
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema: { $ref: '#/components/schemas/CenterWrite' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Center' }
+  /centers/{centerId}/staleness:
+    get:
+      tags: [samples]
+      operationId: getCenterStaleness
+      summary: Freshness summary and SLA for one center. Clinician (own center) and coordinator.
+      parameters:
+        - name: centerId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/CenterId' }
+      responses:
+        '200':
+          description: Summary.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CenterSummary' }
+  /ethics-approvals:
+    get:
+      tags: [samples]
+      operationId: listEthicsApprovals
+      parameters:
+        - { name: centerId, in: query, schema: { $ref: '#/components/schemas/CenterId' } }
+      responses:
+        '200':
+          description: Approvals (opaque references).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/EthicsApproval' }
+    post:
+      tags: [samples]
+      operationId: createEthicsApproval
+      summary: Register an approval reference. national_coordinator only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EthicsApprovalWrite' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EthicsApproval' }
+  /users:
+    get:
+      tags: [admin]
+      operationId: listUsers
+      summary: List users. system_admin and national_coordinator (researchers only).
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - { name: status, in: query, schema: { type: string, enum: [invited, active, suspended, closed] } }
+      responses:
+        '200':
+          description: A page of users.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserPage' }
+    post:
+      tags: [admin]
+      operationId: inviteUser
+      summary: Invite a user. Email is verified before activation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserInvite' }
+      responses:
+        '201':
+          description: Invited.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '409': { $ref: '#/components/responses/Problem409' }
+  /users/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string, pattern: '^usr_[0-9A-HJKMNP-TV-Z]{26}$' }
+    get:
+      tags: [admin]
+      operationId: getUser
+      responses:
+        '200':
+          description: The user.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+    patch:
+      tags: [admin]
+      operationId: updateUser
+      summary: Change status or name. Suspension ends sessions at once.
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+                status: { type: string, enum: [active, suspended, closed] }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+  /users/{userId}/roles:
+    post:
+      tags: [admin]
+      operationId: grantRole
+      summary: Grant a role. Separation of duties is enforced. center_clinician needs centerId.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { $ref: '#/components/schemas/Role' }
+                centerId: { $ref: '#/components/schemas/CenterId' }
+      responses:
+        '201':
+          description: Granted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleAssignment' }
+        '409': { $ref: '#/components/responses/Problem409' }
+  /users/{userId}/roles/{assignmentId}:
+    delete:
+      tags: [admin]
+      operationId: revokeRole
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: assignmentId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Revoked. }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: ari_session
+      description: Server-side session. Unsafe methods also need the X-CSRF-Token header.
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque cursor from nextCursor.
+      schema: { type: string, maxLength: 512 }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      description: Required on POST that creates requests or imports. 8 to 128 chars. Same key and same body returns the first result.
+      schema: { type: string, minLength: 8, maxLength: 128 }
+    SampleIdPath:
+      name: sampleId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/SampleId' }
+    RequestIdPath:
+      name: requestId
+      in: path
+      required: true
+      schema: { type: string, pattern: '^req_[0-9A-HJKMNP-TV-Z]{26}$' }
+    JobIdPath:
+      name: jobId
+      in: path
+      required: true
+      schema: { type: string, pattern: '^imp_[0-9A-HJKMNP-TV-Z]{26}$' }
+  responses:
+    Problem401: { description: Not authenticated., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Problem403: { description: Role not allowed., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Problem404: { description: Not found or not visible to this role., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Problem409: { description: Conflict with current state., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Problem412: { description: ETag mismatch., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Problem413: { description: File too large., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Problem422: { description: Validation failed., content: { application/problem+json: { schema: { $ref: '#/components/schemas/ValidationProblem' } } } }
+    Problem429: { description: Rate limit., headers: { Retry-After: { schema: { type: integer } } }, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+  schemas:
+    Problem:
+      type: object
+      description: RFC 9457 Problem Details. No identifiers and no user text in any member.
+      required: [type, title, status, code, traceId]
+      properties:
+        type: { type: string, format: uri-reference, examples: ['/problems/validation-failed'] }
+        title: { type: string }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string, description: 'Stable machine code, e.g. VALIDATION_FAILED, KANON_SUPPRESSED, SOD_VIOLATION.' }
+        traceId: { type: string }
+    ValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                required: [field, rule]
+                properties:
+                  field: { type: string }
+                  rule: { type: string, examples: [VOCAB, REQUIRED, FORMAT, IDENTIFIER_SUSPECTED] }
+    SampleId: { type: string, pattern: '^smp_[0-9A-HJKMNP-TV-Z]{26}$' }
+    CenterId: { type: string, pattern: '^ctr_[0-9A-HJKMNP-TV-Z]{26}$' }
+    Role:
+      type: string
+      enum: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
+    SampleType: { type: string, enum: [ffpe, frozen, csf, plasma_or_liquid_biopsy, isolated_dna_rna] }
+    Availability: { type: string, enum: [available, limited, depleted] }
+    AgeBand: { type: string, enum: ['0_lt1', '1_lt3', '3_lt6', '6_lt10', '10_lt15', '15_lt18'] }
+    Sex: { type: string, enum: [female, male, other_or_unknown] }
+    Timepoint: { type: string, enum: [diagnosis, during_treatment, relapse] }
+    AttachedData: { type: string, enum: [wes, wgs, rna_seq, mri, digital_pathology, redcap_clinical] }
+    ConsentStatus: { type: string, enum: [consent_obtained, broad_consent, waiver_by_committee, restricted, unknown] }
+    QuantityClass: { type: string, enum: [small, medium, large] }
+    Sample:
+      type: object
+      required: [sampleCode, sourceCenterId, diagnosisCode, ageBandAtDiagnosis, sex, sampleType, availability, clinicalTimepoint, collectionMonth, attachedData, consentStatus, contactRef, createdAt, updatedAt, lastVerifiedAt]
+      properties:
+        sampleCode: { $ref: '#/components/schemas/SampleId' }
+        sourceCenterId: { $ref: '#/components/schemas/CenterId' }
+        diagnosisCode: { type: string }
+        ageBandAtDiagnosis: { $ref: '#/components/schemas/AgeBand' }
+        sex: { $ref: '#/components/schemas/Sex' }
+        sampleType: { $ref: '#/components/schemas/SampleType' }
+        availability: { $ref: '#/components/schemas/Availability' }
+        quantityClass: { oneOf: [{ $ref: '#/components/schemas/QuantityClass' }, { type: 'null' }] }
+        clinicalTimepoint: { $ref: '#/components/schemas/Timepoint' }
+        collectionMonth: { type: string, pattern: '^(19[89][0-9]|20[0-9]{2})-(0[1-9]|1[0-2])$' }
+        attachedData:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/AttachedData' }
+        consentStatus: { $ref: '#/components/schemas/ConsentStatus' }
+        ethicsApprovalRef: { type: [string, 'null'], description: Opaque approval ID. }
+        contactRef: { type: string, description: Center contact role label. }
+        staleness: { type: string, enum: [fresh, due_soon, stale] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        lastVerifiedAt: { type: string, format: date-time }
+    SampleCreate:
+      type: object
+      additionalProperties: false
+      required: [sourceCenterId, diagnosisCode, ageBandAtDiagnosis, sex, sampleType, availability, clinicalTimepoint, collectionMonth]
+      properties:
+        sourceCenterId: { $ref: '#/components/schemas/CenterId' }
+        diagnosisCode: { type: string }
+        ageBandAtDiagnosis: { $ref: '#/components/schemas/AgeBand' }
+        sex: { $ref: '#/components/schemas/Sex' }
+        sampleType: { $ref: '#/components/schemas/SampleType' }
+        availability: { $ref: '#/components/schemas/Availability' }
+        quantityClass: { $ref: '#/components/schemas/QuantityClass' }
+        clinicalTimepoint: { $ref: '#/components/schemas/Timepoint' }
+        collectionMonth: { type: string, pattern: '^(19[89][0-9]|20[0-9]{2})-(0[1-9]|1[0-2])$' }
+        attachedData:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/AttachedData' }
+        consentStatus: { $ref: '#/components/schemas/ConsentStatus' }
+        ethicsApprovalId: { type: string, description: Id of an ethics approval of the same center. }
+    SampleUpdate:
+      type: object
+      additionalProperties: false
+      description: Same fields as SampleCreate except sourceCenterId, all optional.
+      properties:
+        diagnosisCode: { type: string }
+        ageBandAtDiagnosis: { $ref: '#/components/schemas/AgeBand' }
+        sex: { $ref: '#/components/schemas/Sex' }
+        sampleType: { $ref: '#/components/schemas/SampleType' }
+        availability: { $ref: '#/components/schemas/Availability' }
+        quantityClass: { $ref: '#/components/schemas/QuantityClass' }
+        clinicalTimepoint: { $ref: '#/components/schemas/Timepoint' }
+        collectionMonth: { type: string, pattern: '^(19[89][0-9]|20[0-9]{2})-(0[1-9]|1[0-2])$' }
+        attachedData:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/AttachedData' }
+        consentStatus: { $ref: '#/components/schemas/ConsentStatus' }
+        ethicsApprovalId: { type: [string, 'null'] }
+    SamplePage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Sample' }
+        nextCursor: { type: [string, 'null'] }
+    SearchFilters:
+      type: object
+      additionalProperties: false
+      description: Each key is optional. Values inside one key are OR. Keys are AND. attachedData is all-of.
+      properties:
+        diagnosis: { type: array, maxItems: 50, items: { type: string } }
+        sampleType: { type: array, items: { $ref: '#/components/schemas/SampleType' } }
+        ageBand: { type: array, items: { $ref: '#/components/schemas/AgeBand' } }
+        sex: { type: array, items: { $ref: '#/components/schemas/Sex' } }
+        centerId: { type: array, items: { $ref: '#/components/schemas/CenterId' } }
+        timepoint: { type: array, items: { $ref: '#/components/schemas/Timepoint' } }
+        availability: { type: array, items: { $ref: '#/components/schemas/Availability' } }
+        attachedData: { type: array, items: { $ref: '#/components/schemas/AttachedData' } }
+    SearchRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        q: { type: string, maxLength: 200, description: Free text. Expanded to diagnosis terms before counting. }
+        lang: { type: string, enum: [he, en] }
+        filters: { $ref: '#/components/schemas/SearchFilters' }
+    AggregateResult:
+      type: object
+      required: [suppressed, label, k]
+      properties:
+        count: { type: [integer, 'null'], description: Null when suppressed. }
+        suppressed: { type: boolean }
+        label: { type: string, description: 'Display text. Examples: "42", "5-9", "<5".' }
+        k: { type: integer, minimum: 2 }
+        resolvedFilters: { $ref: '#/components/schemas/SearchFilters' }
+    FacetRequest:
+      type: object
+      additionalProperties: false
+      required: [facets]
+      properties:
+        q: { type: string, maxLength: 200 }
+        lang: { type: string, enum: [he, en] }
+        filters: { $ref: '#/components/schemas/SearchFilters' }
+        facets:
+          type: array
+          minItems: 1
+          maxItems: 8
+          uniqueItems: true
+          items: { type: string, enum: [diagnosis, sampleType, ageBand, sex, center, timepoint, availability, attachedData] }
+    FacetBucket:
+      type: object
+      required: [bucket, level, suppressed]
+      properties:
+        bucket: { type: string, description: Value code or 'other'. }
+        level: { type: string, enum: [value, type, family_other, group_other, other] }
+        count: { type: [integer, 'null'] }
+        suppressed: { type: boolean }
+    FacetResult:
+      type: object
+      required: [facets, k]
+      properties:
+        k: { type: integer }
+        facets:
+          type: object
+          additionalProperties:
+            type: array
+            items: { $ref: '#/components/schemas/FacetBucket' }
+    DiagnosisSuggestion:
+      type: object
+      required: [diagnosisCode, score, matchedVia, labelHe, labelEn]
+      properties:
+        diagnosisCode: { type: string }
+        score: { type: number }
+        matchedVia: { type: string, enum: [exact, fts, trgm] }
+        labelHe: { type: string }
+        labelEn: { type: string }
+    DiagnosisTerm:
+      type: object
+      required: [diagnosisCode, level, labelHe, labelEn]
+      properties:
+        diagnosisCode: { type: string }
+        parentCode: { type: [string, 'null'] }
+        level: { type: string, enum: [group, family, type] }
+        icdo3Morph: { type: [string, 'null'], pattern: '^[0-9]{4}/[0-9]$', description: Reference only. Not unique. }
+        labelHe: { type: string }
+        labelEn: { type: string }
+    RequestStatus:
+      type: string
+      enum: [draft, submitted, precheck, needs_info, committee_review, approved, rejected, center_coordination, agreements, delivery, delivered, withdrawn, closed]
+    StepKey:
+      type: string
+      enum: [submitted, precheck, committee_review, decision, center_coordination, mta_dta, delivery, closed]
+    RequestCreate:
+      type: object
+      properties:
+        researchQuestion: { type: string, maxLength: 4000 }
+        applicantEthicsRef: { type: string, maxLength: 64, description: Applicant IRB or Helsinki approval ID. }
+        plannedUse: { type: string, maxLength: 4000 }
+        fundingSources: { type: string, maxLength: 1000 }
+    RequestItemCreate:
+      type: object
+      required: [criteria]
+      properties:
+        criteria: { $ref: '#/components/schemas/SearchFilters' }
+        requestedCount: { type: integer, minimum: 1 }
+    RequestItem:
+      type: object
+      required: [id, criteria]
+      properties:
+        id: { type: string }
+        criteria: { $ref: '#/components/schemas/SearchFilters' }
+        requestedCount: { type: integer }
+        shownCountBucket: { type: string }
+    Request:
+      type: object
+      required: [id, status, createdAt, items]
+      properties:
+        id: { type: string }
+        status: { $ref: '#/components/schemas/RequestStatus' }
+        applicantUserId: { type: string }
+        researchQuestion: { type: string }
+        applicantEthicsRef: { type: string }
+        plannedUse: { type: string }
+        fundingSources: { type: string }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/RequestItem' }
+        steps:
+          type: array
+          items: { $ref: '#/components/schemas/RequestStep' }
+        submittedAt: { type: [string, 'null'], format: date-time }
+        decidedAt: { type: [string, 'null'], format: date-time }
+        deliveredAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+    RequestPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Request' }
+        nextCursor: { type: [string, 'null'] }
+    RequestStep:
+      type: object
+      required: [stepKey, status]
+      properties:
+        stepKey: { $ref: '#/components/schemas/StepKey' }
+        centerId: { type: [string, 'null'] }
+        status: { type: string, enum: [pending, in_progress, done, skipped, blocked] }
+        publicNote: { type: [string, 'null'], maxLength: 1000 }
+        internalNote: { type: [string, 'null'], maxLength: 2000, description: Coordinator and committee only. Omitted for applicants. }
+        startedAt: { type: [string, 'null'], format: date-time }
+        completedAt: { type: [string, 'null'], format: date-time }
+    RequestStepUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        status: { type: string, enum: [pending, in_progress, done, skipped, blocked] }
+        publicNote: { type: string, maxLength: 1000 }
+        internalNote: { type: string, maxLength: 2000 }
+        centerId: { $ref: '#/components/schemas/CenterId' }
+    Vote:
+      type: object
+      required: [requestId, vote, votedAt]
+      properties:
+        requestId: { type: string }
+        vote: { type: string, enum: [approve, reject, abstain] }
+        comment: { type: string }
+        votedAt: { type: string, format: date-time }
+    Decision:
+      type: object
+      required: [id, outcome, decidedAt]
+      properties:
+        id: { type: string }
+        outcome: { type: string, enum: [approved, rejected, needs_info] }
+        rationale: { type: string }
+        decidedAt: { type: string, format: date-time }
+    ImportJob:
+      type: object
+      required: [id, mode, format, status, createdAt]
+      properties:
+        id: { type: string }
+        mode: { type: string, enum: [dry_run, commit] }
+        format: { type: string, enum: [csv, xlsx] }
+        status: { type: string, enum: [uploaded, validating, validated, rejected, committing, committed, failed, cancelled, expired] }
+        parentJobId: { type: [string, 'null'] }
+        fileSha256: { type: [string, 'null'], pattern: '^[0-9a-f]{64}$' }
+        totalRows: { type: [integer, 'null'] }
+        acceptedRows: { type: [integer, 'null'] }
+        warningRows: { type: [integer, 'null'] }
+        rejectedRows: { type: [integer, 'null'] }
+        createdAt: { type: string, format: date-time }
+        finishedAt: { type: [string, 'null'], format: date-time }
+        expiresAt: { type: string, format: date-time }
+    ImportJobPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ImportJob' }
+        nextCursor: { type: [string, 'null'] }
+    ImportRow:
+      type: object
+      required: [rowNo, outcome, issues]
+      properties:
+        rowNo: { type: integer, minimum: 1 }
+        outcome: { type: string, enum: [accepted, warning, rejected] }
+        action: { type: string, enum: [create, update, verify_only, none] }
+        sampleCode: { oneOf: [{ $ref: '#/components/schemas/SampleId' }, { type: 'null' }] }
+        issues:
+          type: array
+          items:
+            type: object
+            required: [field, rule, severity]
+            properties:
+              field: { type: string }
+              rule: { type: string, enum: [REQUIRED, VOCAB, FORMAT, RANGE, UNKNOWN_COLUMN, IDENTIFIER_SUSPECTED, DUPLICATE_ROW, CENTER_MISMATCH, ETHICS_MISSING, ETHICS_EXPIRED, NOT_FOUND, STALE_OVERWRITE] }
+              severity: { type: string, enum: [error, warning] }
+    ImportRowPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ImportRow' }
+        nextCursor: { type: [string, 'null'] }
+    AuditEvent:
+      type: object
+      required: [seq, id, occurredAt, action, outcome, hash]
+      properties:
+        seq: { type: integer }
+        id: { type: string }
+        occurredAt: { type: string, format: date-time }
+        actorUserId: { type: [string, 'null'] }
+        actorRole: { type: [string, 'null'] }
+        action: { type: string }
+        objectType: { type: [string, 'null'] }
+        objectId: { type: [string, 'null'] }
+        centerId: { type: [string, 'null'] }
+        outcome: { type: string, enum: [success, denied, error] }
+        traceId: { type: [string, 'null'] }
+        details: { type: object, additionalProperties: true }
+        hash: { type: string, description: Hex SHA-256. }
+    AuditPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/AuditEvent' }
+        nextCursor: { type: [string, 'null'] }
+    Center:
+      type: object
+      required: [id, code, nameEn, nameHe, isActive, contactRole]
+      properties:
+        id: { $ref: '#/components/schemas/CenterId' }
+        code: { type: string }
+        nameEn: { type: string }
+        nameHe: { type: string }
+        isActive: { type: boolean }
+        contactRole: { type: string }
+        contactChannel: { type: [string, 'null'] }
+        feedsRegularly: { type: boolean }
+    CenterWrite:
+      type: object
+      additionalProperties: false
+      properties:
+        code: { type: string, pattern: '^[a-z0-9_]{2,32}$' }
+        nameEn: { type: string }
+        nameHe: { type: string }
+        isActive: { type: boolean }
+        contactRole: { type: string }
+        contactChannel: { type: string }
+        localSystemRef: { type: string }
+    CenterSummary:
+      type: object
+      required: [centerId, samplesTotal, staleCount, dueSoonCount, slaDays]
+      properties:
+        centerId: { $ref: '#/components/schemas/CenterId' }
+        samplesTotal: { type: integer }
+        samplesAvailable: { type: integer }
+        staleCount: { type: integer }
+        dueSoonCount: { type: integer }
+        missingEthicsLink: { type: integer }
+        slaDays: { type: integer }
+        lastUpdateAt: { type: [string, 'null'], format: date-time }
+        completeness:
+          type: object
+          additionalProperties: { type: number }
+    EthicsApproval:
+      type: object
+      required: [id, centerId, approvalRef, kind, status]
+      properties:
+        id: { type: string }
+        centerId: { $ref: '#/components/schemas/CenterId' }
+        approvalRef: { type: string }
+        kind: { type: string, enum: [helsinki_committee, irb_other] }
+        status: { type: string, enum: [active, expired, revoked] }
+        validFrom: { type: [string, 'null'], format: date }
+        validTo: { type: [string, 'null'], format: date }
+    EthicsApprovalWrite:
+      type: object
+      additionalProperties: false
+      required: [centerId, approvalRef]
+      properties:
+        centerId: { $ref: '#/components/schemas/CenterId' }
+        approvalRef: { type: string, pattern: '^[A-Za-z0-9._/-]{3,64}$' }
+        kind: { type: string, enum: [helsinki_committee, irb_other] }
+        validFrom: { type: string, format: date }
+        validTo: { type: string, format: date }
+    User:
+      type: object
+      required: [id, email, displayName, status, roles]
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        displayName: { type: string }
+        locale: { type: string, enum: [he, en] }
+        status: { type: string, enum: [invited, active, suspended, closed] }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/RoleAssignment' }
+        lastLoginAt: { type: [string, 'null'], format: date-time }
+    UserPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/User' }
+        nextCursor: { type: [string, 'null'] }
+    UserInvite:
+      type: object
+      additionalProperties: false
+      required: [email, displayName, role]
+      properties:
+        email: { type: string, format: email }
+        displayName: { type: string }
+        locale: { type: string, enum: [he, en] }
+        role: { $ref: '#/components/schemas/Role' }
+        centerId: { $ref: '#/components/schemas/CenterId' }
+    RoleAssignment:
+      type: object
+      required: [id, role]
+      properties:
+        id: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        centerId: { type: [string, 'null'] }
+        grantedAt: { type: string, format: date-time }
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, writeOnly: true }
+    LoginResult:
+      type: object
+      required: [challengeToken, factors]
+      properties:
+        challengeToken: { type: string }
+        factors:
+          type: array
+          items: { type: string, enum: [totp, webauthn] }
+    MfaVerifyRequest:
+      type: object
+      additionalProperties: false
+      required: [challengeToken]
+      properties:
+        challengeToken: { type: string }
+        totpCode: { type: string, pattern: '^[0-9]{6}$' }
+        webauthnAssertion: { type: object, additionalProperties: true }
+    Session:
+      type: object
+      required: [userId, roles, expiresAt, csrfToken]
+      properties:
+        userId: { type: string }
+        displayName: { type: string }
+        locale: { type: string, enum: [he, en] }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/RoleAssignment' }
+        activeCenterId: { type: [string, 'null'] }
+        expiresAt: { type: string, format: date-time }
+        csrfToken: { type: string }
