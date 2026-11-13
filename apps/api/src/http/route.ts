@@ -23,7 +23,7 @@ const PRIORITY: Role[] = ['system_admin', 'national_coordinator', 'committee_mem
 /** Operations that need a second factor no older than 5 minutes (decision C-02, doc 05 step-up). */
 export const STEP_UP_OPS = new Set([
   'grantRole', 'revokeRole', 'proposeKChange', 'proposeCommitteeConfigChange', 'approveGovernanceChange', 'castVote', 'recordDecision',
-  'createCenter', 'approveRegistration', 'verifyAuditChain',
+  'createCenter', 'decideRegistration', 'verifyAuditChain', 'proposeKPolicyChange', 'approveKPolicyChange', 'createRoleGrantRequest', 'decideRoleGrantRequest',
 ]);
 
 export const ENROLLMENT_OPS = new Set(['enrollTotpStart', 'enrollTotpConfirm', 'webauthnRegisterOptions', 'webauthnRegisterVerify', 'logout', 'getMe', 'getSessionInfo', 'getAuthSession']);

@@ -6,7 +6,12 @@ export function requestHandlers(svc: RequestService): Record<string, Handler> {
   const rid = (req: Parameters<Handler>[0]) => params<{ requestId: string }>(req).requestId;
   return {
     getRequestCart: async (req) => svc.getCart(req.ctx),
-    putRequestCart: async (req) => svc.putCart(req.ctx, body<{ items: any[] }>(req).items),
+    addCartItem: async (req, reply) => reply.code(201).send(await svc.addCartItem(req.ctx, body(req))),
+    removeCartItem: async (req) => svc.removeCartItem(req.ctx, params<{ itemId: string }>(req).itemId),
+    startRequestFromCart: async (req, reply) => reply.code(201).send(await svc.startFromCart(req.ctx)),
+    precheckRequest: async (req) => svc.precheck(req.ctx, rid(req), body(req)),
+    respondToInfoRequest: async (req) => svc.respond(req.ctx, rid(req), body<{ message: string }>(req).message),
+    getVoteTally: async (req) => svc.voteTally(req.ctx, rid(req)),
     listRequests: async (req) => svc.list(req.ctx, query(req)),
     createRequest: async (req, reply) => { const r = await svc.create(req.ctx, body(req), idemKey(req)); return reply.code(r.replay ? 200 : 201).send(r.request); },
     getRequest: async (req) => svc.get(req.ctx, rid(req)),

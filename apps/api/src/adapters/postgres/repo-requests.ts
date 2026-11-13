@@ -2,9 +2,9 @@
 // actors, quorum and separation of duties; this adapter maps the API facade onto those functions.
 import { randomBytes } from 'node:crypto';
 import { DomainError, type Ctx, type DecisionRecord, type RequestRecord, type RequestRepo, type RequestStepRecord, type VoteRecord, type StepKey } from '@ari/domain';
-import { iso, type Q } from './db.js';
+import { iso, type Q } from './db-types.js';
 
-const itemOf = (i: any) => ({ id: i.id, criteria: i.criteria, requestedCount: i.requested_count ?? null, shownCountBucket: i.shown_count_bucket ?? null });
+const itemOf = (i: any) => ({ createdAt: iso(i.created_at) ?? undefined, id: i.id, criteria: i.criteria, requestedCount: i.requested_count ?? null, shownCountBucket: i.shown_count_bucket ?? null });
 const COLS = `id, applicant_user_id, status::text AS status, close_reason::text AS close_reason, research_question, applicant_ethics_ref, planned_use, funding_sources,
   submitted_at, decided_at, delivered_at, created_at, updated_at, appeal_count`;
 const reqOf = (r: any, items: any[]): RequestRecord => ({
@@ -17,7 +17,7 @@ const FIELD_COLS: Record<string, string> = { researchQuestion: 'research_questio
 export function makeRequestRepo(q: Q, ctx: Ctx): RequestRepo {
   const itemsFor = async (ids: string[]) => {
     if (!ids.length) return new Map<string, any[]>();
-    const r = await q.query('SELECT id, request_id, criteria, requested_count, shown_count_bucket FROM portal.request_items WHERE request_id = ANY($1) ORDER BY created_at, id', [ids]);
+    const r = await q.query('SELECT id, request_id, criteria, requested_count, shown_count_bucket, created_at FROM portal.request_items WHERE request_id = ANY($1) ORDER BY created_at, id', [ids]);
     const m = new Map<string, any[]>(); for (const x of r.rows) (m.get(x.request_id) ?? m.set(x.request_id, []).get(x.request_id)!).push(x); return m;
   };
   const get = async (id: string): Promise<RequestRecord | null> => {
@@ -56,7 +56,7 @@ export function makeRequestRepo(q: Q, ctx: Ctx): RequestRepo {
       for (const i of items) await q.query('INSERT INTO portal.request_items (id, request_id, criteria, requested_count, shown_count_bucket) VALUES ($1,$2,$3::jsonb,$4,$5)', [i.id, id, JSON.stringify(i.criteria), i.requestedCount, i.shownCountBucket]);
     },
     async addItem(id, i) {
-      const r = await q.query('INSERT INTO portal.request_items (id, request_id, criteria, requested_count, shown_count_bucket) VALUES ($1,$2,$3::jsonb,$4,$5) RETURNING id, criteria, requested_count, shown_count_bucket', [i.id, id, JSON.stringify(i.criteria), i.requestedCount, i.shownCountBucket]);
+      const r = await q.query('INSERT INTO portal.request_items (id, request_id, criteria, requested_count, shown_count_bucket) VALUES ($1,$2,$3::jsonb,$4,$5) RETURNING id, criteria, requested_count, shown_count_bucket, created_at', [i.id, id, JSON.stringify(i.criteria), i.requestedCount, i.shownCountBucket]);
       return itemOf(r.rows[0]);
     },
     async removeItem(requestId, itemId) { return ((await q.query('DELETE FROM portal.request_items WHERE id = $1 AND request_id = $2', [itemId, requestId])).rowCount ?? 0) > 0; },
@@ -121,6 +121,15 @@ export function makeRequestRepo(q: Q, ctx: Ctx): RequestRepo {
     async votes(requestId) {
       const r = await q.query('SELECT voter_user_id, vote::text AS vote, comment, voted_at FROM portal.request_votes WHERE request_id = $1 ORDER BY voted_at', [requestId]);
       return r.rows.map((v) => ({ requestId, voterUserId: v.voter_user_id, vote: v.vote, comment: v.comment ?? null, votedAt: iso(v.voted_at)! }));
+    },
+    async tally(requestId, userId) {
+      if (!(await get(requestId))) return null;
+      const r = await q.query(`SELECT count(*) FILTER (WHERE vote = 'approve')::int AS a, count(*) FILTER (WHERE vote = 'reject')::int AS r, count(*) FILTER (WHERE vote = 'abstain')::int AS b,
+          max(vote::text) FILTER (WHERE voter_user_id = $2) AS mine
+        FROM portal.request_votes WHERE request_id = $1 AND round = (SELECT CASE WHEN status = 'appeal_review' THEN 'appeal' ELSE 'initial' END::portal.vote_round FROM portal.requests WHERE id = $1)`, [requestId, userId]);
+      const c = await q.query('SELECT 1 FROM portal.request_recusals WHERE request_id = $1 AND user_id = $2', [requestId, userId]);
+      const x = r.rows[0];
+      return { approve: x.a, reject: x.r, abstain: x.b, myVote: x.mine ?? null, conflictDeclared: c.rows.length > 0 };
     },
     async committeeConfig() {
       const r = await q.query('SELECT votes_needed, members_total FROM portal.committee_config WHERE id = 1');

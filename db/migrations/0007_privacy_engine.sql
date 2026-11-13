@@ -56,7 +56,7 @@ CREATE FUNCTION agg.k_for(p_field_set text) RETURNS int LANGUAGE sql STABLE SECU
 CREATE FUNCTION agg._safe(vec int[], k int) RETURNS boolean LANGUAGE sql IMMUTABLE AS $$
   SELECT vec[1] >= k AND NOT EXISTS (SELECT 1 FROM generate_subscripts(vec, 1) i
     WHERE i >= 2 AND NOT (vec[1] < 10 AND vec[i] < 10)
-      AND ((vec[i] - vec[1] BETWEEN 1 AND k - 1) OR (vec[1] - vec[i] BETWEEN 1 AND k - 1 AND vec[i] >= k))) $$;
+      AND ((vec[i] - vec[1] BETWEEN 1 AND k - 1) OR (vec[1] - vec[i] BETWEEN 1 AND k - 1 AND vec[i] >= 10))) $$;
 CREATE FUNCTION agg._vadd(a int[], b int[]) RETURNS int[] LANGUAGE sql IMMUTABLE AS $$
   SELECT CASE WHEN a IS NULL THEN b ELSE ARRAY(SELECT a[i] + b[i] FROM generate_subscripts(a, 1) i ORDER BY i) END $$;
 
@@ -177,9 +177,9 @@ END $$;
 CREATE FUNCTION agg._cellvec(p_filters jsonb, p_facet text, p_members text[], p_base int[], p_k int) RETURNS int[] LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, agg, pg_temp AS $$ SELECT p_base || agg._extra(p_filters, p_facet, p_members, p_base[1], p_k) $$;
 -- narrower neighbours of a merged cell: the same cell with one member removed (additive facets only)
-CREATE FUNCTION agg._member_minus(h agg.cell[], members text[]) RETURNS int[] LANGUAGE sql IMMUTABLE AS $$
-  SELECT CASE WHEN coalesce(array_length(members, 1), 0) NOT BETWEEN 2 AND 4 THEN '{}'::int[] ELSE
-    coalesce((SELECT array_agg((SELECT sum(((z).vec[1])) FROM unnest(h) z WHERE (z).label = ANY (members)) - (y).vec[1]) FROM unnest(h) y WHERE (y).label = ANY (members)), '{}') END $$;
+CREATE FUNCTION agg._member_minus(h agg.cell[], p_members text[]) RETURNS int[] LANGUAGE sql IMMUTABLE AS $$
+  SELECT CASE WHEN coalesce(array_length(p_members, 1), 0) NOT BETWEEN 2 AND 4 THEN '{}'::int[] ELSE
+    coalesce((SELECT array_agg((SELECT sum(((z).vec[1])) FROM unnest(h) z WHERE (z).label = ANY (p_members)) - (y).vec[1]) FROM unnest(h) y WHERE (y).label = ANY (p_members)), '{}') END $$;
 CREATE FUNCTION agg._hsum(h agg.cell[], only_labels text[], m int) RETURNS agg.cell LANGUAGE sql IMMUTABLE AS $$
   SELECT CASE WHEN count(*) = 0 THEN NULL ELSE ROW('', '', ARRAY(SELECT (SELECT sum((y).vec[g])::int FROM unnest(h) y WHERE only_labels IS NULL OR (y).label = ANY (only_labels))
          FROM generate_series(1, m + 1) g ORDER BY g), array_agg((x).label))::agg.cell END

@@ -1,5 +1,5 @@
 import type { CenterRecord, CenterRepo, CenterStaleness, Ctx, EthicsApprovalRecord, RoleAssignmentRecord, Role, UserRecord, UserRepo } from '@ari/domain';
-import { iso, type Q } from './db.js';
+import { iso, type Q } from './db-types.js';
 
 const roleOf = (r: any): RoleAssignmentRecord => ({ id: r.id, role: r.role, centerId: r.center_id ?? null, grantedAt: iso(r.granted_at)! });
 const userOf = (u: any, roles: RoleAssignmentRecord[]): UserRecord => ({
@@ -65,9 +65,11 @@ export function makeUserRepo(q: Q, ctx: Ctx): UserRepo {
     async verifyEmail(userId, token) { return (await q.query('SELECT portal.user_verify_email($1,$2) AS ok', [userId, token])).rows[0].ok === true; },
     async approveRegistration(userId) { await q.query('SELECT portal.researcher_approve($1)', [userId]); },
     async rejectRegistration(userId) { await q.query('SELECT portal.researcher_reject($1)', [userId]); },
-    async pendingRegistrations(limit) {
-      const r = await q.query(`SELECT u.id, u.email, u.display_name, u.created_at, rr.requested_role::text AS requested_role FROM portal.researcher_registrations rr JOIN portal.users u ON u.id = rr.user_id WHERE rr.status = 'pending' ORDER BY u.created_at LIMIT $1`, [limit]);
-      return r.rows.map((x) => ({ id: x.id, email: x.email, displayName: x.display_name, institution: null, isIsraeliAcademic: x.requested_role === 'researcher_il', createdAt: iso(x.created_at)! }));
+    async registrations(limit) {
+      const r = await q.query(`SELECT u.id, u.email, u.display_name, u.created_at, rr.requested_role::text AS requested_role, rr.status, m.institution
+          FROM portal.researcher_registrations rr JOIN portal.users u ON u.id = rr.user_id LEFT JOIN authn.registration_meta m ON m.user_id = u.id
+         ORDER BY (rr.status = 'pending') DESC, u.created_at DESC LIMIT $1`, [limit]);
+      return r.rows.map((x) => ({ id: x.id, email: x.email, displayName: x.display_name, institution: x.institution ?? '', status: x.status, requestedAt: iso(x.created_at)!, isIsraeliAcademic: x.requested_role === 'researcher_il' }));
     },
     async registrationFlag(userId) {
       const r = await q.query(`SELECT requested_role::text AS requested_role FROM portal.researcher_registrations WHERE user_id = $1 AND status = 'pending'`, [userId]);

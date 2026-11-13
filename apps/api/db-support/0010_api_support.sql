@@ -11,7 +11,8 @@ CREATE TABLE authn.credentials (
   totp_secret_enc text, totp_confirmed_at timestamptz, totp_pending_enc text, totp_last_step bigint NOT NULL DEFAULT -1);
 CREATE TABLE authn.webauthn_credentials (
   credential_id text PRIMARY KEY, user_id text NOT NULL REFERENCES portal.users(id) ON DELETE CASCADE,
-  public_key bytea NOT NULL, counter bigint NOT NULL DEFAULT 0, transports text[], created_at timestamptz NOT NULL DEFAULT now(), last_used_at timestamptz);
+  name text NOT NULL DEFAULT 'Passkey', public_key bytea NOT NULL, counter bigint NOT NULL DEFAULT 0, transports text[], created_at timestamptz NOT NULL DEFAULT now(), last_used_at timestamptz);
+CREATE TABLE authn.registration_meta (user_id text PRIMARY KEY REFERENCES portal.users(id) ON DELETE CASCADE, institution text NOT NULL, terms_version text, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE authn.recovery_codes (id bigserial PRIMARY KEY, user_id text NOT NULL REFERENCES portal.users(id) ON DELETE CASCADE, code_hash bytea NOT NULL, used_at timestamptz);
 CREATE INDEX ON authn.recovery_codes (user_id);
 CREATE TABLE authn.sessions (

@@ -14,7 +14,7 @@ export function sampleHandlers(svc: SampleService): Record<string, Handler> {
       const r = await svc.update(req.ctx, params<{ sampleId: string }>(req).sampleId, body(req), m); reply.header('ETag', r.etag); return r.sample;
     },
     verifySample: async (req) => svc.verify(req.ctx, params<{ sampleId: string }>(req).sampleId),
-    flagSample: async (req, reply) => { await svc.flag(req.ctx, params<{ sampleId: string }>(req).sampleId, body<{ reason: string }>(req).reason); return reply.code(204).send(); },
+    flagSample: async (req, reply) => { await svc.flag(req.ctx, params<{ sampleId: string }>(req).sampleId, body<{ reasonCode: string }>(req).reasonCode); return reply.code(204).send(); },
     retireSample: async (req, reply) => { await svc.retire(req.ctx, params<{ sampleId: string }>(req).sampleId); return reply.code(204).send(); },
     listCenters: async (req) => ({ items: (await svc.listCenters(req.ctx)).map(({ localSystemRef: _l, ...c }) => c) }),
     getCenter: async (req) => { const { localSystemRef: _l, ...c } = await svc.getCenter(req.ctx, params<{ centerId: string }>(req).centerId); return c; },

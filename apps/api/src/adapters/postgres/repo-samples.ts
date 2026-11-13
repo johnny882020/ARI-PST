@@ -1,5 +1,5 @@
 import type { Ctx, SampleRecord, SampleRepo, SampleInput, SamplePatch } from '@ari/domain';
-import { iso, type Q } from './db.js';
+import { iso, type Q } from './db-types.js';
 import { etagOf } from '../../lib/util.js';
 
 const COLS = `s.id, s.source_center_id, s.diagnosis_code, s.age_band_at_diagnosis::text AS age_band, s.sex::text AS sex, s.sample_type::text AS sample_type,

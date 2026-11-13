@@ -46,6 +46,7 @@ export interface UserRecord {
   roles: RoleAssignmentRecord[]; institution?: string | null;
 }
 export interface RoleAssignmentRecord { id: string; role: Role; centerId: string | null; grantedAt: string }
+export interface RegistrationRecord { id: string; email: string; displayName: string; institution: string; status: 'pending' | 'approved' | 'rejected'; requestedAt: string; isIsraeliAcademic: boolean }
 export interface CenterRecord { id: string; code: string; nameEn: string; nameHe: string; isActive: boolean; contactRole: string; contactChannel: string | null; localSystemRef?: string | null; feedsRegularly: boolean }
 export interface SampleRecord {
   sampleCode: string; sourceCenterId: string; diagnosisCode: string; ageBandAtDiagnosis: AgeBand; sex: Sex; sampleType: SampleType;
@@ -59,7 +60,7 @@ export interface DiagnosisTermRecord { diagnosisCode: string; parentCode: string
 export interface Bucket { bucket: string; level: string; count: number | null; suppressed: boolean; band?: string }
 export interface AggregateCount { count: number | null; suppressed: boolean; k: number; band?: string | null }
 
-export interface RequestItemRecord { id: string; criteria: Filters; requestedCount: number | null; shownCountBucket: string | null }
+export interface RequestItemRecord { createdAt?: string; id: string; criteria: Filters; requestedCount: number | null; shownCountBucket: string | null }
 export interface RequestStepRecord { stepKey: StepKey; centerId: string | null; status: 'pending' | 'in_progress' | 'done' | 'skipped' | 'blocked'; publicNote: string | null; internalNote?: string | null; startedAt: string | null; completedAt: string | null }
 export interface RequestRecord {
   id: string; status: RequestState; closeReason: CloseReason | null; applicantUserId: string;
@@ -79,7 +80,7 @@ export interface ImportJobRecord {
 export interface ImportIssue { field: string; rule: string; severity: 'error' | 'warning' }
 export interface ImportRowRecord { rowNo: number; outcome: 'accepted' | 'warning' | 'rejected'; action: 'create' | 'update' | 'verify_only' | 'none'; sampleCode: string | null; issues: ImportIssue[] }
 export interface EthicsApprovalRecord { id: string; centerId: string; approvalRef: string; kind: 'helsinki_committee' | 'irb_other'; status: 'active' | 'expired' | 'revoked'; validFrom: string | null; validTo: string | null }
-export interface ApprovalRecord { id: string; kind: 'role_grant' | 'k_change' | 'committee_config'; payload: Record<string, unknown>; proposedBy: string; status: 'pending' | 'approved' | 'rejected'; approvedBy: string | null; createdAt: string }
+export interface ApprovalRecord { reason?: string | null; id: string; kind: 'role_grant' | 'k_change' | 'committee_config'; payload: Record<string, unknown>; proposedBy: string; status: 'pending' | 'approved' | 'rejected'; approvedBy: string | null; createdAt: string }
 export interface OutboxRecord { id: string; template: string; toUserId: string | null; status: 'pending' | 'sent' | 'failed'; attempts: number; createdAt: string; sentAt: string | null }
 export interface CenterStaleness { centerId: string; samplesTotal: number; samplesAvailable: number; staleCount: number; dueSoonCount: number; missingEthicsLink: number; slaDays: number; lastUpdateAt: string | null; completeness: Record<string, number> }
 
@@ -97,7 +98,7 @@ export interface UserRepo {
   rejectRegistration(userId: string): Promise<void>;
   revokeRole(userId: string, assignmentId: string): Promise<boolean>;
   activeRoles(userId: string): Promise<RoleAssignmentRecord[]>;
-  pendingRegistrations(limit: number): Promise<Array<{ id: string; email: string; displayName: string; institution: string | null; isIsraeliAcademic: boolean; createdAt: string }>>;
+  registrations(limit: number): Promise<RegistrationRecord[]>;
   verifyEmail(userId: string, token: string): Promise<boolean>;
   registrationFlag(userId: string): Promise<{ institution: string | null; isIsraeliAcademic: boolean } | null>;
 }
@@ -151,6 +152,7 @@ export interface RequestRepo {
   resolveSamples(requestId: string, itemId: string, sampleIds: string[]): Promise<boolean>;
   castVote(requestId: string, voterUserId: string, vote: VoteValue, comment: string | null, rationaleCode: string | null): Promise<VoteRecord>;
   votes(requestId: string): Promise<VoteRecord[]>;
+  tally(requestId: string, userId: string): Promise<{ approve: number; reject: number; abstain: number; myVote: VoteValue | null; conflictDeclared: boolean } | null>;
   committeeConfig(): Promise<CommitteeConfig>;
   latestDecision(requestId: string): Promise<DecisionRecord | null>;
   decisions(requestId: string, applicantView: boolean): Promise<DecisionRecord[]>;
@@ -220,7 +222,9 @@ export interface AuthPort {
   useRecoveryCode(userId: string, code: string): Promise<boolean>;
   // WebAuthn
   webauthnRegistrationOptions(userId: string, userName: string): Promise<Record<string, unknown>>;
-  webauthnRegistrationVerify(userId: string, response: unknown): Promise<boolean>;
+  webauthnRegistrationVerify(userId: string, response: unknown, name?: string): Promise<boolean>;
+  listMethods(userId: string): Promise<Array<{ id: string; kind: 'passkey' | 'totp'; name: string; addedAt: string; lastUsedAt: string | null }>>;
+  saveRegistrationMeta(userId: string, institution: string, termsVersion: string | null): Promise<void>;
   webauthnAuthOptions(userId: string): Promise<Record<string, unknown>>;
   webauthnAuthVerify(userId: string, response: unknown): Promise<boolean>;
   // Login challenge (between password and second factor)

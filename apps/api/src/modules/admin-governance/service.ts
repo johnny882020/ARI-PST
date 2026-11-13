@@ -48,14 +48,14 @@ export class AdminService {
     if (p.status === 'suspended' || p.status === 'closed') await this.auth.revokeAllForUser(id);   // suspension ends sessions at once
     return u;
   }
-  async grantRole(ctx: Ctx, userId: string, b: { role: Role; centerId?: string }): Promise<{ approval: ApprovalRecord }> {
+  async grantRole(ctx: Ctx, userId: string, b: { role: Role; centerId?: string; reason?: string }): Promise<{ approval: ApprovalRecord }> {
     if (!PRIVILEGED.includes(b.role)) throw new DomainError('VALIDATION_FAILED', [{ field: 'role', rule: 'VOCAB' }]);   // researcher roles come from registration approval
     if ((b.role === 'center_clinician') !== Boolean(b.centerId)) throw new DomainError('VALIDATION_FAILED', [{ field: 'centerId', rule: b.centerId ? 'FORMAT' : 'REQUIRED' }]);
     return this.repo.tx(ctx, async (tx) => {
       const u = await tx.users.getById(userId); if (!u) throw notFound();
       if (violatesSeparationOfDuties(u.roles.map((r) => r.role), b.role)) throw new DomainError('SOD_VIOLATION');
       if (b.centerId && !(await tx.centers.get(b.centerId))) throw new DomainError('VALIDATION_FAILED', [{ field: 'centerId', rule: 'VOCAB' }]);
-      const a = await tx.governance.propose({ id: nid(this.clock, 'role'), kind: 'role_grant', payload: { userId, role: b.role, centerId: b.centerId ?? null }, proposedBy: ctx.actor.userId! });
+      const a = await tx.governance.propose({ id: nid(this.clock, 'role'), kind: 'role_grant', payload: { userId, role: b.role, centerId: b.centerId ?? null, ...(b.reason ? { reason: b.reason } : {}) }, proposedBy: ctx.actor.userId! });
       return { approval: a };
     });
   }
@@ -75,10 +75,10 @@ export class AdminService {
   async config(ctx: Ctx) {
     return this.repo.tx(ctx, async (tx) => ({ kPolicies: ctx.actor.role === 'system_admin' ? await tx.governance.getKPolicies() : [], committee: await tx.requests.committeeConfig() }));
   }
-  async proposeK(ctx: Ctx, b: { fieldSet: string; k: number }): Promise<ApprovalRecord> {
+  async proposeK(ctx: Ctx, b: { fieldSet: string; k: number; reason?: string }): Promise<ApprovalRecord> {
     if (!validateK(b.k)) throw new DomainError('VALIDATION_FAILED', [{ field: 'k', rule: `RANGE_MIN_${K_FLOOR}` }]);
     return this.repo.tx(ctx, async (tx) => {
-      return tx.governance.propose({ id: nid(this.clock, 'role'), kind: 'k_change', payload: { fieldSet: b.fieldSet, k: b.k }, proposedBy: ctx.actor.userId! });
+      return tx.governance.propose({ id: nid(this.clock, 'role'), kind: 'k_change', payload: { fieldSet: b.fieldSet, k: b.k, ...(b.reason ? { reason: b.reason } : {}) }, proposedBy: ctx.actor.userId! });
     });
   }
   async proposeCommittee(ctx: Ctx, b: { votesNeeded: number; membersTotal: number }): Promise<ApprovalRecord> {
@@ -101,6 +101,40 @@ export class AdminService {
     });
     if (affectedUser) await this.auth.revokeAllForUser(affectedUser);
     return a;
+  }
+
+  // ----- web-facing views (k policies, role-grant requests) over the same two-person changes -----
+  private kView(policy: { fieldSet: string; k: number }, approvals: ApprovalRecord[]) {
+    const p = approvals.find((a) => a.kind === 'k_change' && a.status === 'pending' && (a.payload as { fieldSet?: string }).fieldSet === policy.fieldSet);
+    const pl = p?.payload as { k?: number; reason?: string } | undefined;
+    return { id: policy.fieldSet, fieldSet: policy.fieldSet, k: policy.k, pendingChange: p ? { id: p.id, proposedK: pl!.k!, proposedByUserId: p.proposedBy, reason: pl?.reason ?? '' } : null };
+  }
+  async kPolicies(ctx: Ctx) {
+    return this.repo.tx(ctx, async (tx) => { const [ps, ap] = await Promise.all([tx.governance.getKPolicies(), tx.governance.listApprovals('pending')]); return ps.map((p) => this.kView(p, ap)); });
+  }
+  async proposeKPolicy(ctx: Ctx, fieldSet: string, b: { k: number; reason: string }) {
+    await this.proposeK(ctx, { fieldSet, k: b.k, reason: b.reason });
+    return this.repo.tx(ctx, async (tx) => this.kView((await tx.governance.getKPolicies()).find((p) => p.fieldSet === fieldSet) ?? { fieldSet, k: 5 }, await tx.governance.listApprovals('pending')));
+  }
+  async approveKChange(ctx: Ctx, changeId: string, age: number) {
+    const cur = await this.repo.tx(ctx, (tx) => tx.governance.getApproval(changeId));
+    if (!cur || cur.kind !== 'k_change') throw notFound();
+    await this.decide(ctx, changeId, true, age);
+    const fs = (cur.payload as { fieldSet: string }).fieldSet;
+    return this.repo.tx(ctx, async (tx) => this.kView((await tx.governance.getKPolicies()).find((p) => p.fieldSet === fs) ?? { fieldSet: fs, k: 5 }, await tx.governance.listApprovals('pending')));
+  }
+  private grantView(a: ApprovalRecord) {
+    const p = a.payload as { userId: string; role: Role; centerId: string | null; reason?: string };
+    return { id: a.id, userId: p.userId, role: p.role, centerId: p.centerId ?? null, reason: p.reason ?? '', requestedByUserId: a.proposedBy, status: a.status, requestedAt: a.createdAt };
+  }
+  async roleGrants(ctx: Ctx) { return (await this.repo.tx(ctx, (tx) => tx.governance.listApprovals())).filter((a) => a.kind === 'role_grant').map((a) => this.grantView(a)); }
+  async createRoleGrant(ctx: Ctx, b: { userId: string; role: Role; centerId?: string; reason: string }) {
+    return this.grantView((await this.grantRole(ctx, b.userId, { role: b.role, ...(b.centerId ? { centerId: b.centerId } : {}), reason: b.reason })).approval);
+  }
+  async decideRoleGrant(ctx: Ctx, id: string, outcome: 'approved' | 'rejected', age: number) {
+    const cur = await this.repo.tx(ctx, (tx) => tx.governance.getApproval(id));
+    if (!cur || cur.kind !== 'role_grant') throw notFound();
+    return this.grantView(await this.decide(ctx, id, outcome === 'approved', age));
   }
 
   // ----- centers -----

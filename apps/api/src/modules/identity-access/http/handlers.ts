@@ -29,16 +29,17 @@ export function identityHandlers(svc: IdentityService, cfg: Config): Record<stri
       setSessionCookie(reply, cfg, fresh); reply.setCookie(CSRF_COOKIE, fresh.csrfToken, cookieOptions(cfg.secureCookies, false)); return reply.code(204).send();
     },
     stepUp: async (req) => svc.view(await svc.stepUp(sess(req), body(req), req.id)),
-    enrollTotpStart: async (req) => svc.enrollTotpStart(sess(req)),
+    enrollTotpStart: async (req) => { const t = await svc.enrollTotpStart(sess(req)); return { otpauthUri: t.otpauthUri, secret: t.secretBase32 }; },
     enrollTotpConfirm: async (req) => svc.enrollTotpConfirm(sess(req), body<{ code: string }>(req).code, req.id),
     webauthnRegisterOptions: async (req) => svc.webauthnRegisterOptions(sess(req)),
-    webauthnRegisterVerify: async (req) => svc.webauthnRegisterVerify(sess(req), body(req), req.id),
+    webauthnRegisterVerify: async (req) => { const b = body<{ name: string; attestation: unknown }>(req); return svc.webauthnRegisterVerify(sess(req), b.attestation, b.name, req.id); },
+    recoverMfa: async (req, reply) => { const b = body<{ challengeToken: string; recoveryCode: string }>(req); const s = await svc.verifyMfa(b, req.id, req.ipHashValue); setSessionCookie(reply, cfg, s); reply.setCookie(CSRF_COOKIE, s.csrfToken, cookieOptions(cfg.secureCookies, false)); return svc.view(s); },
+    listAuthMethods: async (req) => ({ items: await svc.methods(sess(req)) }),
     regenerateRecoveryCodes: async (req) => svc.regenerateRecoveryCodes(sess(req)),
     getMe: async (req) => svc.me(req.ctx, sess(req)),
     updateMe: async (req) => svc.updateMe(req.ctx, sess(req), body(req)),
-    listPendingRegistrations: async (req) => ({ items: await svc.pendingRegistrations(req.ctx) }),
-    approveRegistration: async (req) => svc.approveRegistration(req.ctx, params<{ userId: string }>(req).userId),
-    rejectRegistration: async (req, reply) => { await svc.rejectRegistration(req.ctx, params<{ userId: string }>(req).userId); return reply.code(204).send(); },
+    listPendingRegistrations: async (req) => ({ items: await svc.registrations(req.ctx) }),
+    decideRegistration: async (req) => svc.decideRegistration(req.ctx, params<{ id: string }>(req).id, body<{ outcome: 'approved' | 'rejected' }>(req).outcome),
   };
 }
 void sessionExpiry; export type { Ctx };

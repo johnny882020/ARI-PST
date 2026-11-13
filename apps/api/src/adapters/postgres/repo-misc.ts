@@ -1,5 +1,5 @@
 import type { ApprovalRecord, AuditRepo, AuditRow, Ctx, GovernanceRepo, ImportJobRecord, ImportRepo, ImportRowRecord, OutboxRepo } from '@ari/domain';
-import { iso, type Q } from './db.js';
+import { iso, type Q } from './db-types.js';
 
 // ---------- imports ----------
 const jobOf = (j: any): ImportJobRecord => ({
@@ -55,7 +55,7 @@ const rowOf = (x: any): ImportRowRecord => ({ rowNo: x.row_no, outcome: x.outcom
 
 // ---------- governance (two-person changes live in portal.change_requests) ----------
 const KIND_OUT: Record<string, ApprovalRecord['kind']> = { role_grant: 'role_grant', k_policy: 'k_change', committee_config: 'committee_config' };
-const camel = (kind: string, p: any): Record<string, unknown> => kind === 'role_grant' ? { userId: p.user_id, role: p.role, centerId: p.center_id ?? null } : kind === 'k_policy' ? { fieldSet: p.field_set, k: p.k } : { votesNeeded: p.votes_needed, membersTotal: p.members_total };
+const camel = (kind: string, p: any): Record<string, unknown> => kind === 'role_grant' ? { userId: p.user_id, role: p.role, centerId: p.center_id ?? null, reason: p.reason ?? '' } : kind === 'k_policy' ? { fieldSet: p.field_set, k: p.k, reason: p.reason ?? '' } : { votesNeeded: p.votes_needed, membersTotal: p.members_total };
 const approvalOf = (c: any): ApprovalRecord => ({ id: c.id, kind: KIND_OUT[c.kind]!, payload: camel(c.kind, c.payload), proposedBy: c.proposed_by, status: c.status === 'pending' || c.status === 'approved' || c.status === 'rejected' ? c.status : 'rejected', approvedBy: c.status === 'approved' ? c.decided_by : null, createdAt: iso(c.proposed_at)! });
 export function makeGovernanceRepo(q: Q): GovernanceRepo {
   const get = async (id: string) => { const r = await q.query('SELECT id, kind, payload, status, proposed_by, decided_by, proposed_at FROM portal.change_requests WHERE id = $1', [id]); return r.rows[0] ? approvalOf(r.rows[0]) : null; };
@@ -63,7 +63,7 @@ export function makeGovernanceRepo(q: Q): GovernanceRepo {
     async propose(a) {
       const p = a.payload as Record<string, unknown>;
       const kind = a.kind === 'k_change' ? 'k_policy' : a.kind;
-      const payload = kind === 'role_grant' ? { user_id: p.userId, role: p.role, ...(p.centerId ? { center_id: p.centerId } : {}) } : kind === 'k_policy' ? { field_set: p.fieldSet, k: p.k } : { votes_needed: p.votesNeeded, members_total: p.membersTotal };
+      const payload = kind === 'role_grant' ? { user_id: p.userId, role: p.role, ...(p.centerId ? { center_id: p.centerId } : {}), ...(p.reason ? { reason: p.reason } : {}) } : kind === 'k_policy' ? { field_set: p.fieldSet, k: p.k, ...(p.reason ? { reason: p.reason } : {}) } : { votes_needed: p.votesNeeded, members_total: p.membersTotal };
       const id = (await q.query('SELECT portal.change_propose($1,$2::jsonb) AS id', [kind, JSON.stringify(payload)])).rows[0].id as string;
       return (await get(id))!;
     },

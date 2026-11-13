@@ -1,11 +1,11 @@
 import {
-  DomainError, ANON_ACTOR, sessionExpiresAt, stepUpFresh, researcherRoleFor, type AuthPort, type Clock, type Ctx, type Repository,
+  DomainError, ANON_ACTOR, sessionExpiresAt, stepUpFresh, type AuthPort, type Clock, type Ctx, type Repository,
   type RoleAssignmentRecord, type SessionRecord, type NotifyPort, type Role, type UserRecord, isRole, violatesSeparationOfDuties,
 } from '@ari/domain';
 import { nid, institutionOf } from '../../lib/util.js';
 import { randomToken } from '../../lib/crypto.js';
 
-export interface SessionView { userId: string; displayName: string; locale: 'he' | 'en'; roles: RoleAssignmentRecord[]; activeCenterId: string | null; expiresAt: string; csrfToken: string; stepUpFresh: boolean; mfaEnrolled: boolean }
+export interface SessionView { centerId: string | null; userId: string; displayName: string; locale: 'he' | 'en'; roles: RoleAssignmentRecord[]; activeCenterId: string | null; expiresAt: string; csrfToken: string; stepUpFresh: boolean; mfaEnrolled: boolean }
 
 export class IdentityService {
   constructor(private repo: Repository, private auth: AuthPort, private notify: NotifyPort, private clock: Clock, private origin: string) {}
@@ -59,23 +59,24 @@ export class IdentityService {
   view(s: SessionRecord): SessionView {
     const now = this.clock.now().getTime();
     return {
-      userId: s.userId, displayName: s.displayName, locale: s.locale, roles: s.roles, activeCenterId: s.roles.find((r) => r.role === 'center_clinician')?.centerId ?? null,
+      userId: s.userId, displayName: s.displayName, locale: s.locale, roles: s.roles, activeCenterId: s.roles.find((r) => r.role === 'center_clinician')?.centerId ?? null, centerId: s.roles.find((r) => r.role === 'center_clinician')?.centerId ?? null,
       expiresAt: new Date(sessionExpiresAt(s, s.roles.map((r) => r.role))).toISOString(), csrfToken: s.csrfToken, stepUpFresh: stepUpFresh(s.mfaAt, now), mfaEnrolled: s.mfaAt !== null,
     };
   }
-  async register(b: { email: string; password: string; displayName: string; institution: string; isIsraeliAcademic: boolean; locale?: 'he' | 'en' }, traceId: string): Promise<void> {
+  async register(b: { email: string; password?: string; displayName: string; institution: string; termsVersion: string; isIsraeliAcademic?: boolean; locale?: 'he' | 'en' }, traceId: string): Promise<void> {
     const email = b.email.trim().toLowerCase();
-    const problem = this.auth.checkPasswordPolicy(b.password);
-    if (problem) throw new DomainError('VALIDATION_FAILED', [{ field: 'password', rule: problem }]);
+    if (b.password) { const problem = this.auth.checkPasswordPolicy(b.password, email); if (problem) throw new DomainError('VALIDATION_FAILED', [{ field: 'password', rule: problem }]); }
     const ctx = this.sys(traceId, null);
-    const hash = await this.auth.hashPassword(b.password);     // always hash: same timing for known and unknown email
+    const hash = await this.auth.hashPassword(b.password ?? randomToken(16));     // always hash: same timing for known and unknown email
+    const il = b.isIsraeliAcademic ?? /\.ac\.il$/i.test(email);
     const created = await this.repo.tx(ctx, async (tx) => {
-      const r = await tx.users.registerResearcher({ email, displayName: b.displayName.trim(), institution: b.institution.trim(), isIsraeliAcademic: b.isIsraeliAcademic, locale: b.locale ?? 'he' });
+      const r = await tx.users.registerResearcher({ email, displayName: b.displayName.trim(), institution: b.institution.trim(), isIsraeliAcademic: il, locale: b.locale ?? 'he' });
       if (r) await this.notify.enqueue(tx, { template: 'verify_email', toEmail: email, locale: b.locale ?? 'he', params: { link: `${this.origin}/verify-email?token=${r.userId}.${r.verificationToken}` } });
       return r;
     });
     if (!created) return;
-    await this.auth.storePasswordHash(created.userId, hash);
+    if (b.password) await this.auth.storePasswordHash(created.userId, hash);
+    await this.auth.saveRegistrationMeta(created.userId, b.institution.trim(), b.termsVersion);
   }
   async verifyEmail(token: string, password: string | undefined, traceId: string): Promise<void> {
     const ctx = this.sys(traceId, null);
@@ -84,6 +85,7 @@ export class IdentityService {
       const [uid, raw] = token.split('.', 2);
       const ok = uid && raw ? await this.repo.tx(ctx, (tx) => tx.users.verifyEmail(uid, raw)) : false;
       userId = ok ? uid! : null;
+      if (userId && password) { const p = this.auth.checkPasswordPolicy(password); if (p) throw new DomainError('VALIDATION_FAILED', [{ field: 'password', rule: p }]); await this.auth.setPassword(userId, password); }
     } else { userId = await this.auth.consumeEmailToken(token, 'invite'); invite = true; }
     if (!userId) throw new DomainError('VALIDATION_FAILED', [{ field: 'token', rule: 'FORMAT' }]);
     if (invite) {
@@ -142,9 +144,9 @@ export class IdentityService {
     const p = await this.auth.profileFor(s.userId); if (!p) throw new DomainError('NOT_FOUND');
     return this.auth.webauthnRegistrationOptions(s.userId, p.email);
   }
-  async webauthnRegisterVerify(s: SessionRecord, response: unknown, traceId: string): Promise<{ recoveryCodes: string[] }> {
+  async webauthnRegisterVerify(s: SessionRecord, response: unknown, name: string, traceId: string): Promise<{ recoveryCodes: string[] }> {
     const first = (await this.auth.mfaFactorsFor(s.userId)).length === 0;
-    if (!(await this.auth.webauthnRegistrationVerify(s.userId, response))) throw new DomainError('UNAUTHENTICATED');
+    if (!(await this.auth.webauthnRegistrationVerify(s.userId, response, name))) throw new DomainError('UNAUTHENTICATED');
     await this.auth.stepUpSession(s.id, this.clock.now().getTime());
     await this.repo.auditStandalone({ ...this.sys(traceId, null), actor: { ...ANON_ACTOR, userId: s.userId } }, { action: 'auth.mfa.enroll', outcome: 'success', details: { factor: 'webauthn' } });
     return { recoveryCodes: first ? await this.auth.issueRecoveryCodes(s.userId) : [] };
@@ -160,26 +162,25 @@ export class IdentityService {
   async extend(s: SessionRecord): Promise<SessionRecord> { await this.auth.touchSession(s.id, this.clock.now().getTime()); return (await this.auth.getSession(s.id)) ?? s; }
 
   // ----- registration approval (coordinator) -----
-  async pendingRegistrations(ctx: Ctx) { return this.repo.tx(ctx, (tx) => tx.users.pendingRegistrations(100)); }
-  async approveRegistration(ctx: Ctx, userId: string): Promise<UserRecord> {
-    return this.repo.tx(ctx, async (tx) => {
-      const reg = await tx.users.registrationFlag(userId);
-      if (!reg) throw new DomainError('NOT_FOUND');
-      const u = await tx.users.getById(userId); if (!u) throw new DomainError('NOT_FOUND');
-      if (!u.emailVerifiedAt || u.status !== 'invited') throw new DomainError('CONFLICT');
-      const role = researcherRoleFor(reg.isIsraeliAcademic);
-      await tx.users.approveRegistration(userId);      // grants the researcher role, activates the user, audits (database function)
-      await this.notify.enqueue(tx, { template: 'registration_approved', toUserId: userId, locale: u.locale });
-      return (await tx.users.getById(userId))!;
-    });
-  }
-  async rejectRegistration(ctx: Ctx, userId: string): Promise<void> {
+  async registrations(ctx: Ctx) { return (await this.repo.tx(ctx, (tx) => tx.users.registrations(200))).map(({ isIsraeliAcademic: _i, ...r }) => r); }
+  async decideRegistration(ctx: Ctx, userId: string, outcome: 'approved' | 'rejected') {
     await this.repo.tx(ctx, async (tx) => {
-      const u = await tx.users.getById(userId); if (!u || !(await tx.users.registrationFlag(userId))) throw new DomainError('NOT_FOUND');
-      await tx.users.rejectRegistration(userId);
-      await this.notify.enqueue(tx, { template: 'registration_rejected', toUserId: userId, locale: u.locale });
+      const reg = (await tx.users.registrations(500)).find((r) => r.id === userId);
+      if (!reg) throw new DomainError('NOT_FOUND');
+      if (reg.status !== 'pending') throw new DomainError('CONFLICT');
+      const u = await tx.users.getById(userId); if (!u) throw new DomainError('NOT_FOUND');
+      if (outcome === 'approved') {
+        if (!u.emailVerifiedAt || u.status !== 'invited') throw new DomainError('CONFLICT');
+        await tx.users.approveRegistration(userId);       // grants the researcher role, activates, audits (database function)
+        await this.notify.enqueue(tx, { template: 'registration_approved', toUserId: userId, locale: u.locale });
+      } else {
+        await tx.users.rejectRegistration(userId);
+        await this.notify.enqueue(tx, { template: 'registration_rejected', toUserId: userId, locale: u.locale });
+      }
     });
+    return this.repo.tx(ctx, async (tx) => { const r = (await tx.users.registrations(500)).find((x) => x.id === userId)!; const { isIsraeliAcademic: _i, ...rest } = r; return rest; });
   }
+  async methods(s: SessionRecord) { return this.auth.listMethods(s.userId); }
   invalidRole(r: string): r is Role { return isRole(r); }
   sod(existing: Role[], adding: Role): boolean { return violatesSeparationOfDuties(existing, adding); }
   newToken(): string { return randomToken(); }

@@ -104,13 +104,13 @@ export class PgAuth implements AuthPort {
     const r = await this.q('DELETE FROM authn.challenges WHERE token_hash = $1 AND kind = $2 AND expires_at > now() RETURNING webauthn_challenge', [sha256Buf(key), kind]);
     return r.rows[0]?.webauthn_challenge ?? null;
   }
-  async webauthnRegistrationVerify(userId: string, response: unknown) {
+  async webauthnRegistrationVerify(userId: string, response: unknown, name = 'Passkey') {
     const expected = await this.takeChallenge(`wa-reg:${userId}`, 'webauthn_reg'); if (!expected) return false;
     try {
       const v = await verifyRegistrationResponse({ response: response as never, expectedChallenge: expected, expectedOrigin: this.opt.origin, expectedRPID: this.opt.rpId, requireUserVerification: true });
       if (!v.verified || !v.registrationInfo) return false;
       const c = v.registrationInfo.credential;
-      await this.q('INSERT INTO authn.webauthn_credentials (credential_id, user_id, public_key, counter, transports) VALUES ($1,$2,$3,$4,$5)', [c.id, userId, Buffer.from(c.publicKey), c.counter, c.transports ?? null]);
+      await this.q('INSERT INTO authn.webauthn_credentials (credential_id, user_id, public_key, counter, transports, name) VALUES ($1,$2,$3,$4,$5,$6)', [c.id, userId, Buffer.from(c.publicKey), c.counter, c.transports ?? null, name.slice(0, 60)]);
       return true;
     } catch { return false; }
   }
@@ -162,6 +162,17 @@ export class PgAuth implements AuthPort {
   async rotateSession(): Promise<SessionRecord | null> { return null; }
   async revokeSession(id: string) { await this.q('UPDATE authn.sessions SET revoked_at = now() WHERE id_hash = $1', [sha256Buf(id)]); }
   async revokeAllForUser(userId: string) { await this.q('UPDATE authn.sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL', [userId]); }
+  async listMethods(userId: string) {
+    const out: Array<{ id: string; kind: 'passkey' | 'totp'; name: string; addedAt: string; lastUsedAt: string | null }> = [];
+    const t = (await this.q('SELECT totp_confirmed_at FROM authn.credentials WHERE user_id = $1 AND totp_confirmed_at IS NOT NULL', [userId])).rows[0];
+    if (t) out.push({ id: 'totp', kind: 'totp', name: 'Authenticator app', addedAt: new Date(t.totp_confirmed_at).toISOString(), lastUsedAt: null });
+    for (const w of (await this.q('SELECT credential_id, name, created_at, last_used_at FROM authn.webauthn_credentials WHERE user_id = $1 ORDER BY created_at', [userId])).rows)
+      out.push({ id: w.credential_id, kind: 'passkey', name: w.name, addedAt: new Date(w.created_at).toISOString(), lastUsedAt: w.last_used_at ? new Date(w.last_used_at).toISOString() : null });
+    return out;
+  }
+  async saveRegistrationMeta(userId: string, institution: string, termsVersion: string | null) {
+    await this.q('INSERT INTO authn.registration_meta (user_id, institution, terms_version) VALUES ($1,$2,$3) ON CONFLICT (user_id) DO NOTHING', [userId, institution, termsVersion]);
+  }
   // ----- profile -----
   async recordLoginSuccess(userId: string) { await this.q('SELECT authn.touch_login($1)', [userId]); }
   async activeRolesFor(userId: string): Promise<RoleAssignmentRecord[]> {

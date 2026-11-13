@@ -7,6 +7,7 @@ import {
 import { countBucket, type SearchService } from '../search-discovery/index.js';
 import { nid, notFound } from '../../lib/util.js';
 
+const CART_LIMIT = 20;
 type Fields = { researchQuestion?: string; applicantEthicsRef?: string; plannedUse?: string; fundingSources?: string };
 const STAFF_VIEW = new Set(['national_coordinator', 'committee_member']);
 
@@ -28,21 +29,58 @@ export class RequestService {
     return this.present(ctx, r, steps);
   }
 
-  // ----- cart -----
-  async getCart(ctx: Ctx) { return this.repo.tx(ctx, async (tx) => { const d = await tx.requests.getDraftFor(ctx.actor.userId!); return { requestId: d?.id ?? null, items: d?.items ?? [] }; }); }
-  async putCart(ctx: Ctx, items: Array<{ criteria: Filters; requestedCount?: number }>) {
-    const prepared: Array<{ id: string; criteria: Filters; requestedCount: number | null; shownCountBucket: string | null }> = [];
-    for (const it of items) {
-      const criteria = canonicalizeFilters(it.criteria);
-      const bad = validateFilterShape(criteria); if (bad) throw new DomainError('VALIDATION_FAILED', [{ field: 'criteria', rule: bad }]);
-      prepared.push({ id: nid(this.clock, 'requestItem'), criteria, requestedCount: it.requestedCount ?? null, shownCountBucket: await countBucket(this.search, ctx, criteria) });
-    }
+  // ----- cart (the open draft request's items) -----
+  private cartView(d: RequestRecord | null) {
+    return { items: (d?.items ?? []).map((it) => ({ id: it.id, criteria: it.criteria, snapshot: { count: null, suppressed: it.shownCountBucket !== '10_plus', label: it.shownCountBucket ?? '' }, addedAt: it.createdAt ?? this.clock.now().toISOString() })), limit: CART_LIMIT };
+  }
+  async getCart(ctx: Ctx) { return this.repo.tx(ctx, async (tx) => this.cartView(await tx.requests.getDraftFor(ctx.actor.userId!))); }
+  async addCartItem(ctx: Ctx, b: { criteria: Filters; q?: string }) {
+    let criteria = canonicalizeFilters(b.criteria);
+    if (b.q?.trim()) criteria = canonicalizeFilters((await this.search.aggregate(ctx, { q: b.q, filters: criteria })).resolvedFilters);
+    const bad = validateFilterShape(criteria); if (bad) throw new DomainError('VALIDATION_FAILED', [{ field: 'criteria', rule: bad }]);
+    const bucket = await countBucket(this.search, ctx, criteria);
     return this.repo.tx(ctx, async (tx) => {
       let d = await tx.requests.getDraftFor(ctx.actor.userId!);
       if (!d) d = await tx.requests.create({ id: nid(this.clock, 'request'), applicantUserId: ctx.actor.userId!, idempotencyKey: null, fields: {} });
-      await tx.requests.setItems(d.id, prepared);
-      const after = await tx.requests.get(d.id);
-      return { requestId: d.id, items: after?.items ?? [] };
+      if (d.items.length >= CART_LIMIT) throw new DomainError('CONFLICT');
+      await tx.requests.addItem(d.id, { id: nid(this.clock, 'requestItem'), criteria, requestedCount: null, shownCountBucket: bucket });
+      return this.cartView(await tx.requests.get(d.id));
+    });
+  }
+  async removeCartItem(ctx: Ctx, itemId: string) {
+    return this.repo.tx(ctx, async (tx) => {
+      const d = await tx.requests.getDraftFor(ctx.actor.userId!); if (!d) throw notFound();
+      if (!(await tx.requests.removeItem(d.id, itemId))) throw notFound();
+      return this.cartView(await tx.requests.get(d.id));
+    });
+  }
+  async startFromCart(ctx: Ctx) {
+    return this.repo.tx(ctx, async (tx) => {
+      const d = await tx.requests.getDraftFor(ctx.actor.userId!);
+      if (!d || d.items.length === 0) throw new DomainError('VALIDATION_FAILED', [{ field: 'items', rule: 'REQUIRED' }]);
+      return this.load(tx, ctx, d.id);
+    });
+  }
+  async precheck(ctx: Ctx, id: string, b: { outcome: 'forward' | 'ask_info' | 'reject'; reasonCode?: string; note?: string }) {
+    if (b.note && scanObjectDeep({ n: b.note }, { maxLength: null }).length) throw new DomainError('VALIDATION_FAILED', [{ field: 'note', rule: 'IDENTIFIER_SUSPECTED' }]);
+    const cur = await this.repo.tx(ctx, (tx) => tx.requests.get(id)); if (!cur) throw notFound();
+    if (cur.status === 'submitted') await this.transition(ctx, id, 'precheck');
+    if (b.outcome === 'forward') {
+      // forwarding is the coordinator's attestation that the five pre-check items hold. The database requires all five.
+      return this.transition(ctx, id, 'committee_review', undefined, { checklist: { form_complete: true, irb_ref_plausible: true, consent_scope_ok: true, no_identifier_requested: true, items_exist: true } });
+    }
+    if (b.outcome === 'ask_info') return this.transition(ctx, id, 'needs_info', undefined, { reasonCode: b.reasonCode ?? 'info_needed', ...(b.note ? { note: b.note } : {}) });
+    return this.transition(ctx, id, 'closed', 'rejected', { reasonCode: b.reasonCode ?? 'precheck_failed' });
+  }
+  async respond(ctx: Ctx, id: string, message: string) {
+    if (scanObjectDeep({ m: message }, { maxLength: null }).length) throw new DomainError('VALIDATION_FAILED', [{ field: 'message', rule: 'IDENTIFIER_SUSPECTED' }]);
+    return this.transition(ctx, id, 'precheck');
+  }
+  async voteTally(ctx: Ctx, id: string) {
+    return this.repo.tx(ctx, async (tx) => {
+      const t = await tx.requests.tally(id, ctx.actor.userId!); if (!t) throw notFound();
+      const cfg = await tx.requests.committeeConfig();
+      return { required: cfg.votesNeeded, members: cfg.membersTotal, ...t };
     });
   }
 

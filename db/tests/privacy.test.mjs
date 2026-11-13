@@ -211,11 +211,11 @@ describe('inputs, roles, epochs, k', () => {
   it('attachedData: zero and small flags look identical; large flags are shown', async () => {
     const flag = async (type, donors) => { for (const d of donors) await admin().query(`INSERT INTO portal.sample_attached_data (sample_id, data_type) SELECT id,$2 FROM portal.samples WHERE donor_ref=$1 ON CONFLICT DO NOTHING`, [d, type]); };
     const ds = (await q(admin(), `SELECT DISTINCT donor_ref FROM portal.samples WHERE diagnosis_code='dmg_h3k27' AND deleted_at IS NULL`)).map((r) => r.donor_ref);
-    await flag('wes', ds.slice(0, 3)); await flag('rna_seq', ds.slice(0, 12));
+    await flag('wes', ds.slice(0, 3)); await flag('rna_seq', ds);
     await refreshSnapshot();
     const rows = Object.fromEntries((await facet('resA', {}, 'attachedData')).map((r) => [r.bucket, r]));
     expect(Object.keys(rows).sort()).toEqual(['digital_pathology', 'mri', 'redcap_clinical', 'rna_seq', 'wes', 'wgs']);
     expect(JSON.stringify({ ...rows.wes, bucket: '' })).toBe(JSON.stringify({ ...rows.mri, bucket: '' }));
-    expect(rows.rna_seq).toMatchObject({ n: 12, masked: false });
+    expect(rows.rna_seq).toMatchObject({ n: 14, masked: false });
   });
 });

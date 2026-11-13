@@ -1,6 +1,6 @@
 import type { Ctx, SearchRepo, Filters } from '@ari/domain';
 import { isUndefinedObject } from './errors.js';
-import type { Q } from './db.js';
+import type { Q } from './db-types.js';
 
 // Fallback budget log when ops.query_log is missing (single process only).
 const mem: Array<{ userId: string; inst: string | null; key: string; cost: number; at: number }> = [];

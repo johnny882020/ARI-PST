@@ -9,7 +9,8 @@ import { makeSearchRepo } from './repo-search.js';
 import { makeRequestRepo } from './repo-requests.js';
 import { makeImportRepo, makeGovernanceRepo, makeOutboxRepo, makeAuditRepo } from './repo-misc.js';
 
-export type Q = { query<R = Record<string, any>>(text: string, params?: unknown[]): Promise<{ rows: R[]; rowCount: number | null }> };
+import type { Q } from './db-types.js';
+export type { Q } from './db-types.js';
 const OUTCOME = { success: 'allow', denied: 'deny', error: 'error' } as const;
 
 export function makeAudit(q: Q, ctx: Ctx): AuditPort {
@@ -71,4 +72,4 @@ export class PgRepository implements Repository {
     } catch { return { ok: false, migrationsOk: false, latestMigration: null }; }
   }
 }
-export const iso = (d: Date | string | null | undefined): string | null => (d ? new Date(d).toISOString() : null);
+export { iso } from './db-types.js';
