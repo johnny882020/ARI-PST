@@ -85,7 +85,7 @@ How to split (steps):
 3. Move module tables to its own schema, then its own database. Use expand/contract migrations.
 4. Replace cross-module SQL joins with API or event reads.
 5. Run both paths behind a flag. Compare results. Cut over. Keep rollback for one release.
-6. Add the new service to `infra/render.yaml` as a private service (ADR-001).
+6. Add the new service to `render.yaml` as a private service (ADR-001).
 
 ```mermaid
 flowchart LR

@@ -12,5 +12,7 @@ Trigger: secret in Git (gitleaks), suspicious admin login, vendor breach notice,
 8. If the age private key may be exposed: create a new key pair, update `BACKUP_AGE_PUBLIC_KEY`, start a new backup chain.
 9. Privacy lead decides if data was reachable (RB-03).
 
+Note: the API reads `IP_HASH_SALT` and `SECRETS_KEY` (TOTP secrets at rest) in `apps/api/src/config.ts`. Treat them like `SESSION_SECRET`. Rotating `SECRETS_KEY` would make stored TOTP secrets unreadable unless they are re-encrypted. No rotation tool was found in the repo (UNVERIFIED; see `docs/KNOWN-ISSUES.md`). Secret names in the Blueprint and in the code differ today (`docs/deployment.md` section 12).
+
 ## Verify
 Old secret fails. Health green. No unknown sessions.

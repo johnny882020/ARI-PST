@@ -165,7 +165,7 @@ Rules:
 
 ## 7. Data governance
 - Portal holds de-identified index data only (REQ-041). Identity stays at the center.
-- Retention: closed-request form text and uploaded files follow a configured period (default 24 months after close, ASSUMPTION-407, needs legal review). Index records follow center policy. Audit logs follow a longer period, set by A2.
+- Retention: closed-request form text and uploaded files follow a configured period (canonical C-07: free text wiped at 24 months after close; the structured request record is kept 7 years after close; both need legal review). Index records follow center policy. Audit logs follow a longer period, set by A2.
 - Deletion requests from a center for its records: coordinator marks records `withdrawn_by_center` (soft delete, then purge job). Audited.
 - Consent withdrawal: the center flags the record. The coordinator retires it. Open requests that include it set the item to `unavailable`.
 

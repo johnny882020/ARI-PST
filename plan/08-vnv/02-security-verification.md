@@ -95,7 +95,7 @@ for (const op of matrix) for (const role of ROLES) {
 - TOTP: valid code accepted once; replay of the same code rejected; ±1 step window only; brute force locks after 5 tries.
 - Passkey (WebAuthn): register, login, remove last factor blocked, lost-device recovery flow needs coordinator + admin approval and is audited.
 - Recovery codes: single use, hashed.
-- Session: server-side, `HttpOnly; Secure; SameSite=Lax` (or Strict) cookie, rotates on login and on privilege change, idle timeout (default 30 min) and absolute timeout (default 8 h), logout invalidates server-side, concurrent-session policy, fixation test, CSRF token test.
+- Session: server-side, `__Host-sid` `HttpOnly; Secure; SameSite=Strict` cookie plus `__Host-csrf` (C-03), rotates on login and on privilege change, idle timeout (15 min staff, 30 min researchers) and absolute timeout (4 h admin, 8 h others) (C-02), logout invalidates server-side, concurrent-session policy, fixation test, CSRF token test.
 - Password: Argon2id params checked by a unit test; breached-password check; no user enumeration (same message and time on bad user or bad password).
 - Step-up: sensitive actions (role change, export) require fresh MFA within 5 min.
 

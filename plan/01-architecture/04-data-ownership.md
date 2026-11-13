@@ -32,10 +32,11 @@ Cross-module references use IDs only (`smp_`, `usr_`, `ctr_`). No cross-owner fo
 ## Roles in the database
 | DB role | Used by | Rights |
 |---|---|---|
-| `app_migrator` | CI migration job | DDL |
-| `app_runtime` | API | DML, subject to RLS; no BYPASSRLS |
+| `app_migrator` | `db/migrate.mjs` (pre-deploy), never the API | Owns all objects, DDL |
+| `app_runtime` | API | DML through definer functions and RLS; no BYPASSRLS; cannot `SET ROLE` (C-06) |
 | `app_audit_writer` | `audit-pg` adapter | INSERT on `audit_events` only |
-| `app_readonly_report` | Cron reports | SELECT on aggregates |
-| `app_admin_break_glass` | Human, time-boxed | Approved, logged (A2 defines) |
+| `app_readonly_bg` | Background reports, break-glass reads | Read-only, time-boxed (C-06) |
+| `app_break_glass` | Human, time-boxed (NOLOGIN until enabled) | Approved by two people, logged (A2 defines) |
+| `app_core`, `app_agg` | Owners of SECURITY DEFINER functions (NOLOGIN) | Internal, added by the build (C-06 schemas `portal`, `audit`, `search`, `ext`, `agg`) |
 
 The API sets `SET LOCAL app.user_id`, `app.role`, `app.center_id` per transaction. RLS policies read these settings (ADR-008).

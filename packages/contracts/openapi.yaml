@@ -1277,6 +1277,7 @@ paths:
     post:
       tags: [auth]
       operationId: enrollTotpStart
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Start TOTP enrolment. Returns the secret once.
       responses:
         '200': { description: Secret., content: { application/json: { schema: { $ref: '#/components/schemas/TotpEnrollment' } } } }
@@ -1285,6 +1286,7 @@ paths:
     post:
       tags: [auth]
       operationId: enrollTotpConfirm
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Confirm TOTP with a code. The first factor also returns recovery codes once.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TotpConfirmRequest' } } } }
       responses:
@@ -1295,6 +1297,7 @@ paths:
     post:
       tags: [auth]
       operationId: webauthnRegisterOptions
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Passkey registration options (WebAuthn).
       responses:
         '200': { description: Options., content: { application/json: { schema: { type: object, additionalProperties: true } } } }
@@ -1303,6 +1306,7 @@ paths:
     post:
       tags: [auth]
       operationId: webauthnRegisterVerify
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Verify the passkey registration response.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WebauthnEnrolRequest' } } } }
       responses:
@@ -1313,6 +1317,7 @@ paths:
     post:
       tags: [auth]
       operationId: recoverMfa
+      x-roles: public
       summary: Complete login with a single-use recovery code.
       security: []
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RecoveryLoginRequest' } } } }
@@ -1324,6 +1329,7 @@ paths:
     get:
       tags: [auth]
       operationId: listAuthMethods
+      x-roles: [researcher_il, researcher_intl, center_clinician, national_coordinator, committee_member, system_admin]
       summary: Own enrolled second factors (no secrets).
       responses:
         '200': { description: Methods., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/AuthMethod' } } } } } } }
@@ -1332,6 +1338,7 @@ paths:
     get:
       tags: [requests]
       operationId: getRequestCart
+      x-roles: [researcher_il]
       summary: The applicant's cart (items of the open draft request). Counts are k-safe buckets.
       responses:
         '200': { description: Cart., content: { application/json: { schema: { $ref: '#/components/schemas/Cart' } } } }
@@ -1340,6 +1347,7 @@ paths:
     post:
       tags: [requests]
       operationId: addCartItem
+      x-roles: [researcher_il]
       summary: Add a search (criteria, optional free text) to the cart.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CartItemCreate' } } } }
       responses:
@@ -1351,6 +1359,7 @@ paths:
     delete:
       tags: [requests]
       operationId: removeCartItem
+      x-roles: [researcher_il]
       summary: Remove an item from the cart.
       parameters:
         - { name: itemId, in: path, required: true, schema: { type: string } }
@@ -1361,6 +1370,7 @@ paths:
     post:
       tags: [requests]
       operationId: startRequestFromCart
+      x-roles: [researcher_il]
       summary: Turn the cart into the draft request to fill in and submit.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -1372,6 +1382,7 @@ paths:
     post:
       tags: [requests]
       operationId: precheckRequest
+      x-roles: [national_coordinator]
       summary: Coordinator pre-check outcome. forward = checklist passed, send to committee.
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -1385,6 +1396,7 @@ paths:
     post:
       tags: [requests]
       operationId: respondToInfoRequest
+      x-roles: [researcher_il]
       summary: Applicant answers a request for information. The request returns to pre-check. The text is checked for identifiers and is not stored.
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -1398,6 +1410,7 @@ paths:
     get:
       tags: [requests]
       operationId: getVoteTally
+      x-roles: [committee_member, national_coordinator]
       summary: Vote counts and own vote for the committee panel.
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -1409,6 +1422,7 @@ paths:
     get:
       tags: [admin]
       operationId: listPendingRegistrations
+      x-roles: [national_coordinator]
       summary: Researcher registrations. national_coordinator.
       responses:
         '200': { description: Registrations., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Registration' } } } } } } }
@@ -1417,6 +1431,7 @@ paths:
     post:
       tags: [admin]
       operationId: decideRegistration
+      x-roles: [national_coordinator]
       summary: Approve or reject a registration. Approval grants researcher_il or researcher_intl. Needs step-up.
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, pattern: '^usr_[0-9A-HJKMNP-TV-Z]{26}$' } }
@@ -1429,6 +1444,7 @@ paths:
     get:
       tags: [admin]
       operationId: listKPolicies
+      x-roles: [system_admin, committee_member, national_coordinator]
       summary: k policies with any pending change. Staff roles with a need to know.
       responses:
         '200': { description: Policies., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/KPolicy' } } } } } } }
@@ -1437,6 +1453,7 @@ paths:
     post:
       tags: [admin]
       operationId: proposeKPolicyChange
+      x-roles: [system_admin]
       summary: Propose a higher k (5 or more). Another person must approve. Needs step-up.
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, pattern: '^[a-z_]{2,32}$' } }
@@ -1449,6 +1466,7 @@ paths:
     post:
       tags: [admin]
       operationId: approveKPolicyChange
+      x-roles: [committee_member]
       summary: Approve a pending k change. The database requires a different person with the approver role. Needs step-up.
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
@@ -1461,6 +1479,7 @@ paths:
     get:
       tags: [admin]
       operationId: listRoleGrantRequests
+      x-roles: [system_admin, committee_member, national_coordinator]
       summary: Pending and decided privileged role grants.
       responses:
         '200': { description: Requests., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/RoleGrantRequest' } } } } } } }
@@ -1468,6 +1487,7 @@ paths:
     post:
       tags: [admin]
       operationId: createRoleGrantRequest
+      x-roles: [system_admin]
       summary: Request a privileged role for a user. A second person approves. Needs step-up.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RoleGrantRequestCreate' } } } }
       responses:
@@ -1479,6 +1499,7 @@ paths:
     post:
       tags: [admin]
       operationId: decideRoleGrantRequest
+      x-roles: [system_admin, committee_member, national_coordinator]
       summary: Approve or reject. The approver must differ from the requester and hold the role the database demands. Needs step-up.
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
@@ -1760,10 +1781,10 @@ components:
         status: { $ref: '#/components/schemas/RequestStatus' }
         closeReason: { type: [string, 'null'], enum: [delivered, withdrawn, expired, rejected, policy_cancelled, null] }
         applicantUserId: { type: string }
-        researchQuestion: { type: string }
-        applicantEthicsRef: { type: string }
-        plannedUse: { type: string }
-        fundingSources: { type: string }
+        researchQuestion: { type: [string, 'null'] }
+        applicantEthicsRef: { type: [string, 'null'] }
+        plannedUse: { type: [string, 'null'] }
+        fundingSources: { type: [string, 'null'] }
         items:
           type: array
           items: { $ref: '#/components/schemas/RequestItem' }
@@ -2038,7 +2059,6 @@ components:
         centerId: { type: [string, 'null'], description: Same as activeCenterId. Own center of a center_clinician. }
         expiresAt: { type: string, format: date-time }
         csrfToken: { type: string }
-        centerId: { type: [string, 'null'], description: 'Same as activeCenterId. Own center of a center_clinician.' }
     Accepted: { type: object, required: [accepted], properties: { accepted: { type: boolean } } }
     CsrfToken: { type: object, required: [csrfToken], properties: { csrfToken: { type: string } } }
     Health:

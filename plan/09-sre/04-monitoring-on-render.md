@@ -29,9 +29,9 @@ flowchart LR
 Why outside checks: if Render or its network is down, Render cannot tell us. Rule: the monitor must not live on the same platform as the thing it watches.
 
 ## Health checks
-- API exposes `GET /healthz` (liveness: process up) and `GET /readyz` (readiness: DB reachable, migrations at expected version).
+- API exposes `GET /livez` (liveness: process up) and `GET /readyz` (readiness: DB reachable, migrations at expected version). Canonical names per C-05; `/healthz` is not used. Both are served at the root and under `/api/`.
 - Render health check path = `/readyz`. Keep it cheap: one `SELECT 1`, timeout 2 s.
-- No data and no version details in the response. Return `{"status":"ok"}` only.
+- No data in the response. Return `{"status":"ok","version":"<git sha>"}` (C-05: both endpoints carry `version`).
 - A new deploy goes live only after `/readyz` passes. A failing check keeps the old instance (zero-downtime deploy, F9 UNVERIFIED for exact behavior; verify in staging, task V-05).
 - Static sites have no health check. The uptime probe covers them.
 

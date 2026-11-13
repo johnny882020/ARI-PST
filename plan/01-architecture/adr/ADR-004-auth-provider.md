@@ -7,7 +7,7 @@ Need 2FA, RBAC, sessions, later SSO. Base44 may replace the platform later. A th
 ## Decision
 - Own `AuthPort` in domain. Adapter `auth-local`.
 - Passwords: Argon2id. Second factor: WebAuthn passkeys, TOTP fallback. 2FA is mandatory for all protected roles.
-- Server-side sessions in Postgres. Cookie: `HttpOnly`, `Secure`, `SameSite=Lax`, idle timeout 30 min, absolute 12 h (A2 may tighten).
+- Server-side sessions in Postgres. Cookie: `__Host-sid`, `HttpOnly`, `Secure`, `SameSite=Strict`, plus `__Host-csrf`. Idle 15 min staff / 30 min researchers, absolute 4 h admin / 8 h others, step-up 5 min (canonical-decisions C-02, C-03; supersedes the earlier values here).
 - Roles from contract pack. Role checks live in `identity-access` (`AccessPolicy`).
 - Phase 2: OIDC adapter behind same port.
 

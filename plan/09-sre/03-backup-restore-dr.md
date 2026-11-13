@@ -69,7 +69,7 @@ Scenarios
 
 Region failure design (default Frankfurt, F10 UNVERIFIED)
 - Phase 1 is single region. We accept RTO 8 to 24 h for a full region loss. This is explicit risk RISK-A9-01 for the owner.
-- A cold standby is documented, not running: `infra/render.yaml` is parameterized by region; offsite dump bucket B is in another EU region or provider.
+- A cold standby is documented, not running: `render.yaml` (repo root) is parameterized by region; offsite dump bucket B is in another EU region or provider.
 - A second region must still satisfy GATE-REGION and the DPA. Needs legal review before any real data moves there.
 - Region failure test (DR-4): create the full stack in a second EU region on synthetic data, restore from bucket B, point a test hostname at it, run e2e smoke. Record time. No production DNS change in the test.
 

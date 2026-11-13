@@ -17,7 +17,7 @@ Contract: `openapi/openapi.yaml` (OpenAPI 3.1.0, valid YAML, 55 schemas checked 
 | Pagination | Cursor: `?cursor=&limit=` (max 100). Response `{items, nextCursor}`. Cursor is opaque (signed) |
 | Idempotency | `Idempotency-Key` header on POST that creates requests, imports, samples. Stored in `idempotency_keys` (24 h). Same key + same body = same response. Same key + different body = 409 `IDEMPOTENCY_CONFLICT` |
 | Concurrency | `ETag` on samples. `If-Match` required on PATCH. 412 on mismatch |
-| Auth | Server-side session cookie `ari_session` (HttpOnly, Secure, SameSite=Strict) + `X-CSRF-Token` on unsafe methods |
+| Auth | Server-side session cookie `__Host-sid` (HttpOnly, Secure, SameSite=Strict) + `__Host-csrf` double-submit cookie echoed in `X-CSRF-Token` on unsafe methods (C-03) |
 | Partial update | `application/merge-patch+json` (RFC 7396) |
 | Rate limits | 429 + `Retry-After`. Search endpoints have a tighter budget (see 04 item 7) |
 | Content | No identifiers in any payload |

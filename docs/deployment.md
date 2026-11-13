@@ -36,6 +36,7 @@ Before you start, read section 5 (what must be on `main`).
 3. **Create the Blueprint.** Dashboard, New, Blueprint. Connect the GitHub repo `johnny882020/ARI-PST`. Select branch `main`. Render reads `render.yaml`. Leave the Blueprint file path empty (root).
 4. **Fill the secret prompts.** Render asks for every `sync: false` value (see section 4). You can leave optional ones empty for the first synthetic run, except `PUBLIC_ORIGIN`.
 5. **Apply.** Render creates the database first, then the services. The first `ari-api` deploy runs `node db/migrate.mjs` before it starts.
+   **Read section 12 first.** As built, the migration runner reads `DATABASE_URL_MIGRATOR` (not `DATABASE_URL`) and needs the roles from `db/bootstrap.sql`, which a database admin runs once. The Blueprint does not do either yet. Expect the first deploy to fail until that is settled.
 6. **Check.** Run `BASE_URL=https://<ari-api>.onrender.com bash scripts/smoke.sh --wait 120`. Expect `OK: livez + readyz`.
 7. **Plan slugs.** If Render rejects a plan name (`pro-4gb` for the database, `starter` for services), pick the nearest plan in the Dashboard and fix `render.yaml` through a pull request. Do not change plans by hand in the Dashboard (drift).
 8. **Staging (optional, later).** Create the `staging` branch from `main`, then New, Blueprint, branch `staging`, Blueprint file path `infra/render.staging.yaml`.
@@ -53,7 +54,7 @@ Never put these in Git, chat or tickets.
 | `ALERT_WEBHOOK_URL`, `HEARTBEAT_URL_*` | crons | Outside monitor. |
 
 Render generates `SESSION_SECRET`, `AUDIT_HMAC_KEY` and `CSRF_SECRET` itself (group `ari-secrets-generated`).
-Variables marked `sync: false` are not copied into pull request previews. Previews therefore run with no email and no object store, and the API must fall back to in-memory adapters (see `plan/requests/B5-to-orchestrator.md`).
+Variables marked `sync: false` are not copied into pull request previews. Previews therefore run with no email and no object store, and the API should fall back to in-memory adapters (see `plan/requests/B5-to-orchestrator.md`). `apps/api/src/config.ts` does default to `memory` and `console` outside production.
 
 ## 5. What must be on `main`
 
@@ -88,7 +89,7 @@ Editors work through the CMS on `cms/*` branches or a fork. CI job `cms-guard` r
 
 ## 9. Previews
 
-Every pull request gets a preview with a new empty database. The API seeds synthetic data when `IS_PULL_REQUEST=true` (Render sets it in previews; UNVERIFIED) or `SEED_SYNTHETIC=true`. The API must refuse to start if `DATA_CLASSIFICATION` is not `synthetic` outside production. Previews expire after 3 days. Cron jobs do not run in previews. Previews of forked PRs must stay disabled in Render's GitHub settings.
+Every pull request gets a preview with a new empty database. Design (B5): the API seeds synthetic data when `IS_PULL_REQUEST=true` (Render sets it in previews; UNVERIFIED) or `SEED_SYNTHETIC=true`, and refuses to start if `DATA_CLASSIFICATION` is not `synthetic` outside production. **Not implemented in `apps/api` yet** (see section 12); `pnpm --filter @ari/db seed` seeds the vocabulary only. Previews expire after 3 days. Cron jobs do not run in previews. Previews of forked PRs must stay disabled in Render's GitHub settings.
 
 ## 10. Rollback
 
@@ -102,3 +103,17 @@ python3 scripts/gen-staging.py --check
 render blueprints validate render.yaml        # Render CLI 2.7.0+, needs login
 BASE_URL=https://host bash scripts/smoke.sh --wait 60
 ```
+
+## 12. Known gaps between the Blueprint and the code (as of the Phase 1 build)
+
+These are open. Details and owners are in `docs/KNOWN-ISSUES.md`.
+
+| Gap | Effect | Workaround |
+|---|---|---|
+| `db/migrate.mjs` reads `DATABASE_URL_MIGRATOR`. The Blueprint sets only `DATABASE_URL`. | `preDeployCommand` exits with code 2 | Add `DATABASE_URL_MIGRATOR` (login `app_migrator`) to `ari-api` in a PR to `render.yaml` |
+| Roles are created by `db/bootstrap.sql`, run once by a database admin. The comment in `render.yaml` says the runner creates them. | Migrations fail on a fresh database | Run `psql -f db/bootstrap.sql` once, as the managed-DB admin. Set role passwords out of band |
+| `apps/api/src/config.ts` reads `IP_HASH_SALT`, `SECRETS_KEY`, `S3_BUCKET`, `S3_ENDPOINT`, `SMTP_URL`, `MAIL_FROM`. The Blueprint defines `SESSION_SECRET`, `AUDIT_HMAC_KEY`, `CSRF_SECRET`, `OBJECTSTORE_*`. | In production the API refuses to start or uses dev defaults for salts and keys | Align the names in one PR (code or `render.yaml`) before the first protected deploy |
+| Cron entry points `apps/api/dist/jobs/*.js` | Crons need `jobs/staleness`, `audit-verify`, `purge`, `export` compiled by `tsup` | Check that `pnpm --filter @ari/api build` emits all four files in `dist/jobs/` |
+| Preview seeding and the `DATA_CLASSIFICATION` guard | See section 9 | Seed by hand with synthetic data |
+| Public site forms post to `/api/v1/public/forms/*` on a different host and the API sets no CORS headers | Join and contact forms fail cross-origin in production | Serve the API under the same host or add a narrow CORS rule for the public origin (decision needed) |
+| Several root scripts that `ci.yml` calls are not defined in `package.json` (for example `lint:openapi`, `test:unit`, `db:migrate`) | CI jobs fail until they exist | Orchestrator to add them (see `plan/requests/B5-to-orchestrator.md`) |

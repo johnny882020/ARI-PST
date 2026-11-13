@@ -14,7 +14,7 @@ Load assumption (ASSUMPTION-A1-01): up to 500 registered users, 50 concurrent, 2
 | NFR-PRF-01 | Public page LCP (mobile, 4G) | <= 2.5 s p75 | Lighthouse CI | REQ-021 |
 | NFR-PRF-02 | Public page total JS | <= 100 KB gz per page | Bundle budget | REQ-021 |
 | NFR-PRF-03 | API p95 latency (non-search) | <= 300 ms at 20 req/s | k6 | REQ-072 |
-| NFR-PRF-04 | Search p95 latency | <= 800 ms at 100,000 records | k6 | REQ-030 |
+| NFR-PRF-04 | Search p95 latency | <= 800 ms. Test at 50,000 records, design for 100,000 (C-12) | k6 | REQ-030 |
 | NFR-PRF-05 | SPA initial load | <= 250 KB gz JS; TTI <= 3.5 s on mid phone | Lighthouse CI | REQ-021 |
 | NFR-PRF-06 | CSV import | 5,000 rows <= 60 s, no API timeout | k6/integration | REQ-067 |
 | NFR-SCL-01 | Headroom | 5x the load assumption without redesign | k6 stress | REQ-072 |

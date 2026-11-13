@@ -137,7 +137,7 @@ Measurable targets. A2, A8, A9 own detail.
 
 | NFR | Target | Traces |
 |---|---|---|
-| NFR-001 | Search results in under 1 s at p95 for 50,000 synthetic records. | REQ-030, 031 |
+| NFR-001 | Search results in under 800 ms at p95 for 50,000 synthetic records (C-12; design for 100,000). | REQ-030, 031 |
 | NFR-002 | Public pages: LCP under 2.5 s on mobile profile. | REQ-021 |
 | NFR-003 | Zero critical or serious axe violations on all pages, he and en. | REQ-022 |
 | NFR-004 | Protected area 99.5% monthly. Public site 99.9% monthly. | REQ-072, ASSUMPTION-05 |

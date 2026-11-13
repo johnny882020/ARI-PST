@@ -10,7 +10,7 @@ Facts come from `08-research-log.md`. Items marked UNVERIFIED need a check again
 | Merge to `main` | Protected area: `autoDeployTrigger: off`. GitHub Action calls deploy hooks | CI green + staging green + manual approval |
 | `staging` fast-forward | Staging Blueprint services deploy, `checksPass` | CI green |
 
-Render has two Blueprints from the same repo: `infra/render.yaml` on branch `main`, `infra/render.staging.yaml` on branch `staging`. Names are prefixed `ari-stg-` to avoid clashes (UNVERIFIED: whether names must be unique per workspace).
+Render has two Blueprints from the same repo: `render.yaml` (repo root) on branch `main`, `infra/render.staging.yaml` on branch `staging`. Names are prefixed `ari-stg-` to avoid clashes (UNVERIFIED: whether names must be unique per workspace).
 
 ```mermaid
 flowchart TD
@@ -22,9 +22,9 @@ flowchart TD
   F --> G{"Required reviewers approve environment production-protected"}
   G -->|approved| H["Action calls Render deploy hook: ari-api"]
   H --> I["preDeployCommand: migrations"]
-  I --> J["health check /healthz"]
+  I --> J["health check /readyz"]
   J -->|ok| K["traffic switch"]
-  K --> L["Action deploys ari-app SPA"]
+  K --> L["SPA is served by ari-api, nothing else to deploy"]
   J -->|fail| M["old version keeps serving"]
 ```
 
@@ -33,20 +33,20 @@ Render has no built-in approval gate (UNVERIFIED). The approval gate is a GitHub
 
 Trade-off: manual hook call means the deploy is not "pure Render auto-deploy". This is a deliberate exception for REQ-054 and protected data. Public site keeps full auto-deploy.
 
-## Blueprint contents (`examples/render.yaml`)
+## Blueprint contents (`render.yaml`)
 | Resource | Kind | Notes |
 |---|---|---|
-| `ari-public-site` | static web | headers, he/en rewrites, buildFilter, `checksPass` |
-| `ari-app` | static web | protected SPA, no-store cache, `off` |
+| `ari-public` | static web | headers, he/en rewrites, buildFilter, `checksPass` |
+| ~~`ari-app`~~ | not created | Superseded (C-04, B5 deviation): the SPA is built into `apps/web/dist` and served by `ari-api` on the same host |
 | `ari-api` | web node | `healthCheckPath`, `preDeployCommand`, 2 instances, `maxShutdownDelaySeconds: 60`, `off` |
-| `ari-internal` | pserv | private network only (internal verify/export helper) |
+| ~~`ari-internal`~~ | not created | Superseded: not needed in Phase 1 |
 | `ari-db` | Postgres | Frankfurt, private (`ipAllowList: []`), `previewPlan` small |
 | `ari-cron-staleness` | cron | daily |
 | `ari-cron-backup-export` | cron docker | daily encrypted logical export |
 | `ari-cron-audit-verify` | cron | hourly hash-chain verify, alerts via webhook |
 | env groups | `ari-common`, `ari-api-secrets` | |
 
-Private network: `ari-api` reaches `ari-internal` and `ari-db` by internal address only. The API reads the DB through `fromDatabase` connection string (internal URL, UNVERIFIED which property gives internal).
+Private network: `ari-api` reaches `ari-db` by internal address only. The API reads the DB through `fromDatabase` connection string (internal URL, UNVERIFIED which property gives internal).
 
 ## Preview settings (synthetic only)
 - `previews.generation: automatic`, `expireAfterDays: 3`.
@@ -58,7 +58,7 @@ Private network: `ari-api` reaches `ari-internal` and `ari-db` by internal addre
 
 ## Zero downtime and health checks
 - Render starts the new instance, waits for the health check, then switches traffic, then stops the old one with SIGTERM (UNVERIFIED details).
-- `/healthz` rules: returns 200 only if DB ping ok and migration level >= expected. Returns `{"version":"<git sha>","status":"ok"}`. No identifiers. Separate `/livez` is optional.
+- `/readyz` rules (C-05; the earlier `/healthz` name is retired): returns 200 only if DB ping ok and migration level >= expected. Returns `{"version":"<git sha>","status":"ok"}`. No identifiers. Separate `/livez` is optional.
 - API handles SIGTERM: stop accepting, finish in-flight, close pool, exit within 60 s.
 - Two instances in prod so a failed instance does not cause an outage.
 - Sessions are server-side in Postgres, so any instance serves any user.

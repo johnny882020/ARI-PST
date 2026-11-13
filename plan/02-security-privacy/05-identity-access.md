@@ -19,14 +19,14 @@ REQ-044, REQ-045, REQ-037, REQ-018. Port: `AuthPort`. Adapter: `auth-local` (Pha
 Server-side sessions in PostgreSQL (or Render Key Value later). No JWT as session.
 | Setting | Value |
 |---|---|
-| Cookie | `__Host-sid`, `Secure`, `HttpOnly`, `SameSite=Lax` (`Strict` for staff routes), `Path=/`, no `Domain` |
+| Cookie | `__Host-sid`, `Secure`, `HttpOnly`, `SameSite=Strict` (C-03), `Path=/`, no `Domain`. Plus `__Host-csrf` double-submit cookie |
 | ID | 256-bit random, stored as SHA-256 hash |
 | Idle timeout | 15 min (`system_admin`, `national_coordinator`, `committee_member`, `center_clinician`); 30 min (researchers) |
 | Absolute timeout | 4 h (`system_admin`); 8 h (others) |
 | Rotation | New id on login, after step-up, on role change |
 | Concurrent | Max 3 per user. Oldest revoked. |
 | Revocation | Logout, password or factor change, role change, admin action: all revoke |
-| CSRF | Synchronizer token + `Origin` check on every state-changing request |
+| CSRF | Double-submit `__Host-csrf` token (header `X-CSRF-Token`) + `Origin` check on every state-changing request (C-03) |
 | Headers | CSP strict (no inline script), `X-Content-Type-Options`, `Referrer-Policy: no-referrer`, `frame-ancestors 'none'`, COOP/CORP |
 | Device note | Show "last login" and active sessions to user |
 
@@ -78,7 +78,7 @@ Policy engine: a small pure `authorize(subject, action, resource)` function in `
 ## 5. Row-Level Security (RLS) approach
 Two layers: application authorizes; the database enforces again. A bug in the app must not leak rows.
 
-- DB roles: `app_owner` (owns tables, used by migrations, not by the app), `app_api` (no `BYPASSRLS`, not owner, no superuser), `app_audit_writer` (INSERT only on `audit`), `app_readonly_bg` (break-glass, created on demand, file section 7).
+- DB roles: `app_migrator` (owns objects, used by migrations only; was `app_owner`), `app_runtime` (was `app_api`; no `BYPASSRLS`, not owner, no superuser), `app_audit_writer` (INSERT only on `audit`), `app_readonly_bg` (break-glass, created on demand, file section 7).
 - `ALTER TABLE ... ENABLE ROW LEVEL SECURITY; ALTER TABLE ... FORCE ROW LEVEL SECURITY;` on every table with scoped data.
 - Per-request transaction sets context: `SET LOCAL app.user_id = '...'; SET LOCAL app.role = '...'; SET LOCAL app.center_id = '...';` using `set_config(..., true)`. The API opens one transaction per request. Pool connections never keep context (`SET LOCAL` ends at commit).
 - Policy sketch (illustrative):

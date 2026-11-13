@@ -9,7 +9,7 @@ db/migrations  infra/render.yaml  infra/terraform  .github/workflows  plan/  doc
 ```
 Tool: pnpm workspaces. Tasks run by Turborepo-style graph or plain pnpm scripts. CI runs only affected packages on PRs (`pnpm --filter ...[origin/main]`). Full run on `main`.
 
-Repo placement of examples: `examples/render.yaml` goes to `infra/render.yaml`. `examples/workflows/*` go to `.github/workflows/`. `examples/config/CODEOWNERS` goes to `.github/CODEOWNERS`.
+Repo placement of examples: `examples/render.yaml` went to the repo root `render.yaml` (as built; Render finds it there). `examples/workflows/*` go to `.github/workflows/`. `examples/config/CODEOWNERS` goes to `.github/CODEOWNERS`.
 
 ## Branch model: trunk-based
 - `main` is the trunk. It is always releasable.
@@ -45,7 +45,7 @@ See `examples/config/CODEOWNERS`. Owner groups are placeholders. Separation of d
 
 ## Branch protection (main and staging)
 - Require PR. No direct pushes. No force push. No deletion.
-- Required checks: `ci-gate`, `codeql / analyze`, `secret-scan`.
+- Required check: `ci-gate` only (C-15). It aggregates `sast-codeql`, `secrets` and all other jobs.
 - Require up-to-date branch or merge queue. Require linear history.
 - Require code-owner review. Dismiss stale approvals.
 - Require signed commits (Sigstore gitsign or GPG).

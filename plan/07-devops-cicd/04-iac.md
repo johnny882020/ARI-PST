@@ -1,7 +1,7 @@
 # 04 - Infrastructure as code
 
 ## Order of use
-1. Render Blueprint (`infra/render.yaml`, `infra/render.staging.yaml`). Default for everything Render hosts.
+1. Render Blueprint (`render.yaml` at the repo root, `infra/render.staging.yaml`; as built). Default for everything Render hosts.
 2. Terraform (`infra/terraform`) only for what Blueprint cannot do:
    | Area | Why not Blueprint | Tool |
    |---|---|---|

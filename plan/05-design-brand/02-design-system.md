@@ -164,7 +164,7 @@ Count tile shows: label, value, optional note.
 | Loading | Static skeleton | "Loading count" |
 | Error | "Could not load" + retry | same |
 Rules:
-- Never print the threshold-adjacent number ("<5") in the UI. It leaks information. Show only "Too few to show". (A2 decides final wording. See OPEN-A5-03.)
+- Never print the threshold-adjacent number ("<5") in the UI. It leaks information. Show only "Too few to show". (Closed by canonical-decisions C-09.)
 - Never use red or warning color. Use `--color-suppressed-bg` and muted text.
 - Suppression must not be inferable by difference: totals and sub-totals are suppressed together when needed (complementary suppression, A2).
 - Show a "Why are some numbers hidden?" disclosure on every page with counts.

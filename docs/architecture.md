@@ -1,7 +1,7 @@
 # ARI-PST Portal — Architecture
 
-Status: draft, built from the plan in `plan/01-architecture/`. Wave 2 review may change it.
-Rule: this file is a summary. The ADRs in `plan/01-architecture/adr/` are the authority.
+Status: Phase 1 as built (synthetic data only). Summary of `plan/01-architecture/`, updated to the code and to `plan/11-integration/canonical-decisions.md`.
+Rule: this file is a summary. The ADRs in `plan/01-architecture/adr/` and the canonical decisions are the authority; if code and plan disagree, the canonical decisions decide.
 
 ## 1. Goal
 One portal, two layers (REQ-001):
@@ -41,9 +41,9 @@ flowchart TB
   subgraph Adapters["apps/api/src/adapters"]
     PG["postgres"]
     AU["auth-local (Argon2id, passkeys, TOTP)"]
-    S3["objectstore-s3"]
-    SM["email-smtp"]
-    AP["audit-pg (hash chain)"]
+    S3["objectstore (S3, local, memory)"]
+    SM["email (SMTP, console)"]
+    AP["audit (hash chain inside the postgres adapter and DB functions)"]
   end
   HTTP["Fastify HTTP layer + OpenAPI"] --> D
   D --> P
@@ -71,11 +71,15 @@ CI enforces this. An architecture test (dependency-cruiser) fails the build if t
 
 ## 5. Security-critical design points
 - **Roles:** `anonymous`, `researcher_il`, `researcher_intl`, `center_clinician`, `national_coordinator`, `committee_member`, `system_admin`.
-- **Row-Level Security** by center. External roles have **no** grant on the sample table. They reach counts only through functions that apply k-anonymity (default k = 5).
+- **Row-Level Security** by center. External roles have **no** grant on the sample table. They reach counts only through `SECURITY DEFINER` functions that apply k-anonymity (k >= 5 enforced by a CHECK, distinct-donor counts, neighbour and complement suppression). The UI shows "Too few to show" and never the threshold (C-08, C-09). Changing `k` or a role grant needs a second approver.
 - **Separation of duties:** `system_admin` cannot approve requests or read sample data.
 - **Two-step coding:** the portal issues random code blocks. Centers map them locally. No link key is stored in the portal.
 - **Clinician view:** full coded record of the own center, plus a link out to the center's own system.
-- **Audit:** every view, download and decision is logged in a hash chain.
+- **Audit:** every view, download and decision is logged in a keyed hash chain (action names: `plan/02-security-privacy/07-audit-log.md`, C-11).
+- **Sessions and origin (C-02, C-03):** one origin. SPA at `/`, API at `/api/v1`. Cookies `__Host-sid` (Secure, HttpOnly, SameSite=Strict) and `__Host-csrf` (double submit). No CORS in production. Idle 15 min staff, 30 min researchers. Absolute 4 h admin, 8 h others. Step-up MFA within 5 min.
+- **Request states (C-01):** `draft, submitted, precheck, needs_info, committee_review, appeal_review, approved, rejected, center_coordination, agreements, delivery, closed`. `withdrawn` and `expired` are close reasons. Enforced by DB triggers and functions, mirrored in `packages/domain/src/request-state.ts`.
+- **DB roles (C-06):** `app_migrator` (owns objects, runs migrations only), `app_runtime` (API, cannot `SET ROLE`), `app_audit_writer`, `app_readonly_bg`, `app_break_glass`. Schemas `portal`, `audit`, `search`, `ext`, `agg`.
+- **Health (C-05):** `/livez` (process alive) and `/readyz` (DB reachable, migrations at expected level), both JSON with `version`. Render health check uses `/readyz`.
 
 ## 6. Render topology (Frankfurt, pending legal review)
 ```mermaid
@@ -83,20 +87,19 @@ flowchart TB
   GH["GitHub"] -->|"CI passes"| RD["Render deploy"]
   subgraph Render["Render workspace"]
     PUB["Static: ari-public"]
-    APP["Static: ari-app"]
     subgraph PN["Private network"]
-      API["Web service: ari-api"]
+      API["Web service: ari-api (API at /api/v1 and SPA at /)"]
       DB[("Postgres: ari-db")]
-      CR["Cron: staleness, retention + audit check, export + restore drill"]
+      CR["Crons: staleness, audit-verify, purge, export"]
     end
   end
-  APP --> API
   API --> DB
   CR --> DB
   RD --> PUB
-  RD --> APP
   RD --> API
 ```
+There is no separate `ari-app` static site and no `ari-internal` service (C-04, deviation B5). A static site on another host would break the `__Host-` cookie, so `ari-api` builds and serves `apps/web/dist`. Production runs 2 `ari-api` instances. Details: `docs/deployment.md`, `render.yaml`.
+
 | Environment | Trigger | Data |
 |---|---|---|
 | Preview (per PR) | Pull request | Synthetic only |
@@ -111,4 +114,4 @@ Move in stages. Public site first. Protected front end second. Back end and data
 Analytics or AI layer, pathology scan viewer, institutional SSO, partner API, genomics data (flag only). The ports exist. The features do not.
 
 ## 9. Open items
-See `plan/decision-register.md` (created in Wave 3) for gates and assumptions. Render facts are UNVERIFIED until checked against official Render docs.
+See `plan/decision-register.md` for gates and assumptions and `docs/KNOWN-ISSUES.md` for build gaps. Render facts (plan slugs, PITR window, `IS_PULL_REQUEST`) are UNVERIFIED until checked against live Render docs.

@@ -104,7 +104,7 @@ SELECT set_config('app.center_id', 'ctr_...', true);  -- only for center_clinici
 -- queries ...
 COMMIT;
 ```
-The login role `portal_app` has no table privileges. If the API forgets `SET LOCAL ROLE`, queries fail closed. A user holding two roles (for example researcher and clinician) uses one role per request, chosen by the session's active role.
+(Superseded by canonical-decisions C-06: the login role is `app_runtime`, it is a member of no role and cannot `SET ROLE`; privacy functions are SECURITY DEFINER. The `SET LOCAL ROLE` model below survives only as the adapter option `DB_SET_LOCAL_ROLE`.) The login role `portal_app` has no table privileges. If the API forgets `SET LOCAL ROLE`, queries fail closed. A user holding two roles (for example researcher and clinician) uses one role per request, chosen by the session's active role.
 
 Separation of duties in DB (trigger): `system_admin` cannot also hold clinician, coordinator or committee roles. `committee_member` cannot also be `national_coordinator`. `system_admin` has no grant on sample data or requests.
 

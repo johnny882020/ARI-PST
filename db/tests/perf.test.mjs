@@ -29,6 +29,7 @@ describe(`performance at ${N} samples`, () => {
         const t0 = performance.now();
         await q(c, 'SELECT * FROM agg.facet_counts($1::jsonb,$2)', [f, facet]);
         times.push(performance.now() - t0);
+        if (rep === 3) console.log('case', facet, f.slice(0, 60), (performance.now() - t0).toFixed(0) + 'ms');
       }
       for (const [f] of cases) { const t0 = performance.now(); await q(c, 'SELECT * FROM agg.total_count($1::jsonb)', [f]); times.push(performance.now() - t0); }
     });

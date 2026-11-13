@@ -4,8 +4,10 @@ Scope: REQ-012 to REQ-018, REQ-030 to REQ-037, REQ-046, REQ-067, REQ-068.
 Roles: `anonymous`, `researcher_il` (RIL), `researcher_intl` (RINT), `center_clinician` (CLIN, own center), `national_coordinator` (NC), `committee_member` (CM), `system_admin` (ADM).
 Legend: Y = allowed. `-` = no. `own` = own records only. `c` = own center only. All access is also enforced by the API. Client guards are UX only.
 
-Paths are in the SPA under `https://app.<domain>`. Locale is a user preference, not in the path.
+Paths are in the SPA on the same origin as the API (`https://<domain>/`, C-03; there is no separate `app.` host). Locale is a user preference, not in the path.
 Note: gaps between what A4 and this table decide go to `plan/requests/A6-to-A4.md`.
+
+> **Build status (Phase 1, B3).** The table below is the design. The built route table is `apps/web/src/routes/route-table.tsx`. Built: `/login`, `/login/mfa`, `/register`, `/session-ended`, `/home`, `/search`, `/samples`, `/samples/new`, `/samples/:id`, `/import`, `/import/new`, `/import/:jobId`, `/freshness`, `/cart`, `/requests`, `/requests/new`, `/requests/:id`, `/requests/:id/precheck`, `/requests/:id/decision`, `/committee`, `/admin/registrations`, `/admin/centers`, `/admin/users`, `/admin/settings/privacy`, `/audit`, `/account`, `/account/security`, `/help`, and a 404 route. **Not built:** `/login/recovery`, `/invite/:token` (invite accept), `/password/reset*`, `/samples/:id/edit`, `/requests/:id/coordination`, `/audit/export`, `/admin/users/:id`, `/admin/invitations`, `/admin/settings/committee`, `/admin/content`, `/admin/health`, `/notifications`, `/metrics`. See `docs/KNOWN-ISSUES.md`.
 
 ## 1. Route table
 

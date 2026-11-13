@@ -107,4 +107,4 @@ Per release: all PR DoD + release exit criteria below.
 A waiver names REQ/TC, reason, risk, compensating control, owner, expiry (max 30 days). Sev1/Sev2 and privacy/authz failures cannot be waived without the product owner and the security owner both signing. Needs legal review if a compliance REQ is affected.
 
 ## 7. Required CI checks (A7 implements)
-`lint-types`, `spectral`, `arch-deps`, `unit`, `property`, `integration-pg`, `contract-schemathesis`, `sast-codeql`, `sast-semgrep`, `sca`, `secrets`, `container-scan`, `canary-smoke`, `e2e-smoke-he-en`, `axe`, `trace-check`. Nightly: `e2e-full`, `k6`, `dast`, `privacy-full`, `resilience`.
+`lint-types`, `spectral`, `arch-deps`, `unit`, `property`, `integration-pg`, `contract-schemathesis`, `sast-codeql`, `sast-semgrep`, `sca`, `secrets`, `container-scan`, `cms-guard`, `build`, `canary-smoke`, `e2e-smoke-he-en`, `axe`, `trace-check`. Nightly: `e2e-full`, `k6`, `dast`, `privacy-full`, `resilience`.

@@ -9,7 +9,7 @@
 ## Two pipelines
 | | Public site | Protected area |
 |---|---|---|
-| Services | `ari-public-site` | `ari-api`, `ari-app`, `ari-internal`, crons, DB |
+| Services | `ari-public` | `ari-api` (serves API and SPA), crons, DB (C-04; no `ari-app`, no `ari-internal`) |
 | Trigger | Render `checksPass` on `main` | GitHub Action after approval |
 | Approval | none (PR review is the control) | `production-protected`: 2 reviewers, not the author |
 | Content edits (CMS) | PR to `main`, same path, preview first | n/a |
@@ -23,7 +23,7 @@ Run for 15 minutes after each protected deploy (in `deploy-protected.yml` and mo
 | Signal | Threshold | Action |
 |---|---|---|
 | Health check fails after deploy | at deploy | Render keeps old version. Workflow fails |
-| `/healthz` version never matches SHA | 15 min | rollback |
+| `/readyz` version never matches SHA | 15 min | rollback |
 | 5xx rate | > 2% for 5 min | rollback |
 | p95 latency | > 2x baseline for 10 min | alert, human decides |
 | Audit-chain verify fails | any | stop, page, no auto rollback (data issue) |

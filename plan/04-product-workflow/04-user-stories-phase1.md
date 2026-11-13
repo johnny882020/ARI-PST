@@ -316,7 +316,7 @@ Scenario: Complete submission
   Given my cart has at least one item
   When I fill research question, IRB/Helsinki approval ref, planned use and funding sources
   And I submit with an idempotency key
-  Then the request state is "submitted" then "pre_check"
+  Then the request state is "submitted" then "precheck"
   And I get a receipt notification
   And an audit event "request.submitted" is written
 
@@ -333,7 +333,7 @@ Scenario: Duplicate submit
 As an applicant, I want to see every step. (REQ-036; FR-014)
 ```gherkin
 Scenario: Timeline
-  Given my request moved through pre_check and committee_decision
+  Given my request moved through precheck and committee_review
   When I open it
   Then I see each state with date, actor role and a structured message
   And I do not see individual committee votes
@@ -343,9 +343,9 @@ Scenario: Timeline
 As a `national_coordinator`, I want a checklist. (REQ-034)
 ```gherkin
 Scenario: Pass pre-check
-  Given a request is in "pre_check"
+  Given a request is in "precheck"
   When I tick all checklist items and choose "pass"
-  Then the state is "committee_decision"
+  Then the state is "committee_review"
   And committee members are notified
 
 Scenario: Fail pre-check needs a reason
@@ -357,11 +357,11 @@ Scenario: Fail pre-check needs a reason
 As a coordinator or committee member, I want to ask the applicant a question. (REQ-034)
 ```gherkin
 Scenario: Ask and resume
-  Given a request is in "committee_decision"
+  Given a request is in "committee_review"
   When the committee requests info
-  Then the state is "needs_more_info" and the info clock starts
+  Then the state is "needs_info" and the info clock starts
   When the applicant responds
-  Then the state returns to "committee_decision"
+  Then the state returns to "committee_review"
 
 Scenario: Info timeout
   When 14 days pass without a response
@@ -404,7 +404,7 @@ Scenario: Center confirms
   When the center_clinician of "ctr_A" confirms their items
   Then those items stay "approved"
   When all centers have answered
-  Then the state is "mta_dta"
+  Then the state is "agreements"
 
 Scenario: Center cannot act on other centers
   When a ctr_A user tries to confirm a ctr_B item
@@ -419,7 +419,7 @@ Scenario: Center timeout escalates
 As a coordinator, I want to track agreements per center. (REQ-051)
 ```gherkin
 Scenario: Record signed agreements
-  Given a request is in "mta_dta"
+  Given a request is in "agreements"
   When I record an MTA and a DTA for every involved center with document reference and date
   Then the state is "delivery"
   And "request.agreements_signed" is audited
@@ -467,7 +467,7 @@ Scenario: Appeal window closed
 As a coordinator, I want SLAs enforced automatically. (REQ-034; FR-002)
 ```gherkin
 Scenario: Reminder before breach
-  Given pre_check SLA is 5 business days
+  Given precheck SLA is 5 business days
   When 4 business days pass without action
   Then a reminder goes to the assigned coordinator
 
@@ -695,7 +695,7 @@ Scenario: Retention job
   Given retention for closed requests is configured
   When the scheduled job runs
   Then expired request form text is deleted or anonymised
-  And a summary event "retention.run_completed" is audited with counts
+  And a summary event "retention.purge" (C-11) is audited with counts
 
 Scenario: Encryption
   Then all traffic uses TLS

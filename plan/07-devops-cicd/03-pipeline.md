@@ -1,6 +1,8 @@
 # 03 - Pipeline as code
 
-Workflows are in `examples/workflows/`. Required check: `ci-gate` (aggregates all jobs).
+Workflows are in `.github/workflows/` (originally drafted in `examples/workflows/`). Required check: `ci-gate` (aggregates all jobs).
+
+> **Job names (C-15):** the CI job names are A8's, as built in `.github/workflows/ci.yml`: `lint-types`, `spectral`, `arch-deps`, `unit`, `property`, `integration-pg`, `contract-schemathesis`, `sast-codeql`, `sast-semgrep`, `sca`, `secrets`, `container-scan`, `cms-guard`, `build`, `canary-smoke`, `e2e-smoke-he-en`, `axe`, `trace-check`, then `ci-gate`. The A7 stage names in the "Job" column below (`setup-lint-type`, `architecture`, `openapi`, `migration-dry-run`, `dependency-license`, `secret-scan`, `iac-scan`, `a11y-lighthouse`) map to them: architecture to `arch-deps`, openapi to `spectral` plus `contract-schemathesis`, migration-dry-run to `integration-pg`, dependency-license to `sca`, secret-scan to `secrets`, iac-scan to `container-scan`, a11y-lighthouse to `axe`. Lighthouse CI is not run in the main workflow yet (see `docs/KNOWN-ISSUES.md`).
 
 | Stage | Job (ci.yml) | Tool | Fails when |
 |---|---|---|---|

@@ -1,5 +1,6 @@
 # ADR-006 — CMS for the public site
-Status: Proposed. Date: 2026-11-13. Covers: REQ-019, REQ-020, REQ-024.
+Status: Superseded by ADR-011 (`plan/06-frontend/03-adr-cms-choice.md`, canonical-decisions C-17). Content path as built: `apps/public-site/src/content/{pages,news,...}/{he,en}`, not `apps/public-site/content`.
+Original status: Proposed. Date: 2026-11-13. Covers: REQ-019, REQ-020, REQ-024.
 
 ## Context
 Content must be edited by non-technical staff. Git is the source of truth. Site is bilingual.

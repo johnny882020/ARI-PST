@@ -53,9 +53,11 @@ describe('search and k-anonymity', () => {
 describe('request flow end to end', () => {
   it('cart to delivery with committee quorum, center responses and DB-enforced rules', async () => {
     const app = await h.session(f.resIl); const other = await h.session(f.resIl2);
-    const cart = await h.call(app, 'PUT', '/api/v1/request-cart', { body: { items: [{ criteria: { diagnosis: ['mb_shh'] } }] } });
-    expect(cart.status, cart.body).toBe(200); const id = cart.json.requestId as string;
-    expect(cart.json.items[0].shownCountBucket).toBe('10_plus');
+    const cart = await h.call(app, 'POST', '/api/v1/request-cart/items', { body: { criteria: { diagnosis: ['mb_shh'] } } });
+    expect(cart.status, cart.body).toBe(201); expect(cart.json.items[0].snapshot.label).toBe('10_plus'); expect(cart.json.limit).toBe(20);
+    expect((await h.call(app, 'GET', '/api/v1/request-cart')).json.items).toHaveLength(1);
+    const started = await h.call(app, 'POST', '/api/v1/request-cart/start', { headers: { 'idempotency-key': 'cart-start-0001' } });
+    expect(started.status, started.body).toBe(201); const id = started.json.id as string;
     // IDOR: another applicant cannot see or edit it
     expect((await h.call(other, 'GET', `/api/v1/requests/${id}`)).status).toBe(404);
     expect((await h.call(other, 'PATCH', `/api/v1/requests/${id}`, { body: { plannedUse: 'x' }, headers: MP })).status).toBe(404);
@@ -73,7 +75,7 @@ describe('request flow end to end', () => {
     const co = await h.session(f.coord);
     const incomplete = await h.call(co, 'POST', `/api/v1/requests/${id}/transition`, { body: { to: 'committee_review', checklist: { form_complete: true } } });
     expect(incomplete.status).toBe(422);
-    const pass = await h.call(co, 'POST', `/api/v1/requests/${id}/transition`, { body: { to: 'committee_review', checklist: { form_complete: true, irb_ref_plausible: true, consent_scope_ok: true, no_identifier_requested: true, items_exist: true } } });
+    const pass = await h.call(co, 'POST', `/api/v1/requests/${id}/precheck`, { body: { outcome: 'forward' } });
     expect(pass.status, pass.body).toBe(200); expect(pass.json.status).toBe('committee_review');
     // coordinator cannot decide, applicant cannot vote
     expect((await h.call(co, 'POST', `/api/v1/requests/${id}/decisions`, { body: { outcome: 'approved' } })).status).toBe(403);
@@ -83,6 +85,7 @@ describe('request flow end to end', () => {
     const v1 = await h.call(c1, 'PUT', `/api/v1/requests/${id}/votes`, { body: { vote: 'approve' } }); expect(v1.status, v1.body).toBe(200);
     expect((await h.call(c1, 'POST', `/api/v1/requests/${id}/decisions`, { body: { outcome: 'approved' } })).status).toBe(409);
     expect((await h.call(c1, 'PUT', `/api/v1/requests/${id}/votes`, { body: { vote: 'approve' } })).status).toBe(409);  // one vote per member
+    const tl = await h.call(c1, 'GET', `/api/v1/requests/${id}/vote-tally`); expect(tl.status, tl.body).toBe(200); expect(tl.json).toMatchObject({ approve: 1, myVote: 'approve', required: 2, members: 3 });
     expect((await h.call(c2, 'PUT', `/api/v1/requests/${id}/votes`, { body: { vote: 'approve' } })).status).toBe(200);
     const dec = await h.call(c1, 'POST', `/api/v1/requests/${id}/decisions`, { body: { outcome: 'approved' } });
     expect(dec.status, dec.body).toBe(201); expect(dec.json.outcome).toBe('approved');

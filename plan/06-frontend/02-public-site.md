@@ -8,7 +8,7 @@ Scope: REQ-004, REQ-012, REQ-019 to REQ-026, REQ-053, REQ-071. CMS choice: see `
 - JS "islands" only where needed: language switch, consent banner, forms, mobile nav.
 - No API calls to the protected backend. The only runtime call is the form endpoint (section 7).
 - The public site holds no patient data, no sample data, no counts from the index. (Public stats, if shown later, are static numbers entered by editors.)
-- Separate deploy from the protected app (REQ-053). Own domain or sub-path decided by A7. Default: `www.<domain>` for site, `app.<domain>` for the SPA. Login entry is a link to `app.<domain>/login`.
+- Separate deploy from the protected app (REQ-053). Own domain or sub-path decided by A7. Default: `www.<domain>` for the site; the protected SPA is served by `ari-api` on its own host (same origin as the API, C-03/C-04). Login entry is a link to `app.<domain>/login`.
 
 ## 2. Structure
 

@@ -8,7 +8,7 @@ Covers REQ-047, REQ-048, REQ-054 (full export), REQ-070 (portability). All perio
 | Sample rows | While the center keeps the physical sample. Then 24 months after `deleted_at` | Soft delete (`deleted_at`) at once. Purge job hard-deletes after the grace period | Grace lets the coordinator undo |
 | Attached-data flags | With sample | Cascade | |
 | Ethics approvals | While any sample links, then 24 months | Purge when no link | |
-| Request records (form, items, steps, decisions, votes) | 7 years after `closed` (research-governance norm, UNVERIFIED, legal to set) | Purge job. Free text fields wiped first | Needed to show who approved what |
+| Request records (form, items, steps, decisions, votes) | Structured record 7 years after `closed`; **free text wiped at 24 months** (C-07; research-governance norm, UNVERIFIED, legal to set) | Purge job. Free text fields wiped first | Needed to show who approved what |
 | Resolved request samples | Same as request | Cascade | |
 | Import staging files | Source 7 days after commit. Report and result map 30 days | Object-store lifecycle rule + job | `expires_at` |
 | Import job rows | 12 months | Purge | No cell values inside |
@@ -16,7 +16,7 @@ Covers REQ-047, REQ-048, REQ-054 (full export), REQ-070 (portability). All perio
 | Users | While active. 12 months after `closed`, then anonymise (`email` -> hash, `display_name` -> `Deleted user`) | Purge job | Audit rows keep the `usr_` id only |
 | Sessions, login attempts | 30 days / 90 days | A2 | |
 | Idempotency keys | 24 hours | Purge | |
-| Backups | 35 days (ASSUMPTION-A3-09, check Render plan) | Provider rotation | See below |
+| Backups | 35 days (C-07; ASSUMPTION-A3-09, check Render plan) | Provider rotation | See below |
 
 Right-to-erasure style requests concern **users** (staff, researchers). The index holds no data subject identifiers, so there is nothing to erase per patient. If a center withdraws a sample, the coordinator retires it. Needs legal review on GDPR/Israeli law applicability to coded data.
 Deletion events are audited (`retention.purge` with counts). Deletion from backups happens by rotation; the policy text must say so.

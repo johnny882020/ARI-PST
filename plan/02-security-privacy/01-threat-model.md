@@ -60,7 +60,7 @@ flowchart LR
 Rules for boundaries:
 - TB0→TB1: TLS 1.2+ only. Rate limits. No direct DB access from the internet (IP allow list empty, see file 10).
 - TB1→TB2: only HTTPS to `apps/api`. The public site has no path to the API's protected routes (REQ-053).
-- TB2→TB3: three DB roles: `app_api` (RLS enforced), `app_audit_writer` (insert only), `app_migrator` (CI only).
+- TB2→TB3: three DB roles: `app_runtime` (RLS enforced; was `app_api`), `app_audit_writer` (insert only), `app_migrator` (CI only).
 - TB5: no network path from the portal to the center system. Only a browser link-out (file 04).
 
 ## 4. Data-flow diagram: aggregate search (highest privacy risk)

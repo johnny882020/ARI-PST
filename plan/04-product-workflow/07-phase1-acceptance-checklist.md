@@ -41,7 +41,7 @@ Mark each line: Pass / Fail / N/A with date and tester role. A line passes only 
 - [ ] Counts below k are hidden and merged. No subtraction leak (REQ-033). US-023.
 - [ ] k is configurable and changes are audited.
 - [ ] International researcher sees counts only and no cart (REQ-014). US-024.
-- [ ] Search p95 under 1 s on 50,000 synthetic records (NFR-001).
+- [ ] Search p95 under 800 ms on 50,000 synthetic records (NFR-001, C-12).
 
 ## E. Access-request flow (end to end)
 - [ ] A researcher completes: search → cart → form → submit (REQ-034, 035). US-030, US-031.

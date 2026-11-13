@@ -18,7 +18,7 @@ All parameters are config. Defaults are in the table. Code lives in `packages/do
 | `Q_DAY_COST` | 300 | Cost units per user per rolling 24 h |
 | `Q_30D_COST` | 3000 | Cost units per user per rolling 30 days |
 | `INST_30D_COST` | 8000 | Per institution (email domain) per 30 days |
-| `MASK_LABEL` | `<5` (shows `<K`) | Same text for 0..K-1 |
+| `MASK_LABEL` | `Too few to show` (no number; C-09 supersedes the earlier `<K` label) | Same text for 0..K-1. The API sends only `masked: true`; the UI supplies the words |
 
 Cost of a query = 1 + number of predicates. A repeat of a canonical query in the same epoch costs 0 (cache hit).
 
@@ -177,7 +177,7 @@ Also: if a record is deleted and the cell drops below K, the cell is masked in t
 
 ### 5.8 Answer shape (API)
 ```
-cell: { coordinates, display: "30" | "<5", masked: bool, merged: bool }
+cell: { coordinates, display: "30" | null, masked: bool   // masked cells carry no number and no threshold (C-09), merged: bool }
 No donor lists, no ids, no raw count for masked cells, no "suppressed because" detail beyond `masked`.
 ```
 The same body and same HTTP status are used for 0 and for 1..K-1.

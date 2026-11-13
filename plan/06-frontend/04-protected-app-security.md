@@ -6,7 +6,7 @@ Server rules are owned by A2. This file states what the front end does and needs
 ## 1. Origin model (decision input)
 
 - SPA and API must share one origin for `__Host-` cookies: `https://app.<domain>/` serves the SPA; `https://app.<domain>/api/v1/*` is routed to the API service.
-- Preferred: Render rewrite/proxy rule `/api/*` → API service. UNVERIFIED that Render static-site rewrites can proxy to a private service; fallback: the API web service serves the built SPA files itself (static middleware). OPEN-A6-03 to A1/A7.
+- **Decided (C-03, C-04):** the API web service `ari-api` serves the built SPA files itself (`WEB_DIST_DIR=apps/web/dist`) at `/` and the API at `/api/v1`. No Render rewrite or proxy is used. OPEN-A6-03 is closed. The host name is the custom domain or `<service>.onrender.com`, not necessarily `app.<domain>`.
 - Public site is on a different host (`www.<domain>`). It shares no cookies with the app.
 - No CORS needed for the app (same origin). CORS stays off on the API except the public forms route.
 
@@ -67,11 +67,11 @@ Rules (lint + e2e test enforce):
 Cookie (set by API, A2 owns details):
 
 ```
-Set-Cookie: __Host-ari_sid=<opaque>; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=<idle-limit>
+Set-Cookie: __Host-sid=<opaque>; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=<idle-limit>
 ```
 - `__Host-` prefix: needs `Secure`, `Path=/`, no `Domain`. Forces host-only cookie.
 - `SameSite=Strict` for the session cookie. Because login is by form in the app itself, Strict works. Links from e-mail (for example a notification) land on the login page first, then redirect to `next` (UX cost is small).
-- Second cookie for CSRF: `__Host-ari_csrf` (double-submit, **not** HttpOnly so JS can read it; `Secure; SameSite=Strict; Path=/`). Value is bound to the session by HMAC on the server.
+- Second cookie for CSRF: `__Host-csrf` (double-submit, **not** HttpOnly so JS can read it; `Secure; SameSite=Strict; Path=/`). Value is bound to the session by HMAC on the server.
 - Every state-changing request (POST/PUT/PATCH/DELETE) sends header `X-CSRF-Token` with that value. The api-client middleware adds it. The server also checks `Origin`/`Sec-Fetch-Site` = same-origin.
 - Requests use `credentials: 'same-origin'`.
 - Custom header + JSON content type means simple cross-site forms cannot forge requests.
@@ -94,7 +94,7 @@ Rules:
 
 ## 6. Session timeout UX
 
-Values (A2 sets final): idle timeout 15 min; absolute timeout 8 h; warning 2 min before idle end. ASSUMPTION-A6-02.
+Values (canonical-decisions C-02): idle 15 min for staff roles, 30 min for researchers; absolute 4 h for `system_admin`, 8 h for others; warning 2 min before idle end. ASSUMPTION-A6-02 is superseded.
 
 Behavior:
 - A `SessionTimer` tracks last user activity (pointer, key, API call) in memory. It also reads `expiresAt` from `/api/v1/session` (source of truth).
@@ -103,7 +103,7 @@ Behavior:
 - On expiry: clear client state, show a full page "Your session ended" with reason, then a Sign in button. The `next` path is kept (path only, no data). Unsaved form text is lost by design; the warning dialog gives the user time to save a draft (server draft). Message says so.
 - Multi-tab: `BroadcastChannel('ari-session')` carries only the events `extended`, `signed_out` (no data). A sign-out in one tab signs out all tabs.
 - Any API `401` triggers the same expiry flow once (debounced).
-- Step-up: sensitive actions (approve request, export download, change MFA) need a recent MFA (≤ 10 min). The API returns `403` with `code: "step_up_required"`; UI opens the MFA dialog and retries the action once. ASSUMPTION-A6-03.
+- Step-up: sensitive actions (approve request, export download, change MFA) need a recent MFA (≤ 5 min, C-02). The API returns `403` with `code: "step_up_required"`; UI opens the MFA dialog and retries the action once. ASSUMPTION-A6-03.
 - WCAG 2.2.1 (timing adjustable): the user can extend at least 10 times before the absolute limit.
 
 ```mermaid
@@ -167,9 +167,9 @@ Response shape (illustrative, A1/A3 own the contract):
 ```
 
 UI behavior:
-- A suppressed cell must not show the threshold (for example "< 5"). That would leak that the value is 1–4. Show "Not shown" with an info icon. The explanation text (tooltip + footnote, also readable without hover) says: "Small numbers are hidden to protect privacy. They are included in the broader group."
+- A suppressed cell must not show the threshold (for example "< 5"). That would leak that the value is 1–4. Show "Too few to show" (C-09) with an info icon. The explanation text (tooltip + footnote, also readable without hover) says: "Small numbers are hidden to protect privacy. They are included in the broader group."
 - Merged group is labelled "Other (grouped)" with a footnote.
-- The global note shows the policy once: "Counts are shown only when the group is large enough to protect privacy." Threshold value shown only on the help page, if A2 agrees (OPEN-A6-05).
+- The global note shows the policy once: "Counts are shown only when the group is large enough to protect privacy." The threshold value is never shown anywhere in the UI (C-09 closes OPEN-A6-05).
 - Charts: suppressed bars are hatched, not zero-height. Provide text alternative table. Never plot `0` for suppressed.
 - Sort/filter: suppressed buckets sort last. A filter that yields a fully suppressed result shows an empty state "No groups large enough to display. Try broader filters." (not "0 results").
 - Differencing attack guard (UI side): the UI does not offer "exclude X" or free-add/remove combos that the API did not allow. Debounce filter changes (400 ms). The API enforces rate limits and consistent screening (A2). UI displays `429` as "Too many searches. Please wait." with retry-after.

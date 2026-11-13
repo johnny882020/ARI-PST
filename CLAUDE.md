@@ -21,7 +21,8 @@ pnpm --filter @ari/domain exec vitest run src/request-state.test.ts   # one test
 pnpm typecheck | pnpm lint | pnpm build
 pnpm arch                          # dependency-cruiser: fails if domain/api break boundary rules
 ```
-Database tests need a local PostgreSQL 16 (binaries in `/usr/lib/postgresql/16/bin`). See `db/README.md` and `db/scripts/test-db.sh`.
+Database tests need a local PostgreSQL 16 (binaries in `/usr/lib/postgresql/16/bin`). `pnpm --filter @ari/db test` runs `db/scripts/test-db.sh` (throwaway cluster on port 55432: `db/bootstrap.sql`, then `db/migrate.mjs` as `app_migrator`, then vitest). API integration tests use `apps/api/scripts/test-db.sh` (port 55433). The migration runner reads `DATABASE_URL_MIGRATOR`; see the header of `db/migrate.mjs`.
+Other useful commands: `pnpm --filter @ari/web mock` (mock API), `pnpm --filter @ari/web test:e2e` (Playwright), `pnpm --filter @ari/api-client gen:check` (generated client matches the OpenAPI spec), `python3 scripts/verify-render-yaml.py`, `bash scripts/smoke.sh`.
 
 ## Architecture (big picture)
 - **Modular monolith, hexagonal.** `packages/domain` holds pure rules and ports (Repository, Auth, ObjectStore, Mailer, Clock, Audit). It must import **no** platform library (pg, fastify, aws-sdk, nodemailer…). `pnpm arch` enforces this. Platform code lives only in `apps/api/src/adapters/*`. This keeps a later move from Render to Base44 cheap.
@@ -42,7 +43,7 @@ Database tests need a local PostgreSQL 16 (binaries in `/usr/lib/postgresql/16/b
 - Legal and regulatory statements are "needs legal review". Do not present them as advice.
 
 ## Delivery
-Git is the source of truth; auto-deploy to Render via `render.yaml` (Blueprint). Public site deploys after CI passes. The protected area waits for a GitHub Environment approval, then a Render deploy hook. Preview environments use synthetic data. Render has no built-in approval gate, so this design is deliberate. See `docs/deployment.md` once present. `render.com` may be blocked in the Claude session network, so Render facts in the plan are partly UNVERIFIED.
+Git is the source of truth; auto-deploy to Render via `render.yaml` (Blueprint). Public site deploys after CI passes. The protected area waits for a GitHub Environment approval, then a Render deploy hook. Preview environments use synthetic data. Render has no built-in approval gate, so this design is deliberate. See `docs/deployment.md` (including its section 12, known gaps) and `docs/KNOWN-ISSUES.md`. `render.com` may be blocked in the Claude session network, so Render facts in the plan are partly UNVERIFIED.
 
 ## Working with the plan and agents
 - Parallel build agents own separate folders; do not edit another agent's folder. Cross-agent needs go in `plan/requests/<from>-to-<to>.md`.

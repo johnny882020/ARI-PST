@@ -1,7 +1,7 @@
-# ADR-A6-001 — Git-based CMS for the public site
+# ADR-011 — Git-based CMS for the public site
 
-ID note: the orchestrator may renumber this to `ADR-###`. Working ID: `ADR-A6-001`.
-Status: Proposed. Date: 2026-11-13.
+ID note: formerly `ADR-A6-001`. Numbered `ADR-011` by canonical-decisions C-17. It supersedes the CMS text of `plan/01-architecture/adr/ADR-006-cms-public-site.md`. Editor isolation (RT-10) is implemented by CI job `cms-guard` and `apps/public-site/CMS-SECURITY.md`.
+Status: Accepted (built in B4). Date: 2026-11-13.
 Covers: REQ-019, REQ-020, REQ-024, REQ-069.
 
 ## Context

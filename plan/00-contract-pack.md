@@ -33,7 +33,8 @@ Repo layout (names are final):
 apps/public-site   apps/web   apps/api
 packages/domain  packages/contracts  packages/api-client  packages/design-system  packages/i18n  packages/synthetic-data
 adapters/ (inside apps/api/src/adapters: postgres, auth-local, objectstore-s3, email-smtp, clock, audit-pg)
-db/migrations  infra/render.yaml  infra/terraform  .github/workflows  plan/  docs/
+db/migrations  render.yaml (repo root)  infra/ (staging Blueprint, policy, ci)  .github/workflows  plan/  docs/
+(Built layout: the Blueprint is at the repo root, not `infra/render.yaml`; there is no `infra/terraform` in Phase 1. See `docs/deployment.md`.)
 ```
 
 ## 3. Requirements (stable IDs). Priority: M/S/C/W = MoSCoW. Phase 0-3.

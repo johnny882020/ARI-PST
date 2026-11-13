@@ -1,5 +1,7 @@
 # 05 — Render service topology
 
+> **Superseded in part by canonical-decisions C-03/C-04.** There is no `ari-app` static site: `ari-api` serves the SPA and the API from one host. Read the diagram below with `APP` and `API` merged into one web service `ari-api`. Crons as built: `ari-cron-staleness`, `ari-cron-audit-verify` (hourly), `ari-cron-purge` (nightly), `ari-cron-export`. See `docs/deployment.md` and `render.yaml`.
+
 Covers: REQ-043, REQ-048, REQ-053, REQ-069, REQ-072. See ADR-001, ADR-002.
 
 ```mermaid
@@ -9,7 +11,7 @@ flowchart TB
   U2["Portal users"] --> APP
   subgraph Render["Render workspace, one region"]
     PUB["Static site: ari-public"]
-    APP["Static site: ari-app"]
+    APP["Browser SPA (served by ari-api)"]
     subgraph PN["Private network"]
       API["Web service: ari-api"]
       DB[("Postgres: ari-db")]
@@ -29,7 +31,6 @@ flowchart TB
   API --> OBJ
   API --> MAIL
   RD --> PUB
-  RD --> APP
   RD --> API
 ```
 Notes: Render has no built-in S3 store in our knowledge (UNVERIFIED). Use an external S3-compatible bucket in the same region family. A DPA is needed for it too (needs legal review).
@@ -38,7 +39,7 @@ Notes: Render has no built-in S3 store in our knowledge (UNVERIFIED). Use an ext
 | Component | Problem solved | Req |
 |---|---|---|
 | `ari-public` static | Public site stays fast, cheap, up even if API is down; no data path | REQ-019, REQ-053 |
-| `ari-app` static | Protected UI served from CDN; no server code | REQ-053 |
+| ~~`ari-app` static~~ | Not built. SPA is served by `ari-api` (same origin, C-03) | REQ-053 |
 | `ari-api` web service | One place for business rules, RLS context, audit | REQ-041, REQ-045, REQ-046 |
 | `ari-db` Postgres | Durable store, RLS, FTS, PITR | REQ-043, REQ-048 |
 | Private network | DB not exposed to internet; API to DB traffic stays internal | REQ-043 |

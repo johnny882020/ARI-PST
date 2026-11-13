@@ -113,9 +113,9 @@ describe('session timeouts (C-02) and step-up', () => {
     const v = await b.req('POST', '/api/v1/auth/mfa/verify', { challengeToken: l.json.challengeToken });
     expect(v.status, JSON.stringify(v.json)).toBe(200); b.setCsrf(v.json.csrfToken);
     expect((await b.req('GET', '/api/v1/request-cart')).status).toBe(401);
-    const start = await b.req('POST', '/api/v1/auth/totp/enroll'); expect(start.status).toBe(200);
-    const bad = await b.req('POST', '/api/v1/auth/totp/confirm', { code: '123456' }); expect(bad.status).toBe(401);
-    const done = await b.req('POST', '/api/v1/auth/totp/confirm', { code: totpAt(start.json.secretBase32, Date.now()) });
+    const start = await b.req('POST', '/api/v1/auth/enrol/totp'); expect(start.status).toBe(200);
+    const bad = await b.req('POST', '/api/v1/auth/enrol/totp/confirm', { code: '123456' }); expect(bad.status).toBe(401);
+    const done = await b.req('POST', '/api/v1/auth/enrol/totp/confirm', { code: totpAt(start.json.secret, Date.now()) });
     expect(done.status, JSON.stringify(done.json)).toBe(200); expect(done.json.recoveryCodes).toHaveLength(10);
     expect((await b.req('GET', '/api/v1/request-cart')).status).toBe(200);
     // a recovery code works once
@@ -129,7 +129,7 @@ describe('session timeouts (C-02) and step-up', () => {
   });
   it('passkey registration options are issued for the signed-in user', async () => {
     const s = await h.session(f.coord);
-    const r = await h.call(s, 'POST', '/api/v1/auth/webauthn/register/options');
+    const r = await h.call(s, 'POST', '/api/v1/auth/enrol/webauthn/options');
     expect(r.status, r.body).toBe(200); expect(r.json.rp.id).toBe('localhost'); expect(r.json.authenticatorSelection.userVerification).toBe('required'); expect(r.json.attestation).toBe('none');
   });
 });
@@ -138,11 +138,11 @@ describe('researcher self-registration with coordinator approval (ASSUMPTION-03)
   it('register -> verify email -> pending -> approve -> login', async () => {
     const b = browser(); await bootstrap(b);
     const email = `new.researcher.${Date.now()}@example.invalid`; const password = 'a-long-unique-passphrase-9';
-    const weak = await b.req('POST', '/api/v1/auth/register', { email, password: 'short', displayName: 'Synthetic New', institution: 'Synthetic University', isIsraeliAcademic: true });
+    const weak = await b.req('POST', '/api/v1/auth/register', { email, password: 'short', displayName: 'Synthetic New', institution: 'Synthetic University', termsVersion: '2026-01', isIsraeliAcademic: true });
     expect(weak.status).toBe(422);
-    const r = await b.req('POST', '/api/v1/auth/register', { email, password, displayName: 'Synthetic New', institution: 'Synthetic University', isIsraeliAcademic: true });
+    const r = await b.req('POST', '/api/v1/auth/register', { email, password, displayName: 'Synthetic New', institution: 'Synthetic University', termsVersion: '2026-01', isIsraeliAcademic: true });
     expect(r.status, JSON.stringify(r.json)).toBe(202);
-    const dup = await b.req('POST', '/api/v1/auth/register', { email, password, displayName: 'Synthetic New', institution: 'Synthetic University', isIsraeliAcademic: true });
+    const dup = await b.req('POST', '/api/v1/auth/register', { email, password, displayName: 'Synthetic New', institution: 'Synthetic University', termsVersion: '2026-01', isIsraeliAcademic: true });
     expect(dup.status).toBe(202);                     // same answer for an existing address
     await h.worker.tick();
     const mail = h.mailer.sent.find((m) => m.to === email)!; expect(mail).toBeTruthy();
@@ -151,12 +151,14 @@ describe('researcher self-registration with coordinator approval (ASSUMPTION-03)
     expect((await b.req('POST', '/api/v1/auth/verify-email', { token: 'x'.repeat(30) })).status).toBe(422);
     expect((await b.req('POST', '/api/v1/auth/verify-email', { token })).status).toBe(204);
     const co = await h.session(f.coord);
-    const pend = await h.call(co, 'GET', '/api/v1/registrations'); expect(pend.status, pend.body).toBe(200);
-    const row = pend.json.items.find((x: any) => x.email === email); expect(row.isIsraeliAcademic).toBe(true);
-    const ap = await h.call(co, 'POST', `/api/v1/registrations/${row.id}/approve`); expect(ap.status, ap.body).toBe(200);
-    expect(ap.json.roles[0].role).toBe('researcher_il');
+    const pend = await h.call(co, 'GET', '/api/v1/registrations'); // step-up is fresh in h.session
+     expect(pend.status, pend.body).toBe(200);
+    const row = pend.json.items.find((x: any) => x.email === email); expect(row).toBeTruthy();
+    expect(row.institution).toBe('Synthetic University'); expect(row.status).toBe('pending');
+    const ap = await h.call(co, 'POST', `/api/v1/registrations/${row.id}/decision`, { body: { outcome: 'approved' } }); expect(ap.status, ap.body).toBe(200);
+    expect(ap.json.status).toBe('approved');
     const l = await b.req('POST', '/api/v1/auth/login', { email, password }); expect(l.status).toBe(200); expect(l.json.enrollmentRequired).toBe(true);
     // a researcher cannot approve anybody
-    const res = await h.session(f.resIl); expect((await h.call(res, 'POST', `/api/v1/registrations/${row.id}/approve`)).status).toBe(403);
+    const res = await h.session(f.resIl); expect((await h.call(res, 'POST', `/api/v1/registrations/${row.id}/decision`, { body: { outcome: 'approved' } })).status).toBe(403);
   });
 });
