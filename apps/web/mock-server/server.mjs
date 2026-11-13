@@ -5,7 +5,7 @@ import { readFile, stat } from "node:fs/promises";
 import { createHash, randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join, extname, normalize } from "node:path";
-import { centers, diagnoses, seedSamples, seedUsers, staleness, ulid, PASSWORD, TOTP, RECOVERY } from "./data.mjs";
+import { centers, diagnoses, seedSamples, seedUsers, staleness, ulid, PASSWORD, TOTP, RECOVERY, VERIFY_TOKEN } from "./data.mjs";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const DIST = join(dirname(fileURLToPath(import.meta.url)), "..", "dist");
@@ -19,6 +19,7 @@ function reset() {
   state.samples = seedSamples();
   state.sessions = new Map(); // sid -> {userId, csrf, expiresAt}
   state.challenges = new Map(); // token -> {userId}
+  state.emailTokens = new Map([[VERIFY_TOKEN, { userId: state.users.find((u) => u.email === "newuser@example.test").id }]]); // single use
   state.carts = new Map(); // userId -> items
   state.requests = [];
   state.votes = new Map(); // reqId -> Map(userId -> {vote, votedAt})
@@ -54,6 +55,19 @@ function reset() {
 reset();
 
 const now = () => new Date().toISOString();
+
+// Identifier guard, same patterns as packages/domain/src/identifier-guard.ts (G1..G5). The mock answers like the API.
+const ID_GUARDS = [
+  /(?<![0-9])[0-9]{9}(?![0-9])/,
+  /(?<![0-9])(\+?972|0)[- ]?[0-9]{1,2}[- ]?[0-9]{3}[- ]?[0-9]{4}(?![0-9])/,
+  /[^\s@]+@[^\s@]+\.[^\s@]+/,
+  /(?<![0-9])([0-9]{1,2}[./-][0-9]{1,2}[./-][0-9]{2,4}|[0-9]{4}-[0-9]{2}-[0-9]{2})(?![0-9])/,
+  /(?<![0-9])[0-9]{7,}(?![0-9])/,
+];
+const looksIdentifying = (v) => typeof v === "string" && ID_GUARDS.some((re) => re.test(v.normalize("NFKC")));
+const identifierProblem = (res, fields) => problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: fields.map((field) => ({ field, rule: "IDENTIFIER_SUSPECTED" })) });
+// What an enrolment-only session (no second factor yet) may call. Mirrors ENROLLMENT_OPS in apps/api/src/http/route.ts.
+const ENROLMENT_PATHS = new Set(["/auth/logout", "/auth/session", "/auth/enrol/totp", "/auth/enrol/totp/confirm", "/auth/enrol/webauthn/options", "/auth/enrol/webauthn/verify", "/me", "/session"]);
 const SAFE = new Set(["GET", "HEAD", "OPTIONS"]);
 
 function parseCookies(h) {
@@ -109,6 +123,7 @@ const has = (s, ...r) => rolesOf(s).some((x) => r.includes(x));
 const sessionDto = (s) => ({
   userId: s.user.id, displayName: s.user.displayName, locale: s.user.locale, roles: s.user.roles,
   activeCenterId: s.user.roles.find((r) => r.centerId)?.centerId ?? null, expiresAt: s.expiresAt, csrfToken: s.csrf,
+  mfaEnrolled: s.user.mfaEnrolled !== false,
 });
 function createSession(res, user) {
   const sid = randomBytes(16).toString("hex");
@@ -225,21 +240,38 @@ async function handleApi(req, res, url) {
     state.registrations.push({ id: ulid("reg"), displayName: b.displayName, institution: b.institution, email: b.email, status: "pending", requestedAt: now() });
     res.writeHead(202); return res.end();
   }
+  if (path === "/auth/verify-email" && method === "POST") {
+    // Confirms the address with the emailed token and sets the first password. Single use.
+    const b = await readJson(req);
+    const t = typeof b.token === "string" ? state.emailTokens.get(b.token) : undefined;
+    if (!t) return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "token", rule: "FORMAT" }] });
+    if (!b.password) return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "password", rule: "REQUIRED" }] });
+    if (typeof b.password !== "string" || b.password.length < 12 || b.password.length > 128) return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "password", rule: "LENGTH" }] });
+    if (/^(.)\1+$/.test(b.password)) return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "password", rule: "REPEATED" }] });
+    state.emailTokens.delete(b.token);
+    const u = state.users.find((x) => x.id === t.userId);
+    u.password = b.password; u.status = "active";
+    audit(u, "auth.password.change", "user", u.id);
+    res.writeHead(204, { "cache-control": "no-store" }); return res.end();
+  }
   if (path === "/auth/login" && method === "POST") {
     const b = await readJson(req);
     const u = state.users.find((x) => x.email === String(b.email).toLowerCase());
-    if (!u || b.password !== PASSWORD) return problem(res, 401, "INVALID_CREDENTIALS", "Invalid credentials");
+    if (!u || u.status !== "active" || b.password !== (u.password ?? PASSWORD)) return problem(res, 401, "INVALID_CREDENTIALS", "Invalid credentials");
     const token = randomBytes(12).toString("hex");
     state.challenges.set(token, { userId: u.id });
+    // No second factor yet: the client completes verifyMfa with only the token and gets an enrolment-only session.
+    if (u.mfaEnrolled === false) return send(res, 200, { challengeToken: token, factors: [], enrollmentRequired: true });
     return send(res, 200, { challengeToken: token, factors: ["totp", "webauthn"] });
   }
   if (path === "/auth/mfa/verify" && method === "POST") {
     const b = await readJson(req);
     const c = state.challenges.get(b.challengeToken);
     if (!c) return problem(res, 401, "UNAUTHENTICATED", "Not authenticated");
-    if (b.totpCode !== TOTP && !b.webauthnAssertion) return problem(res, 401, "INVALID_MFA_CODE", "Invalid code");
-    state.challenges.delete(b.challengeToken);
     const u = state.users.find((x) => x.id === c.userId);
+    if (u.mfaEnrolled === false) { if (b.totpCode || b.webauthnAssertion || b.recoveryCode) return problem(res, 401, "UNAUTHENTICATED", "Not authenticated"); }
+    else if (b.totpCode !== TOTP && !b.webauthnAssertion) return problem(res, 401, "INVALID_MFA_CODE", "Invalid code");
+    state.challenges.delete(b.challengeToken);
     audit(u, "auth.login", "user", u.id);
     return send(res, 200, createSession(res, u));
   }
@@ -259,6 +291,7 @@ async function handleApi(req, res, url) {
 
   // CSRF double-submit on unsafe methods.
   if (!SAFE.has(method) && req.headers["x-csrf-token"] !== s.csrf) return problem(res, 403, "CSRF_INVALID", "CSRF token missing or invalid");
+  if (s.user.mfaEnrolled === false && !ENROLMENT_PATHS.has(path)) return problem(res, 401, "STEP_UP_REQUIRED", "Re-authentication required");
 
   if (path === "/auth/logout" && method === "POST") {
     state.sessions.delete(s.sid);
@@ -276,10 +309,11 @@ async function handleApi(req, res, url) {
   if (path === "/auth/enrol/totp/confirm" && method === "POST") {
     const b = await readJson(req);
     if (b.code !== TOTP) return problem(res, 422, "INVALID_MFA_CODE", "Invalid code");
+    s.user.mfaEnrolled = true;
     return send(res, 200, { recoveryCodes: Array.from({ length: 10 }, (_, i) => `SYNTH-${String(i + 1).padStart(4, "0")}-CODE`) });
   }
   if (path === "/auth/enrol/webauthn/options" && method === "POST") return send(res, 200, { challenge: "c3ludGg", rp: { name: "ARI-PST" }, user: { id: "dXNy", name: "synthetic", displayName: "Synthetic" }, pubKeyCredParams: [{ type: "public-key", alg: -7 }] });
-  if (path === "/auth/enrol/webauthn/verify" && method === "POST") return send(res, 200, { recoveryCodes: ["SYNTH-0001-CODE"] });
+  if (path === "/auth/enrol/webauthn/verify" && method === "POST") { s.user.mfaEnrolled = true; return send(res, 200, { recoveryCodes: ["SYNTH-0001-CODE"] }); }
 
   /* samples */
   if (path === "/samples" && method === "GET") {
@@ -396,6 +430,8 @@ async function handleApi(req, res, url) {
     if (sub === "" && method === "PATCH") {
       if (r.status !== "draft") return problem(res, 409, "CONFLICT", "Request is not a draft");
       const b = await readJson(req);
+      const hits = ["researchQuestion", "plannedUse", "fundingSources"].filter((f) => looksIdentifying(b[f]));
+      if (hits.length) return identifierProblem(res, hits);
       for (const f of ["researchQuestion", "applicantEthicsRef", "plannedUse", "fundingSources"]) if (f in b) r[f] = b[f];
       return send(res, 200, requestDto(r, s));
     }
@@ -409,6 +445,7 @@ async function handleApi(req, res, url) {
     if ((m = sub.match(/^\/steps\/(\w+)$/)) && method === "PATCH") {
       if (!has(s, "national_coordinator")) return problem(res, 403, "FORBIDDEN", "Role not allowed");
       const b = await readJson(req);
+      if (looksIdentifying(b.publicNote) || looksIdentifying(b.internalNote)) return identifierProblem(res, ["publicNote"]);
       r.publicNotes = { ...(r.publicNotes ?? {}), ...(b.publicNote ? { [m[1]]: b.publicNote } : {}) };
       if (b.status === "done") {
         const next = { center_coordination: "agreements", mta_dta: "delivery", delivery: "delivered" }[m[1]];
@@ -420,6 +457,7 @@ async function handleApi(req, res, url) {
     if (sub === "/precheck" && method === "POST") {
       if (!has(s, "national_coordinator")) return problem(res, 403, "FORBIDDEN", "Role not allowed");
       const b = await readJson(req);
+      if (looksIdentifying(b.note)) return identifierProblem(res, ["note"]);
       if (b.outcome === "reject" && !b.reasonCode) return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "reasonCode", rule: "REQUIRED" }] });
       r.status = { forward: "committee_review", ask_info: "needs_info", reject: "rejected" }[b.outcome] ?? r.status;
       if (b.note) r.publicNotes = { ...(r.publicNotes ?? {}), precheck: b.note };
@@ -427,7 +465,8 @@ async function handleApi(req, res, url) {
       return send(res, 200, requestDto(r, s));
     }
     if (sub === "/respond" && method === "POST") {
-      await readBody(req);
+      const b = await readJson(req);
+      if (looksIdentifying(b.message)) return identifierProblem(res, ["message"]);
       if (r.status === "needs_info") r.status = "precheck";
       return send(res, 200, requestDto(r, s));
     }

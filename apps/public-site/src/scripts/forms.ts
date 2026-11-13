@@ -92,9 +92,11 @@ function renderErrors(f: HTMLFormElement, summary: HTMLElement, errors: FieldErr
     if (e.name) {
       const el = f.elements.namedItem(e.name) as HTMLElement | null;
       const a = document.createElement('a');
-      const lbl = f.querySelector(`label[for="${el?.id}"]`)?.textContent ?? e.name;
+      // Summary line: "<label>: <error>". A field with no own label (the consent checkbox sits inside
+      // its label sentence) shows the error text alone, never the raw field name.
+      const lbl = (f.querySelector(`label[for="${el?.id}"]`)?.textContent ?? '').replace(/\s*\(.*\)\s*$/, '').trim();
       a.href = `#${el?.id ?? ''}`;
-      a.textContent = `${lbl.replace(/\s*\(.*\)\s*$/, '')}: ${e.text}`;
+      a.textContent = lbl && !el?.closest('label') ? `${lbl}: ${e.text}` : e.text;
       a.addEventListener('click', (ev) => { ev.preventDefault(); el?.focus(); });
       li.append(a);
       if (el) {

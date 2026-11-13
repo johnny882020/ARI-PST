@@ -9,11 +9,12 @@ a:hover { color: var(--color-primary-hover); }
 
 .skip { position: absolute; inset-block-start: -5rem; inset-inline-start: var(--space-4); z-index: var(--z-toast);
   background: var(--color-primary); color: var(--color-text-on-primary); padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm); }
+.skip { display: inline-flex; align-items: center; min-block-size: var(--target-min); }
 .skip:focus { inset-block-start: var(--space-2); }
 
 .site-header { background: var(--color-surface); border-block-end: 1px solid var(--color-border); position: sticky; inset-block-start: 0; z-index: var(--z-sticky); }
 .bar { max-inline-size: var(--container); margin-inline: auto; padding: var(--space-3) var(--gutter); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
-.brand { display: inline-flex; align-items: center; gap: var(--space-2); text-decoration: none; color: var(--color-text); direction: ltr; font-weight: var(--fw-bold); line-height: 1.2; margin-inline-end: auto; }
+.brand { display: inline-flex; align-items: center; gap: var(--space-2); text-decoration: none; color: var(--color-text); direction: ltr; font-weight: var(--fw-bold); line-height: 1.2; margin-inline-end: auto; min-block-size: var(--target-min); }
 .brand small { display: block; font-weight: var(--fw-medium); color: var(--color-text-muted); font-size: var(--fs-caption); }
 .tools { display: flex; align-items: center; gap: var(--space-2); }
 
@@ -70,6 +71,7 @@ p, li { max-inline-size: var(--measure); }
 .notice.info { background: var(--color-info-subtle); border-color: var(--color-info); }
 .crumbs { margin-block-end: var(--space-4); font-size: var(--fs-small); }
 .crumbs ol { list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2); padding: 0; margin: 0; }
+.crumbs ol { align-items: center; }
 .crumbs li + li::before { content: "/"; margin-inline-end: var(--space-2); color: var(--color-text-muted); }
 dl.meta { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-4); }
 dl.meta dt { color: var(--color-text-muted); }
@@ -103,6 +105,17 @@ fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: var(--space-1);
 .site-footer .bar { align-items: flex-start; justify-content: space-between; padding-block: var(--space-5); }
 .site-footer ul { list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); padding: 0; margin: 0; }
 .site-footer a, .link-btn { color: var(--color-primary); }
+.site-footer ul { align-items: center; }
+
+/* Target size (WCAG 2.2 SC 2.5.8): a link that stands alone (footer, breadcrumb, back link, card title)
+   is at least 24 px in both directions. On small screens and touch devices it is 44 px. */
+.site-footer a, .crumbs a, main p > a:only-child, .card h3 a, .card .card-title a {
+  display: inline-flex; align-items: center; min-block-size: 1.5rem; min-inline-size: 1.5rem; }
+@media (max-width: 63.99em), (pointer: coarse) {
+  .site-footer a, .crumbs a, main p > a:only-child, .card h3 a, .card .card-title a { min-block-size: var(--target-min); min-inline-size: var(--target-min); }
+  .crumbs [aria-current="page"] { display: inline-flex; align-items: center; min-block-size: var(--target-min); }
+  .opt { inline-size: 100%; }
+}
 .link-btn { border: 0; background: none; padding: 0; min-block-size: var(--target-min); text-decoration: underline; border-radius: 0; }
 
 /* Consent banner */

@@ -81,7 +81,7 @@ export function SampleEntryPage() {
         {sel("availability", ENUMS.availability.map((v) => ({ value: v, label: enumLabel("availability", v) })))}
         {sel("clinicalTimepoint", ENUMS.timepoint.map((v) => ({ value: v, label: enumLabel("timepoint", v) })))}
         <Input id="field-collectionMonth" label={t("samples.col.collected")} help={t("samples.entry.month.help")} type="month" required dir="ltr" {...reg("collectionMonth")} error={errText(errors.collectionMonth?.message)} />
-        <Card as="div" heading={t("samples.field.attachedData")} headingLevel={3}>
+        <Card as="div" heading={t("samples.field.attachedData")} headingLevel={2}>
           <Controller control={f.control} name="attachedData" render={({ field }) => (
             <div className="stack">
               {ENUMS.attachedData.map((a) => (

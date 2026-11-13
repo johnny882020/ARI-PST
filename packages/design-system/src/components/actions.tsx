@@ -117,8 +117,12 @@ export interface LanguageSwitchProps {
 
 export function LanguageSwitch({ value, onChange, options = DEFAULT_LANGS, className }: LanguageSwitchProps) {
   const { t } = useDesignSystem();
+  // Links to other pages make a navigation landmark. In-place buttons are a plain group,
+  // so two switches on one page do not create two landmarks with the same name.
+  const asNav = options.some((o) => o.href);
+  const Tag = asNav ? "nav" : "div";
   return (
-    <nav className={cx("ds-segmented", className)} aria-label={t("lang.label")}>
+    <Tag className={cx("ds-segmented", className)} role={asNav ? undefined : "group"} aria-label={t("lang.label")}>
       <Icon name="globe" size={18} className="ds-segmented-icon" />
       {options.map((o) => {
         const current = o.locale === value;
@@ -138,7 +142,7 @@ export function LanguageSwitch({ value, onChange, options = DEFAULT_LANGS, class
           </button>
         );
       })}
-    </nav>
+    </Tag>
   );
 }
 

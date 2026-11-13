@@ -38,7 +38,7 @@ function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void 
   );
 }
 
-function TotpEnrol({ onClose }: { onClose: () => void }) {
+export function TotpEnrol({ onClose }: { onClose: () => void }) {
   const t = useT();
   const qc = useQueryClient();
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -71,7 +71,7 @@ function TotpEnrol({ onClose }: { onClose: () => void }) {
   );
 }
 
-function PasskeyEnrol({ onClose }: { onClose: () => void }) {
+export function PasskeyEnrol({ onClose }: { onClose: () => void }) {
   const t = useT();
   const qc = useQueryClient();
   const [name, setName] = useState("");

@@ -22,9 +22,8 @@ def build():
     for g in s["envVarGroups"]:
         g["name"] = rename(g["name"])
         if g["name"] == "ari-stg-common":
-            g["envVars"] = [e for e in g["envVars"] if e["key"] != "DATA_CLASSIFICATION"] + [
+            g["envVars"] = [e for e in g["envVars"] if e["key"] not in ("DATA_CLASSIFICATION", "SEED_SYNTHETIC")] + [
                 {"key": "DATA_CLASSIFICATION", "value": "synthetic"},
-                {"key": "SEED_SYNTHETIC", "value": "true"},
                 {"key": "APP_ENV", "value": "staging"},
             ]
     for db in s["databases"]:
@@ -42,7 +41,13 @@ def build():
         sv["autoDeployTrigger"] = "checksPass"
         if sv["name"] == "ari-stg-api":
             sv["numInstances"] = 1
+        for h in sv.get("headers", []):       # host names follow the staging service names
+            h["value"] = str(h["value"]).replace("https://ari-api.onrender.com", "https://ari-stg-api.onrender.com")
+        for r in sv.get("routes", []):
+            r["destination"] = r["destination"].replace("https://ari-api.onrender.com", "https://ari-stg-api.onrender.com")
         for e in sv.get("envVars", []):
+            if isinstance(e.get("value"), str):
+                e["value"] = e["value"].replace("https://ari-api.onrender.com", "https://ari-stg-api.onrender.com").replace("https://ari-public.onrender.com", "https://ari-stg-public.onrender.com")
             if "fromGroup" in e:
                 e["fromGroup"] = rename(e["fromGroup"])
             if "fromDatabase" in e:

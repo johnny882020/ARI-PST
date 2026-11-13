@@ -63,6 +63,10 @@ export class PgRepository implements Repository {
     const c: Ctx = anon ? { ...ctx, actor: { ...ctx.actor, userId: null, role: 'anonymous' } } : ctx;
     try { await this.tx(c, (tx) => tx.audit.record(c, { ...ev, details })); } catch { /* audit of a denial must never mask the denial itself */ }
   }
+  async worker<T>(fn: (outbox: ReturnType<typeof makeOutboxRepo>) => Promise<T>): Promise<T> {
+    const client = await this.pool.connect();
+    try { return await fn(makeOutboxRepo(client as unknown as Q)); } catch (e) { throw mapPgError(e); } finally { client.release(); }
+  }
   /** DB reachable + applied migration level (NNNN). migrationsOk only says "a level could be read"; Health compares it to the build. */
   async ping() {
     try {

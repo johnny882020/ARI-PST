@@ -48,6 +48,18 @@ describe("LoginPage", () => {
     expect(Object.keys(sessionStorage)).toEqual([]);
   });
 
+  it("account with no second factor: completes the challenge without a code and holds no pending challenge", async () => {
+    post.mockImplementation((path: string) => Promise.resolve(path === "/auth/login"
+      ? { data: { challengeToken: "tok", factors: [], enrollmentRequired: true }, response: { ok: true, status: 200, headers: new Headers() } }
+      : { data: { userId: "usr_1", roles: [], expiresAt: "2026-01-01T00:00:00Z", csrfToken: "c", mfaEnrolled: false }, response: { ok: true, status: 200, headers: new Headers() } }));
+    renderWithApp(<LoginPage />);
+    await userEvent.type(screen.getByLabelText(/E-mail/), "a@example.test");
+    await userEvent.type(screen.getByLabelText(/Password/), "pw");
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith("/auth/mfa/verify", { body: { challengeToken: "tok" } }));
+    expect(authFlow.get()).toBeNull();
+  });
+
   it("renders Hebrew RTL text when locale is he", () => {
     renderWithApp(<LoginPage />, { locale: "he" });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("התחברות");

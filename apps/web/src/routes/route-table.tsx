@@ -2,7 +2,8 @@ import type { ComponentType } from "react";
 import type { Role } from "@ari/api-client";
 import type { MessageKey } from "@ari/i18n";
 
-type RoleSet = readonly Role[] | "any" | "public";
+/** "public": no session. "any": any signed-in role. "enrol": signed in, second factor not set up yet. */
+type RoleSet = readonly Role[] | "any" | "public" | "enrol";
 export interface RouteDef {
   id: string;
   path: string;
@@ -10,6 +11,8 @@ export interface RouteDef {
   /** Where the route sits: no session needed ("public"), session without role check ("any"). */
   load: () => Promise<{ Component: ComponentType }>;
   nav?: { labelKey: MessageKey; href?: string; prefix?: string };
+  /** Public route that stays open with a session (others send a signed-in user home). */
+  openWhenSignedIn?: boolean;
 }
 
 const RIL = ["researcher_il"] as const;
@@ -27,7 +30,11 @@ export const ROUTES: RouteDef[] = [
   { id: "login", path: "/login", roles: "public", load: p(() => import("../features/identity-access/LoginPage"), "LoginPage") },
   { id: "mfa", path: "/login/mfa", roles: "public", load: p(() => import("../features/identity-access/MfaPage"), "MfaPage") },
   { id: "register", path: "/register", roles: "public", load: p(() => import("../features/identity-access/RegisterPage"), "RegisterPage") },
-  { id: "session-ended", path: "/session-ended", roles: "public", load: p(() => import("../features/identity-access/SessionEndedPage"), "SessionEndedPage") },
+  // Link target of the verification and invitation e-mails (apps/api sends `${origin}/verify-email?token=`).
+  { id: "verify-email", path: "/verify-email", roles: "public", openWhenSignedIn: true, load: p(() => import("../features/identity-access/VerifyEmailPage"), "VerifyEmailPage") },
+  { id: "verify-email-auth", path: "/auth/verify-email", roles: "public", openWhenSignedIn: true, load: p(() => import("../features/identity-access/VerifyEmailPage"), "VerifyEmailPage") },
+  { id: "setup-mfa", path: "/setup-mfa", roles: "enrol", load: p(() => import("../features/identity-access/MfaSetupPage"), "MfaSetupPage") },
+  { id: "session-ended", path: "/session-ended", roles: "public", openWhenSignedIn: true, load: p(() => import("../features/identity-access/SessionEndedPage"), "SessionEndedPage") },
 
   { id: "home", path: "/home", roles: "any", nav: { labelKey: "nav.home" }, load: p(() => import("../features/home/HomePage"), "HomePage") },
   { id: "search", path: "/search", roles: SEARCHERS, nav: { labelKey: "nav.search" }, load: p(() => import("../features/search-discovery/SearchPage"), "SearchPage") },
@@ -60,6 +67,6 @@ export const ROUTES: RouteDef[] = [
 
 /** Pure helper for tests and nav: may this role set open the route? */
 export function canOpen(route: Pick<RouteDef, "roles">, roles: readonly Role[]): boolean {
-  if (route.roles === "public" || route.roles === "any") return true;
+  if (route.roles === "public" || route.roles === "any" || route.roles === "enrol") return true;
   return route.roles.some((r) => roles.includes(r));
 }

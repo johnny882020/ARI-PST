@@ -30,19 +30,18 @@ export function createNotifyPort(clock: Clock): NotifyPort {
 export interface OutboxWorker { tick(): Promise<number>; start(ms: number): void; stop(): void }
 export function createOutboxWorker(repo: Repository, mailer: Mailer, clock: Clock, log: (o: object, m: string) => void): OutboxWorker {
   let timer: NodeJS.Timeout | null = null;
-  const ctx: Ctx = { actor: { ...ANON_ACTOR, role: 'system_admin', roles: ['system_admin'] }, traceId: 'outbox-worker' };
   async function tick(): Promise<number> {
     let sent = 0;
-    const batch = await repo.tx(ctx, (tx) => tx.outbox.claimPending(20));
+    const batch = await repo.worker((o) => o.claimPending(20));
     for (const m of batch) {
       try {
         if (!m.toEmail) throw new Error('no recipient');
         const r = renderTemplate(m.template, m.locale, m.params);
         await mailer.send({ to: m.toEmail, subject: r.subject, text: r.text });
-        await repo.tx(ctx, (tx) => tx.outbox.markSent(m.id)); sent++;
+        await repo.worker((o) => o.markSent(m.id)); sent++;
       } catch {
         log({ outboxId: m.id }, 'outbox send failed');
-        await repo.tx(ctx, (tx) => tx.outbox.markFailed(m.id, m.attempts + 1 >= 5));
+        await repo.worker((o) => o.markFailed(m.id, m.attempts + 1 >= 5));
       }
     }
     void clock; return sent;

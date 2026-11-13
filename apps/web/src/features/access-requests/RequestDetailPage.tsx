@@ -13,7 +13,7 @@ import { fmtDate } from "../../lib/format";
 import { problemMessageKey } from "../../shared/problem-message";
 import { STAGE_STEP, trackerView } from "./tracker";
 import { useCriteriaText } from "./CartPage";
-import { looksIdentifying } from "../../shared/identifier-warning";
+import { identifierMessageKey } from "../../shared/identifier-warning";
 
 export function RequestDetailPage() {
   const t = useT();
@@ -27,6 +27,9 @@ export function RequestDetailPage() {
   const canCoordinate = useCan("requests.coordinate");
   const [reply, setReply] = useState("");
   const [note, setNote] = useState("");
+  // Identifier-like text is refused before it is sent (same rules as the server guard).
+  const replyIdKey = identifierMessageKey(reply);
+  const noteIdKey = identifierMessageKey(note);
 
   const q = useQuery({
     queryKey: qk.request(id),
@@ -77,9 +80,8 @@ export function RequestDetailPage() {
       <Alert tone={view.needsAction ? "warning" : r.status === "rejected" ? "danger" : r.status === "delivered" ? "success" : "info"}>{t(view.bannerKey)}</Alert>
       {own && view.needsAction ? (
         <Card as="div" heading={t("requests.tracker.needsAction.title")} headingLevel={2}>
-          <form className="stack" onSubmit={(e) => { e.preventDefault(); if (reply.trim()) respond.mutate(); }}>
-            <Textarea label={t("requests.tracker.respond.label")} help={t("consent.freetext.warning")} rows={4} value={reply} onChange={(e) => setReply(e.target.value)} autoComplete="off" required />
-            {looksIdentifying(reply) ? <Alert tone="warning">{t("form.error.identifier")}</Alert> : null}
+          <form className="stack" onSubmit={(e) => { e.preventDefault(); if (reply.trim() && !replyIdKey) respond.mutate(); }}>
+            <Textarea label={t("requests.tracker.respond.label")} help={t("consent.freetext.warning")} rows={4} value={reply} onChange={(e) => setReply(e.target.value)} autoComplete="off" required error={replyIdKey ? t(replyIdKey) : undefined} />
             {respond.isError ? <Alert tone="danger">{t(problemMessageKey(respond.error))}</Alert> : null}
             <div><Button type="submit" variant="primary" loading={respond.isPending}>{t("requests.tracker.respond.submit")}</Button></div>
           </form>
@@ -98,8 +100,8 @@ export function RequestDetailPage() {
       </Card>
       {canCoordinate && activeApiStep ? (
         <Card as="div" heading={t("requests.coordination.title")} headingLevel={2}>
-          <form className="stack" onSubmit={(e) => { e.preventDefault(); stepMut.mutate(activeApiStep); }}>
-            <Textarea label={t("requests.coordination.note")} rows={2} value={note} onChange={(e) => setNote(e.target.value)} autoComplete="off" />
+          <form className="stack" onSubmit={(e) => { e.preventDefault(); if (!noteIdKey) stepMut.mutate(activeApiStep); }}>
+            <Textarea label={t("requests.coordination.note")} rows={2} value={note} onChange={(e) => setNote(e.target.value)} autoComplete="off" error={noteIdKey ? t(noteIdKey) : undefined} />
             {stepMut.isError ? <Alert tone="danger">{t(problemMessageKey(stepMut.error))}</Alert> : null}
             <div><Button type="submit" variant="primary" loading={stepMut.isPending}>{t(`requests.coordination.done.${activeApiStep}` as never)}</Button></div>
           </form>

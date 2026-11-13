@@ -2,7 +2,7 @@ import { createBrowserRouter, Outlet, type RouteObject } from "react-router-dom"
 import { Skeleton } from "@ari/design-system";
 import { SessionProvider } from "../app/session";
 import { AppLayout, PublicLayout } from "../shared/layout/AppLayout";
-import { PublicOnly, RequireSession, RoleHome } from "../shared/guards";
+import { PublicOnly, RequireEnrolmentSession, RequireSession, RoleHome } from "../shared/guards";
 import { NotFound404, RouteErrorElement } from "../shared/errors";
 import { ROUTES } from "./route-table";
 
@@ -25,13 +25,14 @@ function grouped(): RouteObject[] {
   const any = ROUTES.filter((r) => r.roles === "any");
   const byRoles = new Map<string, typeof ROUTES>();
   for (const r of ROUTES) {
-    if (r.roles === "public" || r.roles === "any") continue;
+    if (r.roles === "public" || r.roles === "any" || r.roles === "enrol") continue;
     const k = [...r.roles].sort().join(",");
     byRoles.set(k, [...(byRoles.get(k) ?? []), r]);
   }
   return [
-    { element: <PublicOnly />, children: [{ element: <PublicLayout />, children: pub.filter((r) => r.id !== "session-ended").map(lazyRoute) }] },
-    { element: <PublicLayout />, children: pub.filter((r) => r.id === "session-ended").map(lazyRoute) },
+    { element: <PublicOnly />, children: [{ element: <PublicLayout />, children: pub.filter((r) => !r.openWhenSignedIn).map(lazyRoute) }] },
+    { element: <PublicLayout />, children: pub.filter((r) => r.openWhenSignedIn).map(lazyRoute) },
+    { element: <RequireEnrolmentSession />, children: [{ element: <PublicLayout />, children: ROUTES.filter((r) => r.roles === "enrol").map(lazyRoute) }] },
     {
       element: <RequireSession />,
       children: [

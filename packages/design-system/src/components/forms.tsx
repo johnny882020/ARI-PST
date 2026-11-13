@@ -484,6 +484,8 @@ export interface FacetFilterProps {
   onChange: (selected: string[]) => void;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  /** Heading level of a collapsible facet title. Pick the level that follows the page outline. */
+  headingLevel?: 2 | 3 | 4 | 5;
   className?: string;
 }
 
@@ -494,8 +496,10 @@ export function FacetFilter({
   onChange,
   collapsible,
   defaultExpanded = true,
+  headingLevel = 3,
   className,
 }: FacetFilterProps) {
+  const HTag = `h${headingLevel}` as "h2" | "h3" | "h4" | "h5";
   const { t, locale } = useDesignSystem();
   const [open, setOpen] = useState(defaultExpanded);
   const bodyId = useId();
@@ -539,12 +543,12 @@ export function FacetFilter({
   }
   return (
     <div className={cx("ds-facet", className)}>
-      <h3 className="ds-facet-heading">
+      <HTag className="ds-facet-heading">
         <button type="button" className="ds-facet-toggle" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen(!open)}>
           <span>{legend}</span>
           <Icon name="chevron-end" size={18} className={cx("ds-facet-chev", open && "ds-open")} />
         </button>
-      </h3>
+      </HTag>
       <div id={bodyId} hidden={!open}>
         <fieldset className="ds-fieldset">
           <legend className="ds-vh">{legend}</legend>

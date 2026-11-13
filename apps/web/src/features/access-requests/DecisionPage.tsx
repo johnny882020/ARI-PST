@@ -10,6 +10,7 @@ import { PageHeading } from "../../shared/page";
 import { ErrorPanel } from "../../shared/errors";
 import { problemMessageKey } from "../../shared/problem-message";
 import { useCriteriaText } from "./CartPage";
+import { identifierMessageKey } from "../../shared/identifier-warning";
 
 export function DecisionPage() {
   const t = useT();
@@ -36,6 +37,7 @@ export function DecisionPage() {
   if (req.isError) return <ErrorPanel error={req.error} />;
   if (tally.isError) return <ErrorPanel error={tally.error} />;
   const ty = tally.data;
+  const commentIdKey = identifierMessageKey(comment);
   return (
     <div className="stack narrow" style={{ padding: 0 }}>
       <PageHeading titleKey="requests.decision.title" />
@@ -51,16 +53,16 @@ export function DecisionPage() {
       </Card>
       <Checkbox label={t("requests.decision.conflict")} checked={conflict} onChange={(e) => setConflict(e.target.checked)} />
       {conflict ? <Alert tone="warning">{t("requests.decision.conflict.note")}</Alert> : (
-        <form className="stack" onSubmit={(e) => { e.preventDefault(); if (vote) cast.mutate(); }}>
+        <form className="stack" onSubmit={(e) => { e.preventDefault(); if (vote && !commentIdKey) cast.mutate(); }}>
           <RadioGroup legend={t("requests.decision.vote")} name="vote" value={vote} onChange={(v) => setVote(v as typeof vote)}
             options={(["approve", "reject", "abstain"] as const).map((v) => ({ value: v, label: t(`requests.vote.${v}` as never) }))} />
-          <Textarea label={t("requests.decision.comment")} rows={3} value={comment} onChange={(e) => setComment(e.target.value)} autoComplete="off" />
+          <Textarea label={t("requests.decision.comment")} rows={3} value={comment} onChange={(e) => setComment(e.target.value)} autoComplete="off" error={commentIdKey ? t(commentIdKey) : undefined} />
           {cast.isError ? <Alert tone="danger">{t(problemMessageKey(cast.error))}</Alert> : null}
           {decide.isError ? <Alert tone="danger">{t(problemMessageKey(decide.error))}</Alert> : null}
           <div className="form-actions">
             <Button type="submit" variant="primary" disabled={!vote} loading={cast.isPending}>{t("requests.decision.cast")}</Button>
-            <Button onClick={() => decide.mutate("approved")} disabled={ty.approve < ty.required} loading={decide.isPending}>{t("requests.decision.record.approved")}</Button>
-            <Button variant="danger" onClick={() => decide.mutate("rejected")} disabled={ty.reject < ty.required}>{t("requests.decision.record.rejected")}</Button>
+            <Button onClick={() => decide.mutate("approved")} disabled={ty.approve < ty.required || !!commentIdKey} loading={decide.isPending}>{t("requests.decision.record.approved")}</Button>
+            <Button variant="danger" onClick={() => decide.mutate("rejected")} disabled={ty.reject < ty.required || !!commentIdKey}>{t("requests.decision.record.rejected")}</Button>
           </div>
         </form>
       )}

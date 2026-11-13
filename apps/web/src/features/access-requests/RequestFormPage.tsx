@@ -14,14 +14,20 @@ import { ErrorPanel } from "../../shared/errors";
 import { applyProblemToForm, ErrorSummary, useErrorText } from "../../shared/forms";
 import { problemMessageKey } from "../../shared/problem-message";
 import { fmtDateTime } from "../../lib/format";
-import { looksIdentifying } from "../../shared/identifier-warning";
+import { identifierMessageKey, looksIdentifying } from "../../shared/identifier-warning";
 import { useCriteriaText } from "./CartPage";
 
+/** Free text is refused when it looks like an identifier (same rules as the server guard). The message names the kind found. */
+const noIdentifier = (v: string, ctx: z.RefinementCtx) => {
+  const key = identifierMessageKey(v);
+  if (key) ctx.addIssue({ code: z.ZodIssueCode.custom, message: key });
+};
+const FREE_TEXT = ["researchQuestion", "plannedUse", "fundingSources"] as const;
 const schema = z.object({
-  researchQuestion: z.string().trim().min(10, "form.error.required").max(4000),
+  researchQuestion: z.string().trim().min(10, "form.error.required").max(4000).superRefine(noIdentifier),
   applicantEthicsRef: z.string().trim().regex(/^[A-Za-z0-9._/-]{3,64}$/, "form.error.ethicsRef"),
-  plannedUse: z.string().trim().min(10, "form.error.required").max(4000),
-  fundingSources: z.string().trim().min(2, "form.error.required").max(1000),
+  plannedUse: z.string().trim().min(10, "form.error.required").max(4000).superRefine(noIdentifier),
+  fundingSources: z.string().trim().min(2, "form.error.required").max(1000).superRefine(noIdentifier),
   declaration: z.literal(true, { errorMap: () => ({ message: "form.error.declaration" }) }),
 });
 type Values = z.infer<typeof schema>;
@@ -65,6 +71,11 @@ function Wizard({ id }: { id: string }) {
 
   const save = useCallback(async () => {
     const v = f.getValues();
+    // Never send text that looks identifying, not even as a draft. Show the field error instead.
+    if (FREE_TEXT.some((k) => looksIdentifying(v[k]))) {
+      await f.trigger([...FREE_TEXT]);
+      throw new Error("identifier_suspected");
+    }
     await unwrap(api.PATCH("/requests/{requestId}", { params: { path: { requestId: id } }, body: { researchQuestion: v.researchQuestion, applicantEthicsRef: v.applicantEthicsRef, plannedUse: v.plannedUse, fundingSources: v.fundingSources } }));
     setSavedAt(new Date().toISOString());
     f.reset(f.getValues(), { keepValues: true });
@@ -106,7 +117,6 @@ function Wizard({ id }: { id: string }) {
   const cur = STEPS[step]!;
   const values = f.watch();
   const stepErrors = cur.fields.filter((k) => errors[k]).map((k) => ({ name: k, label: t(`requests.form.${k}.label` as never) }));
-  const idWarn = (name: Field) => (looksIdentifying(values[name] ?? "") ? t("form.error.identifier") : undefined);
   const free = (name: Field, rows = 6) => (
     <Textarea id={`field-${name}`} label={t(`requests.form.${name}.label` as never)} help={t(`requests.form.${name}.help` as never)} rows={rows} required autoComplete="off" {...f.register(name)} error={errText(errors[name]?.message)} />
   );
@@ -119,9 +129,9 @@ function Wizard({ id }: { id: string }) {
       {submit.isError && !stepErrors.length ? <Alert tone="danger">{t(problemMessageKey(submit.error))}</Alert> : null}
       <form noValidate onSubmit={(e) => { e.preventDefault(); if (step === STEPS.length - 1) void f.handleSubmit(() => submit.mutate(), () => setNonce((n) => n + 1))(); else void next(); }}>
         <Card as="div" heading={t(`requests.form.step.${cur.key}` as never)} headingLevel={2}>
-          {cur.key === "question" ? <>{free("researchQuestion")}{idWarn("researchQuestion") ? <Alert tone="warning">{idWarn("researchQuestion")}</Alert> : null}</> : null}
+          {cur.key === "question" ? free("researchQuestion") : null}
           {cur.key === "approvals" ? <Input id="field-applicantEthicsRef" label={t("requests.form.applicantEthicsRef.label")} help={t("requests.form.applicantEthicsRef.help")} required dir="ltr" autoComplete="off" {...f.register("applicantEthicsRef")} error={errText(errors.applicantEthicsRef?.message)} /> : null}
-          {cur.key === "use" ? <>{free("plannedUse")}{idWarn("plannedUse") ? <Alert tone="warning">{idWarn("plannedUse")}</Alert> : null}</> : null}
+          {cur.key === "use" ? free("plannedUse") : null}
           {cur.key === "funding" ? free("fundingSources", 3) : null}
           {cur.key === "review" ? (
             <div className="stack">

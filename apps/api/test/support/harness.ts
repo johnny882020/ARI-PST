@@ -15,8 +15,8 @@ export const ORIGIN = 'http://localhost:8080';
 export interface TestUser { id: string; email: string; password: string; role: Role; centerId: string | null; totpSecret: string }
 export interface Session { cookie: string; csrf: string }
 
-export async function startHarness() {
-  const config = loadConfig({ NODE_ENV: 'test', DATABASE_URL: process.env.TEST_DATABASE_URL!, PUBLIC_ORIGIN: ORIGIN, ARGON_MEMORY_KIB: '8192', ARGON_TIME_COST: '2', OUTBOX_INTERVAL_MS: '0', VALIDATE_RESPONSES: '1', OBJECT_STORE: 'memory', RATE_TIGHT_PER_MIN: '100000', RATE_GENERAL_PER_MIN: '100000' } as NodeJS.ProcessEnv);
+export async function startHarness(extraEnv: Record<string, string> = {}) {
+  const config = loadConfig({ NODE_ENV: 'test', DATABASE_URL: process.env.TEST_DATABASE_URL!, PUBLIC_ORIGIN: ORIGIN, ARGON_MEMORY_KIB: '8192', ARGON_TIME_COST: '2', OUTBOX_INTERVAL_MS: '0', VALIDATE_RESPONSES: '1', OBJECT_STORE: 'memory', RATE_TIGHT_PER_MIN: '100000', RATE_GENERAL_PER_MIN: '100000', ...extraEnv } as NodeJS.ProcessEnv);
   const repo = new PgRepository(config.databaseUrl, { max: 8 });
   const admin = new pg.Pool({ connectionString: process.env.TEST_ADMIN_DATABASE_URL, max: 3 });
   const auth = new PgAuth(repo.pool, { rpId: 'localhost', rpName: 'ARI-PST Test', origin: ORIGIN, secretsKey: config.secretsKey, argon: config.argon }, systemClock);

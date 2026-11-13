@@ -14,12 +14,12 @@ export function AccountPage() {
   return (
     <div className="stack">
       <PageHeading titleKey="account.title" />
-      <Card heading={t("account.profile")}>
+      <Card heading={t("account.profile")} headingLevel={2}>
         <p>{state.status === "authenticated" ? state.session.displayName : ""}</p>
         <div className="row"><span>{t("account.language")}</span><LanguageSwitch value={locale} onChange={setLocale} /></div>
         <div className="row"><span>{t("account.theme")}</span><ThemeToggle value={theme} onChange={(th) => { setTheme(th); writePref("ui.theme", th); }} /></div>
       </Card>
-      <Card heading={t("account.security")}>
+      <Card heading={t("account.security")} headingLevel={2}>
         <p>{t("account.security.lead")}</p>
         <Link className="ds-btn ds-btn-secondary" to="/account/security"><span className="ds-btn-label">{t("account.security.open")}</span></Link>
       </Card>

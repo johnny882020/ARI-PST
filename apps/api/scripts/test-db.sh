@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Throwaway PostgreSQL 16 for API integration tests: port 55433, trust auth, data under /tmp.
-# Bootstraps the C-06 roles, runs db/migrate.mjs as app_migrator, applies db-support when db/migrations lacks the authn schema, seeds the vocabulary.
+# Bootstraps the C-06 roles, runs db/migrate.mjs as app_migrator, seeds the vocabulary. The schema comes from db/migrations only.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"; ROOT="$(cd "$HERE/../.." && pwd)"
 PGBIN=${PGBIN:-/usr/lib/postgresql/16/bin}; PGDATA=${PGDATA:-/tmp/ari-pst-b2-pg}; PGPORT=${PGPORT:-55433}; DBNAME=${DBNAME:-ari_pst_api}; SOCK=/tmp/ari-pst-b2-sock
@@ -16,7 +16,5 @@ $PSQL -d postgres -c "DROP DATABASE IF EXISTS $DBNAME WITH (FORCE)" >/dev/null 2
 $PSQL -d postgres -c "CREATE DATABASE $DBNAME" >/dev/null
 $PSQL -d $DBNAME -f "$ROOT/db/bootstrap.sql"
 DATABASE_URL_MIGRATOR="postgres://app_migrator@127.0.0.1:$PGPORT/$DBNAME" node "$ROOT/db/migrate.mjs" >/dev/null
-HAS=$($PSQL -d $DBNAME -At -c "SELECT count(*) FROM information_schema.schemata WHERE schema_name = 'authn'")
-if [ "$HAS" = "0" ]; then $PSQL -d $DBNAME -f "$HERE/db-support/0010_api_support.sql"; fi
 $PSQL -d $DBNAME -f "$ROOT/db/seeds/010_diagnosis_vocabulary.sql"
 echo "postgres://app_runtime@127.0.0.1:$PGPORT/$DBNAME"

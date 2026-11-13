@@ -31,4 +31,9 @@ async function assertRuntimeRole(repo: PgRepository): Promise<void> {
 }
 class ConfigError extends Error {}
 // Configuration errors name a variable or a rule, never a value, so the message is safe to print.
-main().catch((e) => { console.error('fatal', (e as Error).name, e instanceof ConfigError || /environment variable|DATABASE|DATA_CLASSIFICATION|Missing/.test((e as Error).message) ? (e as Error).message : ''); process.exit(1); });
+main().catch((e) => {
+  const err = e as Error & { code?: string };
+  const safe = err instanceof ConfigError || /environment variable|DATABASE|DATA_CLASSIFICATION|Missing|not found/.test(err.message);
+  console.error(JSON.stringify({ level: 'fatal', msg: 'startup failed', errName: err.name, errCode: err.code, ...(safe ? { detail: err.message } : {}), ...(process.env.DEBUG_FATAL === '1' ? { stack: err.stack } : {}) }));
+  process.exit(1);
+});

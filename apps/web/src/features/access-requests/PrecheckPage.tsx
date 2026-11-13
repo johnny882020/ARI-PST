@@ -10,6 +10,7 @@ import { PageHeading } from "../../shared/page";
 import { ErrorPanel } from "../../shared/errors";
 import { problemMessageKey } from "../../shared/problem-message";
 import { useCriteriaText } from "./CartPage";
+import { identifierMessageKey } from "../../shared/identifier-warning";
 
 const REASONS = ["out_of_scope", "incomplete", "no_ethics", "policy"] as const;
 
@@ -31,6 +32,7 @@ export function PrecheckPage() {
   if (q.isPending) return <Skeleton lines={5} />;
   if (q.isError) return <ErrorPanel error={q.error} />;
   const needsReason = outcome === "reject";
+  const noteIdKey = identifierMessageKey(note);
   const CRITERIA = ["ethics", "scope", "complete"] as const;
   return (
     <div className="stack narrow" style={{ padding: 0 }}>
@@ -47,11 +49,11 @@ export function PrecheckPage() {
           </label>
         ))}
       </Card>
-      <form className="stack" onSubmit={(e) => { e.preventDefault(); m.mutate(); }}>
+      <form className="stack" onSubmit={(e) => { e.preventDefault(); if (!noteIdKey) m.mutate(); }}>
         <RadioGroup legend={t("requests.precheck.decision")} name="outcome" value={outcome} onChange={(v) => setOutcome(v as typeof outcome)}
           options={[{ value: "forward", label: t("requests.precheck.forward") }, { value: "ask_info", label: t("requests.precheck.askInfo") }, { value: "reject", label: t("requests.precheck.reject") }]} />
         {needsReason ? <Select label={t("requests.precheck.reason")} required value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("requests.precheck.reason.placeholder")} options={REASONS.map((r) => ({ value: r, label: t(`requests.reason.${r}` as never) }))} /> : null}
-        <Textarea label={t("requests.precheck.note")} help={t("requests.precheck.note.help")} rows={3} value={note} onChange={(e) => setNote(e.target.value)} autoComplete="off" />
+        <Textarea label={t("requests.precheck.note")} help={t("requests.precheck.note.help")} rows={3} value={note} onChange={(e) => setNote(e.target.value)} autoComplete="off" error={noteIdKey ? t(noteIdKey) : undefined} />
         {m.isError ? <Alert tone="danger">{t(problemMessageKey(m.error))}</Alert> : null}
         <div className="form-actions"><Button type="submit" variant="primary" loading={m.isPending} disabled={needsReason && !reason}>{t("requests.precheck.submit")}</Button></div>
       </form>

@@ -31,7 +31,16 @@
   color: var(--color-primary);
   text-decoration: underline;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-block-size: 1.5rem;
+  min-inline-size: 1.5rem;
+}
+.ds-link-button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: var(--radius-xs); }
+/* Touch and small screens: 44 px target. */
+@media (max-width: 47.99em), (pointer: coarse) {
+  .ds-link-button { min-block-size: var(--target-min); min-inline-size: var(--target-min); }
 }
 
 .ds-skip {

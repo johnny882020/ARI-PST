@@ -72,6 +72,8 @@ export function staleness(s) {
 export const PASSWORD = "Synthetic-Passw0rd!";
 export const TOTP = "123456";
 export const RECOVERY = "SYNTH-RECOV-0001";
+/** Synthetic e-mail verification / invitation token for newuser@example.test. */
+export const VERIFY_TOKEN = "synthetic-verify-token-0001";
 
 export function seedUsers() {
   const mk = (n, email, displayName, role, centerId = null, extra = {}) => ({
@@ -88,5 +90,7 @@ export function seedUsers() {
     mk(7, "admin2@example.test", "Synthetic Admin Two", "system_admin"),
     mk(8, "shortsession@example.test", "Dr. Short Session", "researcher_il", null, { shortSession: true }),
     mk(9, "committee2@example.test", "Synthetic Committee Two", "committee_member"),
+    // Approved but not yet activated: no password, no second factor. Activates through /verify-email?token=VERIFY_TOKEN.
+    mk(10, "newuser@example.test", "Dr. New Researcher", "researcher_il", null, { status: "invited", mfaEnrolled: false }),
   ];
 }

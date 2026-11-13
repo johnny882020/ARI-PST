@@ -91,6 +91,12 @@ async function vocabulary(migratorUrl) {
     await c.query(readFileSync(path.join(root, 'db', 'seeds', '010_diagnosis_vocabulary.sql'), 'utf8'));
     await c.query('COMMIT');
     log('vocabulary', 'loaded');
+  } catch (e) {
+    // Known gap (plan/requests/INT-to-B1.md): app_core has no EXECUTE on search.norm(), which the vocabulary indexes call.
+    // Do not fail the deploy: the synthetic seed loads the vocabulary through a coordinator session instead.
+    if (e?.code !== '42501') throw e;
+    await c.query('ROLLBACK').catch(() => {});
+    log('vocabulary', 'skipped: app_core may not write the vocabulary yet (see INT-to-B1). The synthetic seed loads it.');
   } finally { await c.end().catch(() => {}); }
 }
 

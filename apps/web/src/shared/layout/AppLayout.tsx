@@ -32,7 +32,7 @@ export function AppLayout() {
   const authed = state.status === "authenticated" ? state : null;
 
   const items: NavItem[] = authed
-    ? ROUTES.filter((r) => r.nav && r.roles !== "public" && (r.roles === "any" || r.roles.some((x) => authed.roles.includes(x)))).map((r) => ({
+    ? ROUTES.filter((r) => r.nav && r.roles !== "public" && r.roles !== "enrol" && (r.roles === "any" || r.roles.some((x) => authed.roles.includes(x)))).map((r) => ({
         id: r.id,
         label: t(r.nav!.labelKey),
         href: r.nav!.href ?? r.path,
@@ -42,13 +42,13 @@ export function AppLayout() {
 
   return (
     <AppShell
-      brand={<Link to="/" className="brand-link"><strong>ARI-PST</strong> <span className="brand-sub">× Tech4Cancer</span></Link>}
+      brand={<Link to="/" className="brand-link"><strong>ARI-PST</strong>&nbsp;<span className="brand-sub">× Tech4Cancer</span></Link>}
       nav={items}
       navLabel={t("shell.nav.label")}
       renderLink={(it, props) => <NavLink to={it.href} className={props.className} aria-current={props["aria-current"]} onClick={props.onClick}>{props.children}</NavLink>}
+      headerPinned={authed?.permissions.has("cart.use") ? <CartBadge /> : undefined}
       headerActions={
         <>
-          {authed?.permissions.has("cart.use") ? <CartBadge /> : null}
           <LanguageSwitch value={locale} onChange={setLocale} />
           <ThemeToggle value={theme} onChange={(th) => { setTheme(th); writePref("ui.theme", th); }} />
           {authed ? (
@@ -78,7 +78,7 @@ export function PublicLayout() {
     <div className="public-wrap">
       <a className="ds-skip" href="#main">{t("shell.skip")}</a>
       <header className="public-head">
-        <strong>ARI-PST</strong> <span className="brand-sub">× Tech4Cancer</span>
+        <span className="public-brand"><strong>ARI-PST</strong> <span className="brand-sub">× Tech4Cancer</span></span>
         <span className="spacer" />
         <LanguageSwitch value={locale} onChange={setLocale} />
         <ThemeToggle value={theme} onChange={(th) => { setTheme(th); writePref("ui.theme", th); }} />

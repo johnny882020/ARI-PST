@@ -1,35 +1,18 @@
-# Export/import round trip (REQ-070 portability). Nightly and manual. Synthetic data only.
+# Export/import round trip (REQ-070 portability). Synthetic data only.
+# NOT YET ENFORCED: the export/import/verify tools (export:full, import:full, verify:roundtrip, check:capability-map)
+# do not exist yet (docs/KNOWN-ISSUES.md). The schedule is removed so that nothing reports a false green.
+# A manual run fails on purpose with this message.
 name: roundtrip
 on:
-  schedule:
-    - cron: "40 1 * * *"
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   export-import-roundtrip:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    services:
-      pg-a:
-        image: postgres:16
-        env: { POSTGRES_PASSWORD: ci-only-not-secret, POSTGRES_DB: src }
-        ports: ["5433:5432"]
-      pg-b:
-        image: postgres:16
-        env: { POSTGRES_PASSWORD: ci-only-not-secret, POSTGRES_DB: dst }
-        ports: ["5434:5432"]
-    env:
-      SRC_URL: postgres://postgres:ci-only-not-secret@localhost:5433/src
-      DST_URL: postgres://postgres:ci-only-not-secret@localhost:5434/dst
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - run: DATABASE_URL=$SRC_URL pnpm run db:migrate && DATABASE_URL=$SRC_URL pnpm run db:seed-synthetic
-      - run: pnpm run export:full --from "$SRC_URL" --out export/
-      - run: DATABASE_URL=$DST_URL pnpm run db:migrate && pnpm run import:full --to "$DST_URL" --in export/
-      - run: pnpm run verify:roundtrip --a "$SRC_URL" --b "$DST_URL"    # counts, hashes, audit chain, no identifiers
-      - run: pnpm run check:capability-map
-      - name: Report
-        if: failure()
-        run: echo "::error::Round trip failed. A schema change release is blocked until fixed."
+      - name: Not implemented
+        run: |
+          echo "::error::Round trip is not implemented yet (export:full / import:full / verify:roundtrip). See docs/KNOWN-ISSUES.md."
+          exit 1

@@ -67,7 +67,7 @@ export async function buildApp(deps: Deps, opts: { logger?: boolean } = {}): Pro
   app.get('/livez', async () => health.livez());
   app.get('/readyz', async (_req, reply) => { const r = await health.readyz(); return reply.code(r.code).send(r.body); });
   const here = dirname(fileURLToPath(import.meta.url));
-  const dist = [config.webDistDir, resolve(process.cwd(), '../web/dist'), resolve(process.cwd(), 'apps/web/dist'), resolve(here, '../../web/dist'), resolve(here, '../../../apps/web/dist')]
+  const dist = [config.webDistDir ? resolve(process.cwd(), config.webDistDir) : null, resolve(process.cwd(), '../web/dist'), resolve(process.cwd(), 'apps/web/dist'), resolve(here, '../../web/dist'), resolve(here, '../../../apps/web/dist')]
     .filter((x): x is string => Boolean(x)).find((d) => existsSync(resolve(d, 'index.html')));
   if (dist) {
     await app.register(fastifyStatic, { root: dist, wildcard: false, index: ['index.html'], cacheControl: true, maxAge: '1h' });

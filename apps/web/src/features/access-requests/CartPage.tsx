@@ -85,7 +85,7 @@ export function CartPage() {
           <div className="form-actions">
             <Button variant="primary" loading={start.isPending} onClick={() => start.mutate()}>{t("cart.start")}</Button>
           </div>
-          <Card as="div" heading={t("cart.next.title")}><ol><li>{t("cart.next.1")}</li><li>{t("cart.next.2")}</li><li>{t("cart.next.3")}</li></ol></Card>
+          <Card as="div" heading={t("cart.next.title")} headingLevel={2}><ol><li>{t("cart.next.1")}</li><li>{t("cart.next.2")}</li><li>{t("cart.next.3")}</li></ol></Card>
         </>
       )}
     </div>

@@ -6,6 +6,8 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, Button, Input } from "@ari/design-system";
 import { unwrap } from "@ari/api-client";
+import { useQueryClient } from "@tanstack/react-query";
+import { qk } from "../../lib/query";
 import { api } from "../../lib/api";
 import { useT } from "../../app/locale";
 import { PageHeading } from "../../shared/page";
@@ -19,6 +21,7 @@ export function LoginPage() {
   const t = useT();
   const nav = useNavigate();
   const [params] = useSearchParams();
+  const qc = useQueryClient();
   const [err, setErr] = useState<unknown>(null);
   const f = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: "", password: "" } });
   const { errors, isSubmitting } = f.formState;
@@ -27,6 +30,13 @@ export function LoginPage() {
     setErr(null);
     try {
       const r = await unwrap(api.POST("/auth/login", { body: v }));
+      // No second factor yet (first sign-in after e-mail verification): the challenge alone gives an
+      // enrolment-only session, and the user must add a factor before anything else.
+      if ((r as { enrollmentRequired?: boolean }).enrollmentRequired || r.factors.length === 0) {
+        qc.setQueryData(qk.session, await unwrap(api.POST("/auth/mfa/verify", { body: { challengeToken: r.challengeToken } })));
+        nav("/setup-mfa", { replace: true });
+        return;
+      }
       authFlow.set(r.challengeToken, r.factors);
       const next = params.get("next");
       nav(`/login/mfa${next ? `?next=${encodeURIComponent(next)}` : ""}`);

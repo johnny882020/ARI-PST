@@ -3,13 +3,32 @@
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "build": "pnpm -r --if-present build",
-    "arch": "depcruise --config .dependency-cruiser.cjs packages/domain/src apps/api/src"
+    "arch": "depcruise --config .dependency-cruiser.cjs packages/domain/src apps/api/src",
+    "lint:openapi": "pnpm --filter @ari/api-client gen:check",
+    "test:unit": "pnpm -r --filter=!@ari/db --filter=!@ari/api --filter=!@ari/public-site --if-present test && pnpm --filter @ari/public-site test:unit",
+    "test:property": "pnpm --filter @ari/db test privacy",
+    "test:rls": "pnpm --filter @ari/db test",
+    "test:integration": "pnpm --filter @ari/api test",
+    "test:contract": "pnpm --filter @ari/api-client gen:check && pnpm --filter @ari/api exec vitest run test/authz-matrix.test.ts test/idor-contract.test.ts",
+    "test:e2e:smoke": "pnpm --filter @ari/web test:e2e",
+    "test:e2e:full": "node scripts/e2e-fullstack.mjs --start",
+    "test:a11y": "pnpm --filter @ari/public-site test:a11y",
+    "db:migrate": "pnpm --filter @ari/db migrate",
+    "db:predeploy": "node scripts/render-predeploy.mjs",
+    "verify:render": "python3 scripts/verify-render-yaml.py && python3 scripts/gen-staging.py --check",
+    "smoke": "bash scripts/smoke.sh"
   },
-  "devDependencies": { "typescript": "^5.6.0", "vitest": "^2.1.0", "dependency-cruiser": "^16.8.0" }
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "dependency-cruiser": "^16.8.0"
+  }
 }

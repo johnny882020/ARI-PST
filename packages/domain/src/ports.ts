@@ -130,12 +130,14 @@ export interface SearchRepo {
   k(): Promise<number>;
   /** Publishes a new privacy snapshot epoch (agg.refresh_snapshot). Allowed for a national_coordinator session and for background jobs. */
   refreshSnapshot(): Promise<void>;
+  /** Current privacy snapshot epoch (agg.current_epoch). Aggregate results are stable within one epoch. */
+  epoch(): Promise<number>;
   expand(q: string, limit: number): Promise<Array<{ diagnosisCode: string; score: number; matchedVia: 'exact' | 'fts' | 'trgm' }>>;
   diagnoses(): Promise<DiagnosisTermRecord[]>;
   /** Persistent query accounting (budget and cache). */
-  spent(userId: string, institution: string | null, now: Date): Promise<{ spentDay: number; spent30d: number; spentInstitution30d: number }>;
-  recordQuery(userId: string, institution: string | null, queryKey: string, cost: number, now: Date): Promise<void>;
-  seenInEpoch(userId: string, queryKey: string, epochStart: Date): Promise<boolean>;
+  /** Budget of the SESSION user (the database takes the actor from the signed session, never from a parameter). */
+  spent(institution: string | null): Promise<{ spentDay: number; spent30d: number; spentInstitution30d: number }>;
+  recordQuery(institution: string | null, queryKey: string, cost: number): Promise<void>;
 }
 export interface RequestRepo {
   getDraftFor(userId: string): Promise<RequestRecord | null>;
@@ -200,6 +202,8 @@ export interface Repository {
   /** Writes an audit event in its own transaction (used for denials and logins, outside business transactions). */
   auditStandalone(ctx: Ctx, ev: AuditEvent): Promise<void>;
   ping(): Promise<{ ok: boolean; migrationsOk: boolean; latestMigration: string | null }>;
+  /** Outbox worker path: runs WITHOUT a user session (the database refuses claim/mark inside one). Only the outbox is reachable. */
+  worker<T>(fn: (outbox: OutboxRepo) => Promise<T>): Promise<T>;
 }
 
 // ---------- Auth ----------

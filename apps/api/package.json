@@ -10,7 +10,8 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "typecheck": "tsc -p . --noEmit",
-    "lint": "tsc -p . --noEmit && node scripts/lint-rules.mjs"
+    "lint": "tsc -p . --noEmit && node scripts/lint-rules.mjs",
+    "seed:synthetic": "node dist/jobs/seed-synthetic.js"
   },
   "dependencies": {
     "@ari/domain": "workspace:*",
@@ -33,6 +34,7 @@
     "@types/nodemailer": "^6.4.0",
     "@types/pg": "^8.11.0",
     "tsup": "^8.3.0",
-    "tsx": "^4.19.0"
+    "tsx": "^4.19.0",
+    "@ari/synthetic-data": "workspace:*"
   }
 }

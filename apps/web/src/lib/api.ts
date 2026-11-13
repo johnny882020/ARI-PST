@@ -24,3 +24,13 @@ export const api = createApiClient({
 });
 
 export type { Session };
+
+/**
+ * `POST /auth/verify-email` (operationId verifyEmail) is in packages/contracts/openapi.yaml, but the
+ * generated client types have not been regenerated yet. Typed here by hand from VerifyEmailRequest;
+ * remove this wrapper and call `api.POST("/auth/verify-email", ...)` once `pnpm gen` has run.
+ */
+export function postVerifyEmail(body: { token: string; password?: string }): Promise<{ error?: unknown; response: Response }> {
+  const post = api.POST as unknown as (path: string, init: { body: unknown }) => Promise<{ error?: unknown; response: Response }>;
+  return post("/auth/verify-email", { body });
+}

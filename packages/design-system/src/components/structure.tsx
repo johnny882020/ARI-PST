@@ -392,14 +392,16 @@ export interface AppShellProps {
   nav: NavItem[];
   navLabel?: string;
   renderLink?: NavProps["renderLink"];
-  /** Language switch, theme toggle, user menu, session timer. */
+  /** Language switch, theme toggle, user menu, session timer. On small screens these move behind the menu button. */
   headerActions?: ReactNode;
+  /** Stays in the header bar at every width (for example the cart link). Keep it short. */
+  headerPinned?: ReactNode;
   footer?: ReactNode;
   children: ReactNode;
   className?: string;
 }
 
-export function AppShell({ brand, nav, navLabel, renderLink, headerActions, footer, children, className }: AppShellProps) {
+export function AppShell({ brand, nav, navLabel, renderLink, headerActions, headerPinned, footer, children, className }: AppShellProps) {
   const { t } = useDesignSystem();
   const [open, setOpen] = useState(false);
   const navId = useId();
@@ -420,7 +422,12 @@ export function AppShell({ brand, nav, navLabel, renderLink, headerActions, foot
           <Icon name="menu" />
         </IconButton>
         <div className="ds-shell-brand">{brand}</div>
-        <div className="ds-shell-actions">{headerActions}</div>
+        {headerPinned ? <div className="ds-shell-pinned">{headerPinned}</div> : null}
+        {headerActions ? (
+          <div className="ds-shell-actions" data-open={open ? "true" : "false"}>
+            {headerActions}
+          </div>
+        ) : null}
       </header>
       <div className="ds-shell-body">
         <div id={navId} className="ds-shell-nav" data-open={open ? "true" : "false"}>

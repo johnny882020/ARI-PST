@@ -102,7 +102,8 @@ export function SearchPage() {
       <PageHeading titleKey="search.title" lead={t("privacy.notice.short")} />
       <SearchBox label={t("search.input.label")} placeholder={t("search.input.placeholder")} value={q} onChange={setQ} onSubmit={(v) => setSubmittedQ(v.trim())} loading={agg.isFetching} />
       <div className="search-layout">
-        <aside className="filters" aria-label={t("search.filters.title")}>
+        <aside className="filters" aria-labelledby="search-filters-title">
+          <h2 id="search-filters-title" className="section-title">{t("search.filters.title")}</h2>
           <FacetFilter legend={t("search.filters.sampleType")} options={opts("sampleType")} selected={sel("sampleType")} onChange={(v) => setFilter("sampleType", v)} />
           <FacetFilter legend={t("search.filters.ageBand")} options={opts("ageBand")} selected={sel("ageBand")} onChange={(v) => setFilter("ageBand", v)} collapsible defaultExpanded={false} />
           <FacetFilter legend={t("search.filters.diagnosis")} options={opts("diagnosis")} selected={sel("diagnosis")} onChange={(v) => setFilter("diagnosis", v)} collapsible defaultExpanded={false} />
@@ -110,7 +111,8 @@ export function SearchPage() {
           <FacetFilter legend={t("search.filters.timepoint")} options={opts("timepoint")} selected={sel("timepoint")} onChange={(v) => setFilter("timepoint", v)} collapsible defaultExpanded={false} />
           <FacetFilter legend={t("search.filters.attachedData")} options={opts("attachedData")} selected={sel("attachedData")} onChange={(v) => setFilter("attachedData", v)} collapsible defaultExpanded={false} />
         </aside>
-        <section className="stack" aria-live="polite" aria-busy={agg.isFetching}>
+        <section className="stack results" aria-labelledby="search-results-title" aria-live="polite" aria-busy={agg.isFetching}>
+          <h2 id="search-results-title" className="section-title">{t("search.results.title")}</h2>
           {countActive(filters) > 0 ? (
             <div className="chips">
               {Object.entries(filters).flatMap(([field, vs]) => (vs as string[]).map((v) => (
