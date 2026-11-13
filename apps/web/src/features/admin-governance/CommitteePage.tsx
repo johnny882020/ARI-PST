@@ -25,8 +25,8 @@ export function CommitteePage() {
       <PageHeading titleKey="committee.title" lead={t("committee.lead")} />
       <div className="grid-tiles">
         <AggregateCountTile label={t("committee.tile.pending")} state={q.data ? "value" : "loading"} value={q.data?.items.length} />
-        <AggregateCountTile label={t("committee.tile.open")} state={all.data ? "value" : "loading"} value={items.filter((r) => !["delivered", "closed", "rejected", "withdrawn"].includes(r.status)).length} />
-        <AggregateCountTile label={t("committee.tile.delivered")} state={all.data ? "value" : "loading"} value={items.filter((r) => r.status === "delivered").length} />
+        <AggregateCountTile label={t("committee.tile.open")} state={all.data ? "value" : "loading"} value={items.filter((r) => !["closed", "rejected"].includes(r.status)).length} />
+        <AggregateCountTile label={t("committee.tile.delivered")} state={all.data ? "value" : "loading"} value={items.filter((r) => r.status === "closed" && r.closeReason === "delivered").length} />
       </div>
       <Table caption={t("committee.queue.caption")} columns={cols} rows={q.data?.items ?? []} rowKey={(r) => r.id} loading={q.isPending} error={q.isError ? <ErrorPanel error={q.error} /> : undefined} empty={<EmptyState title={t("committee.empty.title")} />} />
       <p className="muted">{t("committee.sod")}</p>

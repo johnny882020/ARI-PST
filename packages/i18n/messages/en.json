@@ -466,6 +466,7 @@
   "requests.reason.out_of_scope": "Out of scope",
   "requests.reason.policy": "Policy",
   "requests.status.agreements": "Agreements",
+  "requests.status.appeal_review": "Appeal review",
   "requests.status.approved": "Approved",
   "requests.status.center_coordination": "Center coordination",
   "requests.status.closed": "Closed",

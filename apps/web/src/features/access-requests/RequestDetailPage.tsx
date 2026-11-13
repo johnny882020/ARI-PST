@@ -35,7 +35,7 @@ export function RequestDetailPage() {
     queryKey: qk.request(id),
     queryFn: () => unwrap(api.GET("/requests/{requestId}", { params: { path: { requestId: id } } })),
     // Poll only while the tab is visible and the request is open.
-    refetchInterval: (query) => (query.state.data && !["delivered", "closed", "rejected", "withdrawn"].includes(query.state.data.status) ? 10_000 : false),
+    refetchInterval: (query) => (query.state.data && !["closed", "rejected"].includes(query.state.data.status) ? 10_000 : false),
     refetchIntervalInBackground: false,
   });
 
@@ -51,7 +51,7 @@ export function RequestDetailPage() {
   if (q.isPending) return <Skeleton lines={6} />;
   if (q.isError) return <ErrorPanel error={q.error} onRetry={() => void q.refetch()} />;
   const r = q.data;
-  const view = trackerView(r.status);
+  const view = trackerView(r.status, r.closeReason);
   const steps = (r.steps ?? []) as RequestStep[];
   const stepOf = (stage: (typeof REQUEST_STEP_IDS)[number]) => steps.find((s) => s.stepKey === STAGE_STEP[stage]);
   const dates: Partial<Record<(typeof REQUEST_STEP_IDS)[number], string>> = {};
@@ -77,7 +77,7 @@ export function RequestDetailPage() {
           {canPrecheck && r.status === "precheck" ? <Link className="ds-btn ds-btn-primary" to={`/requests/${r.id}/precheck`}><span className="ds-btn-label">{t("requests.precheck.open")}</span></Link> : null}
           {canVote && r.status === "committee_review" ? <Link className="ds-btn ds-btn-primary" to={`/requests/${r.id}/decision`}><span className="ds-btn-label">{t("requests.decision.open")}</span></Link> : null}
         </>} />
-      <Alert tone={view.needsAction ? "warning" : r.status === "rejected" ? "danger" : r.status === "delivered" ? "success" : "info"}>{t(view.bannerKey)}</Alert>
+      <Alert tone={view.needsAction ? "warning" : r.status === "rejected" ? "danger" : r.status === "closed" && r.closeReason === "delivered" ? "success" : "info"}>{t(view.bannerKey)}</Alert>
       {own && view.needsAction ? (
         <Card as="div" heading={t("requests.tracker.needsAction.title")} headingLevel={2}>
           <form className="stack" onSubmit={(e) => { e.preventDefault(); if (reply.trim() && !replyIdKey) respond.mutate(); }}>

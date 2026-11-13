@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { REQUEST_STEP_IDS } from "@ari/design-system";
 import { trackerView } from "./tracker";
 
-const STATUSES = ["draft", "submitted", "precheck", "needs_info", "committee_review", "approved", "rejected", "center_coordination", "agreements", "delivery", "delivered", "withdrawn", "closed"] as const;
+const STATUSES = ["draft", "submitted", "precheck", "needs_info", "committee_review", "approved", "rejected", "center_coordination", "agreements", "delivery", "appeal_review", "closed"] as const;
 
 describe("trackerView", () => {
   it("maps every canonical status to one of the 8 steps", () => {
@@ -16,5 +16,8 @@ describe("trackerView", () => {
   it("shows rejection at the committee step", () => {
     expect(trackerView("rejected")).toMatchObject({ current: "committee", status: "rejected" });
   });
-  it("delivered ends at closed", () => expect(trackerView("delivered").current).toBe("closed"));
+  it("closed with reason delivered shows the delivered banner", () => {
+    expect(trackerView("closed", "delivered")).toMatchObject({ current: "closed", bannerKey: "requests.tracker.status.delivered" });
+    expect(trackerView("closed", "withdrawn").bannerKey).toBe("requests.tracker.status.closed");
+  });
 });

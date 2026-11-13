@@ -466,6 +466,7 @@
   "requests.reason.out_of_scope": "מחוץ לתחום",
   "requests.reason.policy": "מדיניות",
   "requests.status.agreements": "הסכמים",
+  "requests.status.appeal_review": "בדיקת ערעור",
   "requests.status.approved": "אושרה",
   "requests.status.center_coordination": "תיאום עם המרכז",
   "requests.status.closed": "סגורה",

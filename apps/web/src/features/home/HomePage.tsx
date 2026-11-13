@@ -38,7 +38,7 @@ function ResearcherHome() {
         <div className="grid-tiles">
           <Tile label={t("home.researcher.waiting")} value={waiting} to="/requests" />
           <Tile label={t("home.researcher.needsInfo")} value={needs.length} to="/requests" />
-          <Tile label={t("home.researcher.delivered")} value={items.filter((r) => r.status === "delivered").length} to="/requests" />
+          <Tile label={t("home.researcher.delivered")} value={items.filter((r) => r.status === "closed" && r.closeReason === "delivered").length} to="/requests" />
           <Tile label={t("home.researcher.cart")} value={cart.data?.items.length ?? 0} to="/cart" />
         </div>
       )}

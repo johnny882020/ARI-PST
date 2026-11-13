@@ -50,7 +50,7 @@ function reset() {
   };
   mkReq("committee_review");
   mkReq("precheck");
-  mkReq("delivered", { deliveredAt: "2026-10-20T08:00:00Z", decidedAt: "2026-10-10T08:00:00Z" });
+  mkReq("closed", { closeReason: "delivered", deliveredAt: "2026-10-20T08:00:00Z", decidedAt: "2026-10-10T08:00:00Z" });
 }
 reset();
 
@@ -190,13 +190,13 @@ const bucket = (b, c) => (c >= K ? { bucket: b, level: "value", count: c, suppre
 /* ------------------------------ requests ------------------------------ */
 const STEPS = ["submitted", "precheck", "committee_review", "decision", "center_coordination", "mta_dta", "delivery", "closed"];
 function stepsFor(r, forApplicant) {
-  const order = { submitted: 1, precheck: 2, needs_info: 2, committee_review: 3, appeal_review: 3, approved: 4, rejected: 4, center_coordination: 5, agreements: 6, delivery: 7, delivered: 8, withdrawn: 8, closed: 8 };
+  const order = { submitted: 1, precheck: 2, needs_info: 2, committee_review: 3, appeal_review: 3, approved: 4, rejected: 4, center_coordination: 5, agreements: 6, delivery: 7, closed: 8 };
   const cur = r.status === "draft" ? 0 : order[r.status] ?? 0;
   return STEPS.map((k, i) => {
     const n = i + 1;
     let status = n < cur ? "done" : n === cur ? "in_progress" : "pending";
     if (r.status === "needs_info" && n === 2) status = "blocked";
-    if (r.status === "delivered" && n === 8) status = "done";
+    if (r.status === "closed" && n === 8) status = "done";
     if (r.status === "rejected" && n === 4) status = "done";
     if (r.status === "rejected" && n > 4) status = "skipped";
     const step = { stepKey: k, centerId: null, status, publicNote: r.publicNotes?.[k] ?? null, startedAt: status !== "pending" ? r.submittedAt : null, completedAt: status === "done" ? r.decidedAt ?? r.submittedAt : null };
@@ -448,9 +448,9 @@ async function handleApi(req, res, url) {
       if (looksIdentifying(b.publicNote) || looksIdentifying(b.internalNote)) return identifierProblem(res, ["publicNote"]);
       r.publicNotes = { ...(r.publicNotes ?? {}), ...(b.publicNote ? { [m[1]]: b.publicNote } : {}) };
       if (b.status === "done") {
-        const next = { center_coordination: "agreements", mta_dta: "delivery", delivery: "delivered" }[m[1]];
+        const next = { center_coordination: "agreements", mta_dta: "delivery", delivery: "closed" }[m[1]];
         if (next) r.status = next;
-        if (next === "delivered") r.deliveredAt = now();
+        if (m[1] === "delivery" && next) { r.closeReason = "delivered"; r.deliveredAt = now(); }
       }
       return send(res, 200, stepsFor(r, false).find((x) => x.stepKey === m[1]));
     }

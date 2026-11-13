@@ -79,8 +79,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read the current session, role set and active center. */
-        get: operations["getSession"];
+        /** Read the current session, role set and active center (alias of GET /session). */
+        get: operations["getAuthSession"];
         put?: never;
         post?: never;
         delete?: never;
@@ -702,6 +702,773 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/csrf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the CSRF token for this browser and sets the __Host-csrf cookie. Call before login. */
+        get: operations["csrfBootstrap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Researcher self-registration. Account stays pending until a national_coordinator approves it and the email is verified. */
+        post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm the email address with the emailed token. Also sets the first password for invited users. */
+        post: operations["verifyEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change own password. Ends all other sessions. */
+        post: operations["changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/step-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Re-confirm the second factor. Needed for sensitive actions (age 5 minutes or less). */
+        post: operations["stepUp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace the recovery codes. Shown once. Needs a fresh step-up. */
+        post: operations["regenerateRecoveryCodes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own profile, roles and enrolled factors. */
+        get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change own display name or locale. */
+        patch: operations["updateMe"];
+        trace?: never;
+    };
+    "/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current session, expiry and step-up state. */
+        get: operations["getSessionInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/session/extend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep the session alive (resets the idle timer, never the absolute limit). */
+        post: operations["extendSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client-errors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Browser error beacon. Class and route only. No messages, no user text. */
+        post: operations["reportClientError"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/csp-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** CSP violation report endpoint. */
+        post: operations["reportCsp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/forms/{form}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Join or contact form from the public site. Delivered by email to the operator. Not stored. */
+        post: operations["submitPublicForm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/samples/{sampleId}/flag": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Flag a record for review (reason code only). Clinician of own center or coordinator. */
+        post: operations["flagSample"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requests/{requestId}/transition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move the request to another state. Allowed actor per transition is fixed by the state machine and the database. */
+        post: operations["transitionRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requests/{requestId}/votes/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Votes on a request. Committee and coordinator. */
+        get: operations["listVotes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staleness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Freshness summary for every center. Coordinator. */
+        get: operations["listStaleness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Success metrics (REQ-066). Counts only. */
+        get: operations["getMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/governance/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** k policies and committee N-of-M. The k value is shown to admins only. */
+        get: operations["getGovernanceConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/governance/k": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Propose a k change (k 5 or more). A different system_admin must approve. Needs step-up. */
+        post: operations["proposeKChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/governance/committee-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Propose a change of N-of-M. A different system_admin must approve. */
+        post: operations["proposeCommitteeConfigChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/governance/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pending and decided governance changes. */
+        get: operations["listApprovals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/governance/approvals/{approvalId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or reject a pending change. The approver must differ from the proposer. Needs step-up. */
+        post: operations["approveGovernanceChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/outbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Notification outbox status (no recipients, no content). system_admin. */
+        get: operations["listOutbox"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livez": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Process is alive. */
+        get: operations["livez"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/readyz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Database reachable and migrations at the expected level. */
+        get: operations["readyz"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/enrol/totp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start TOTP enrolment. Returns the secret once. */
+        post: operations["enrollTotpStart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/enrol/totp/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm TOTP with a code. The first factor also returns recovery codes once. */
+        post: operations["enrollTotpConfirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/enrol/webauthn/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Passkey registration options (WebAuthn). */
+        post: operations["webauthnRegisterOptions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/enrol/webauthn/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify the passkey registration response. */
+        post: operations["webauthnRegisterVerify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/mfa/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete login with a single-use recovery code. */
+        post: operations["recoverMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own enrolled second factors (no secrets). */
+        get: operations["listAuthMethods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/request-cart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The applicant's cart (items of the open draft request). Counts are k-safe buckets. */
+        get: operations["getRequestCart"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/request-cart/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a search (criteria, optional free text) to the cart. */
+        post: operations["addCartItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/request-cart/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove an item from the cart. */
+        delete: operations["removeCartItem"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/request-cart/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn the cart into the draft request to fill in and submit. */
+        post: operations["startRequestFromCart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requests/{requestId}/precheck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Coordinator pre-check outcome. forward = checklist passed, send to committee. */
+        post: operations["precheckRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requests/{requestId}/respond": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Applicant answers a request for information. The request returns to pre-check. The text is checked for identifiers and is not stored. */
+        post: operations["respondToInfoRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requests/{requestId}/vote-tally": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vote counts and own vote for the committee panel. */
+        get: operations["getVoteTally"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Researcher registrations. national_coordinator. */
+        get: operations["listPendingRegistrations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/registrations/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or reject a registration. Approval grants researcher_il or researcher_intl. Needs step-up. */
+        post: operations["decideRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/k-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** k policies with any pending change. Staff roles with a need to know. */
+        get: operations["listKPolicies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/k-policies/{id}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Propose a higher k (5 or more). Another person must approve. Needs step-up. */
+        post: operations["proposeKPolicyChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/k-policy-changes/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a pending k change. The database requires a different person with the approver role. Needs step-up. */
+        post: operations["approveKPolicyChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/role-grant-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pending and decided privileged role grants. */
+        get: operations["listRoleGrantRequests"];
+        put?: never;
+        /** Request a privileged role for a user. A second person approves. Needs step-up. */
+        post: operations["createRoleGrantRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/role-grant-requests/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or reject. The approver must differ from the requester and hold the role the database demands. Needs step-up. */
+        post: operations["decideRoleGrantRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -834,9 +1601,10 @@ export interface components {
             /** @description Null when suppressed. */
             count?: number | null;
             suppressed: boolean;
-            /** @description Display text. Examples: "42", "5-9", "<5". */
+            /** @description Display text: the count as text, or too_few when suppressed. The threshold is never shown to external roles. */
             label: string;
-            k: number;
+            /** @description Only returned to national_coordinator. */
+            k?: number;
             resolvedFilters?: components["schemas"]["SearchFilters"];
         };
         FacetRequest: {
@@ -855,7 +1623,7 @@ export interface components {
             suppressed: boolean;
         };
         FacetResult: {
-            k: number;
+            k?: number;
             facets: {
                 [key: string]: components["schemas"]["FacetBucket"][];
             };
@@ -879,7 +1647,7 @@ export interface components {
             labelEn: string;
         };
         /** @enum {string} */
-        RequestStatus: "draft" | "submitted" | "precheck" | "needs_info" | "committee_review" | "approved" | "rejected" | "center_coordination" | "agreements" | "delivery" | "delivered" | "withdrawn" | "closed";
+        RequestStatus: "draft" | "submitted" | "precheck" | "needs_info" | "committee_review" | "appeal_review" | "approved" | "rejected" | "center_coordination" | "agreements" | "delivery" | "closed";
         /** @enum {string} */
         StepKey: "submitted" | "precheck" | "committee_review" | "decision" | "center_coordination" | "mta_dta" | "delivery" | "closed";
         RequestCreate: {
@@ -896,17 +1664,23 @@ export interface components {
         RequestItem: {
             id: string;
             criteria: components["schemas"]["SearchFilters"];
-            requestedCount?: number;
-            shownCountBucket?: string;
+            requestedCount?: number | null;
+            /**
+             * @description K-safe bucket shown when the item was added. The exact count is never stored.
+             * @enum {string|null}
+             */
+            shownCountBucket?: "lt10" | "10_plus" | null;
         };
         Request: {
             id: string;
             status: components["schemas"]["RequestStatus"];
+            /** @enum {string|null} */
+            closeReason?: "delivered" | "withdrawn" | "expired" | "rejected" | "policy_cancelled" | null;
             applicantUserId?: string;
-            researchQuestion?: string;
-            applicantEthicsRef?: string;
-            plannedUse?: string;
-            fundingSources?: string;
+            researchQuestion?: string | null;
+            applicantEthicsRef?: string | null;
+            plannedUse?: string | null;
+            fundingSources?: string | null;
             items: components["schemas"]["RequestItem"][];
             steps?: components["schemas"]["RequestStep"][];
             /** Format: date-time */
@@ -941,12 +1715,20 @@ export interface components {
             publicNote?: string;
             internalNote?: string;
             centerId?: components["schemas"]["CenterId"];
+            /** @description center_coordination step: the holding center accepts or declines. */
+            accepted?: boolean;
+            /** @description mta_dta step: coordinator records the agreement reference. */
+            agreement?: {
+                /** @enum {string} */
+                kind: "mta" | "dta";
+                docRef: string;
+            };
         };
         Vote: {
             requestId: string;
             /** @enum {string} */
             vote: "approve" | "reject" | "abstain";
-            comment?: string;
+            comment?: string | null;
             /** Format: date-time */
             votedAt: string;
         };
@@ -954,7 +1736,7 @@ export interface components {
             id: string;
             /** @enum {string} */
             outcome: "approved" | "rejected" | "needs_info";
-            rationale?: string;
+            rationale?: string | null;
             /** Format: date-time */
             decidedAt: string;
         };
@@ -1003,7 +1785,8 @@ export interface components {
             nextCursor?: string | null;
         };
         AuditEvent: {
-            seq: number;
+            /** @description Not provided by the read function. Order by occurredAt. */
+            seq?: number;
             id: string;
             /** Format: date-time */
             occurredAt: string;
@@ -1019,8 +1802,8 @@ export interface components {
             details?: {
                 [key: string]: unknown;
             };
-            /** @description Hex SHA-256. */
-            hash: string;
+            /** @description Chain hash. Verified server-side by verifyAuditChain. */
+            hash?: string;
         };
         AuditPage: {
             items: components["schemas"]["AuditEvent"][];
@@ -1121,12 +1904,15 @@ export interface components {
             password: string;
         };
         LoginResult: {
+            /** @description No second factor yet. Complete verifyMfa with only the challenge token to get an enrolment-only session. */
+            enrollmentRequired?: boolean;
             challengeToken: string;
             factors: ("totp" | "webauthn")[];
         };
         MfaVerifyRequest: {
             challengeToken: string;
             totpCode?: string;
+            recoveryCode?: string;
             webauthnAssertion?: {
                 [key: string]: unknown;
             };
@@ -1138,9 +1924,269 @@ export interface components {
             locale?: "he" | "en";
             roles: components["schemas"]["RoleAssignment"][];
             activeCenterId?: string | null;
+            /** @description Same as activeCenterId. Own center of a center_clinician. */
+            centerId?: string | null;
             /** Format: date-time */
             expiresAt: string;
             csrfToken: string;
+        };
+        Accepted: {
+            accepted: boolean;
+        };
+        CsrfToken: {
+            csrfToken: string;
+        };
+        Health: {
+            /** @enum {string} */
+            status: "ok" | "degraded" | "down";
+            version: string;
+            checks?: {
+                [key: string]: string;
+            };
+        };
+        VerifyEmailRequest: {
+            token: string;
+            password?: string;
+        };
+        ChangePasswordRequest: {
+            currentPassword: string;
+            newPassword: string;
+        };
+        StepUpRequest: {
+            totpCode?: string;
+            recoveryCode?: string;
+            webauthnAssertion?: {
+                [key: string]: unknown;
+            };
+        };
+        TotpConfirmRequest: {
+            code: string;
+        };
+        RecoveryCodes: {
+            recoveryCodes: string[];
+        };
+        Me: {
+            id: string;
+            email: string;
+            displayName: string;
+            /** @enum {string} */
+            locale: "he" | "en";
+            roles: components["schemas"]["RoleAssignment"][];
+            factors: ("totp" | "webauthn")[];
+            mfaRequiredSetup?: boolean;
+        };
+        MeUpdate: {
+            displayName?: string;
+            /** @enum {string} */
+            locale?: "he" | "en";
+        };
+        PublicForm: {
+            name: string;
+            /** Format: email */
+            email: string;
+            organization?: string;
+            message: string;
+            /** @enum {string} */
+            locale?: "he" | "en";
+            /** @description Honeypot. Must stay empty. */
+            website?: string;
+        };
+        TransitionRequest: {
+            /** @enum {string} */
+            to: "submitted" | "precheck" | "needs_info" | "committee_review" | "appeal_review" | "center_coordination" | "delivery" | "closed";
+            /** @enum {string} */
+            closeReason?: "withdrawn" | "rejected" | "policy_cancelled";
+            reasonCode?: string;
+            publicNote?: string;
+            /** @description Pre-check pass: form_complete, irb_ref_plausible, consent_scope_ok, no_identifier_requested, items_exist must all be true. */
+            checklist?: {
+                [key: string]: boolean;
+            };
+        };
+        Metrics: {
+            samplesTotal: number;
+            centersFeeding: number;
+            registeredResearchers: number;
+            searchesLast30d?: number;
+            requestsByStatus: {
+                [key: string]: number;
+            };
+            coordinatorEnteredShare?: number;
+        };
+        KChange: {
+            fieldSet: string;
+            k: number;
+        };
+        CommitteeConfigChange: {
+            votesNeeded: number;
+            membersTotal: number;
+        };
+        Approval: {
+            id: string;
+            /** @enum {string} */
+            kind: "role_grant" | "k_change" | "committee_config";
+            payload?: {
+                [key: string]: unknown;
+            };
+            proposedBy: string;
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            approvedBy?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ApprovalDecision: {
+            approve: boolean;
+        };
+        GovernanceConfig: {
+            kPolicies: {
+                fieldSet: string;
+                k: number;
+            }[];
+            committee: {
+                votesNeeded: number;
+                membersTotal: number;
+            };
+        };
+        OutboxItem: {
+            id: string;
+            template: string;
+            /** @enum {string} */
+            status: "pending" | "sent" | "failed";
+            attempts: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            sentAt?: string | null;
+        };
+        TotpEnrollment: {
+            otpauthUri: string;
+            secret: string;
+        };
+        WebauthnEnrolRequest: {
+            name: string;
+            attestation: {
+                [key: string]: unknown;
+            };
+        };
+        RecoveryLoginRequest: {
+            challengeToken: string;
+            recoveryCode: string;
+        };
+        AuthMethod: {
+            id: string;
+            /** @enum {string} */
+            kind: "passkey" | "totp";
+            name: string;
+            /** Format: date-time */
+            addedAt: string;
+            /** Format: date-time */
+            lastUsedAt: string | null;
+        };
+        RegisterRequest: {
+            /** Format: email */
+            email: string;
+            displayName: string;
+            institution: string;
+            termsVersion: string;
+            /** @description Defaults to true for an .ac.il address. */
+            isIsraeliAcademic?: boolean;
+            /** @description Optional. Without it the password is set when the email is verified. */
+            password?: string;
+            /** @enum {string} */
+            locale?: "he" | "en";
+        };
+        Cart: {
+            items: components["schemas"]["CartItem"][];
+            limit: number;
+        };
+        CartItem: {
+            id: string;
+            criteria: components["schemas"]["SearchFilters"];
+            snapshot: {
+                count: number | null;
+                suppressed: boolean;
+                label: string;
+            };
+            /** Format: date-time */
+            addedAt: string;
+        };
+        CartItemCreate: {
+            criteria: components["schemas"]["SearchFilters"];
+            q?: string;
+        };
+        PrecheckDecision: {
+            /** @enum {string} */
+            outcome: "forward" | "ask_info" | "reject";
+            reasonCode?: string;
+            note?: string;
+        };
+        VoteTally: {
+            required: number;
+            members: number;
+            approve: number;
+            reject: number;
+            abstain: number;
+            /** @enum {string|null} */
+            myVote: "approve" | "reject" | "abstain" | null;
+            conflictDeclared: boolean;
+        };
+        Registration: {
+            id: string;
+            displayName: string;
+            institution: string;
+            email: string;
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            /** Format: date-time */
+            requestedAt: string;
+        };
+        OutcomeDecision: {
+            /** @enum {string} */
+            outcome: "approved" | "rejected";
+        };
+        KPolicy: {
+            id: string;
+            fieldSet: string;
+            k: number;
+            pendingChange: null | {
+                id: string;
+                proposedK: number;
+                proposedByUserId: string;
+                reason: string;
+            };
+        };
+        KPolicyChange: {
+            k: number;
+            reason: string;
+        };
+        RoleGrantRequest: {
+            id: string;
+            userId: string;
+            role: components["schemas"]["Role"];
+            centerId: string | null;
+            reason: string;
+            requestedByUserId: string;
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            /** Format: date-time */
+            requestedAt: string;
+        };
+        RoleGrantRequestCreate: {
+            userId: string;
+            role: components["schemas"]["Role"];
+            centerId?: components["schemas"]["CenterId"];
+            reason: string;
+        };
+        FlagRequest: {
+            /** @enum {string} */
+            reasonCode: "wrong_field" | "withdrawn_consent" | "duplicate" | "other";
+        };
+        ClientError: {
+            name: string;
+            route: string;
+            version: string;
+            traceId?: string;
         };
     };
     responses: {
@@ -1334,7 +2380,7 @@ export interface operations {
             };
         };
     };
-    getSession: {
+    getAuthSession: {
         parameters: {
             query?: never;
             header?: never;
@@ -1878,6 +2924,8 @@ export interface operations {
                     /** @enum {string} */
                     vote: "approve" | "reject" | "abstain";
                     comment?: string;
+                    /** @description Required by the database for a reject vote. */
+                    rationaleCode?: string;
                 };
             };
         };
@@ -2512,6 +3560,15 @@ export interface operations {
                     "application/json": components["schemas"]["RoleAssignment"];
                 };
             };
+            /** @description Privileged role. Waiting for a second system_admin to approve. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Approval"];
+                };
+            };
             409: components["responses"]["Problem409"];
         };
     };
@@ -2534,6 +3591,1155 @@ export interface operations {
                 };
                 content?: never;
             };
+        };
+    };
+    csrfBootstrap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Token. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsrfToken"];
+                };
+            };
+        };
+    };
+    register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted. The answer is the same whether or not the email is known. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Accepted"];
+                };
+            };
+            422: components["responses"]["Problem422"];
+            429: components["responses"]["Problem429"];
+        };
+    };
+    verifyEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Verified. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: components["responses"]["Problem422"];
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Changed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: components["responses"]["Problem422"];
+        };
+    };
+    stepUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StepUpRequest"];
+            };
+        };
+        responses: {
+            /** @description Step-up done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            401: components["responses"]["Problem401"];
+        };
+    };
+    regenerateRecoveryCodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description New codes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            401: components["responses"]["Problem401"];
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profile. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            401: components["responses"]["Problem401"];
+        };
+    };
+    updateMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["MeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            422: components["responses"]["Problem422"];
+        };
+    };
+    getSessionInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            401: components["responses"]["Problem401"];
+        };
+    };
+    extendSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Extended. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            401: components["responses"]["Problem401"];
+        };
+    };
+    reportClientError: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientError"];
+            };
+        };
+        responses: {
+            /** @description Recorded. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            429: components["responses"]["Problem429"];
+        };
+    };
+    reportCsp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/csp-report": {
+                    [key: string]: unknown;
+                };
+                "application/reports+json": {
+                    [key: string]: unknown;
+                } | unknown[];
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Recorded. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    submitPublicForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form: "join" | "contact";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicForm"];
+            };
+        };
+        responses: {
+            /** @description Accepted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Accepted"];
+                };
+            };
+            422: components["responses"]["Problem422"];
+            429: components["responses"]["Problem429"];
+        };
+    };
+    flagSample: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sampleId: components["parameters"]["SampleIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlagRequest"];
+            };
+        };
+        responses: {
+            /** @description Flagged. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Problem404"];
+        };
+    };
+    transitionRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: components["parameters"]["RequestIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description New state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Request"];
+                };
+            };
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+        };
+    };
+    listVotes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: components["parameters"]["RequestIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Votes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Vote"][];
+                    };
+                };
+            };
+            404: components["responses"]["Problem404"];
+        };
+    };
+    listStaleness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Summaries. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["CenterSummary"][];
+                    };
+                };
+            };
+        };
+    };
+    getMetrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Metrics. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Metrics"];
+                };
+            };
+        };
+    };
+    getGovernanceConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Config. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceConfig"];
+                };
+            };
+        };
+    };
+    proposeKChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KChange"];
+            };
+        };
+        responses: {
+            /** @description Pending second approval. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Approval"];
+                };
+            };
+            422: components["responses"]["Problem422"];
+        };
+    };
+    proposeCommitteeConfigChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitteeConfigChange"];
+            };
+        };
+        responses: {
+            /** @description Pending second approval. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Approval"];
+                };
+            };
+            422: components["responses"]["Problem422"];
+        };
+    };
+    listApprovals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approvals. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Approval"][];
+                    };
+                };
+            };
+        };
+    };
+    approveGovernanceChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalDecision"];
+            };
+        };
+        responses: {
+            /** @description Decided. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Approval"];
+                };
+            };
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+        };
+    };
+    listOutbox: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Outbox. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["OutboxItem"][];
+                    };
+                };
+            };
+        };
+    };
+    livez: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Alive. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    readyz: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ready. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Health"];
+                };
+            };
+            /** @description Not ready. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    enrollTotpStart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Secret. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpEnrollment"];
+                };
+            };
+            401: components["responses"]["Problem401"];
+        };
+    };
+    enrollTotpConfirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TotpConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Enrolled. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            401: components["responses"]["Problem401"];
+            422: components["responses"]["Problem422"];
+        };
+    };
+    webauthnRegisterOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Options. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            401: components["responses"]["Problem401"];
+        };
+    };
+    webauthnRegisterVerify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebauthnEnrolRequest"];
+            };
+        };
+        responses: {
+            /** @description Registered. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            401: components["responses"]["Problem401"];
+            422: components["responses"]["Problem422"];
+        };
+    };
+    recoverMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecoveryLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Session created. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            401: components["responses"]["Problem401"];
+            429: components["responses"]["Problem429"];
+        };
+    };
+    listAuthMethods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Methods. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["AuthMethod"][];
+                    };
+                };
+            };
+            401: components["responses"]["Problem401"];
+        };
+    };
+    getRequestCart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cart. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cart"];
+                };
+            };
+            403: components["responses"]["Problem403"];
+        };
+    };
+    addCartItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CartItemCreate"];
+            };
+        };
+        responses: {
+            /** @description Cart. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cart"];
+                };
+            };
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+            429: components["responses"]["Problem429"];
+        };
+    };
+    removeCartItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cart. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cart"];
+                };
+            };
+            404: components["responses"]["Problem404"];
+        };
+    };
+    startRequestFromCart: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required on POST that creates requests or imports. 8 to 128 chars. Same key and same body returns the first result. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Draft request. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Request"];
+                };
+            };
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+        };
+    };
+    precheckRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: components["parameters"]["RequestIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrecheckDecision"];
+            };
+        };
+        responses: {
+            /** @description Request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Request"];
+                };
+            };
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+        };
+    };
+    respondToInfoRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: components["parameters"]["RequestIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    message: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Request"];
+                };
+            };
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+        };
+    };
+    getVoteTally: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: components["parameters"]["RequestIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tally. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoteTally"];
+                };
+            };
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+        };
+    };
+    listPendingRegistrations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Registrations. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Registration"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem403"];
+        };
+    };
+    decideRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutcomeDecision"];
+            };
+        };
+        responses: {
+            /** @description Registration. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Registration"];
+                };
+            };
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+        };
+    };
+    listKPolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Policies. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["KPolicy"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem403"];
+        };
+    };
+    proposeKPolicyChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KPolicyChange"];
+            };
+        };
+        responses: {
+            /** @description Pending. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KPolicy"];
+                };
+            };
+            403: components["responses"]["Problem403"];
+            422: components["responses"]["Problem422"];
+        };
+    };
+    approveKPolicyChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Policy. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KPolicy"];
+                };
+            };
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+        };
+    };
+    listRoleGrantRequests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Requests. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["RoleGrantRequest"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem403"];
+        };
+    };
+    createRoleGrantRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleGrantRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Pending. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleGrantRequest"];
+                };
+            };
+            403: components["responses"]["Problem403"];
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+        };
+    };
+    decideRoleGrantRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutcomeDecision"];
+            };
+        };
+        responses: {
+            /** @description Decided. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleGrantRequest"];
+                };
+            };
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
         };
     };
 }
