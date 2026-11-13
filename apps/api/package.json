@@ -1,0 +1,40 @@
+{
+  "name": "@ari/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsup",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "typecheck": "tsc -p . --noEmit",
+    "lint": "tsc -p . --noEmit && node scripts/lint-rules.mjs",
+    "seed:synthetic": "node dist/jobs/seed-synthetic.js"
+  },
+  "dependencies": {
+    "@ari/domain": "workspace:*",
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@fastify/cookie": "^11.0.0",
+    "@fastify/multipart": "^9.0.0",
+    "@fastify/static": "^8.0.0",
+    "@simplewebauthn/server": "^13.0.0",
+    "ajv": "^8.17.0",
+    "ajv-formats": "^3.0.0",
+    "argon2": "^0.41.0",
+    "exceljs": "^4.4.0",
+    "fastify": "^5.2.0",
+    "nodemailer": "^6.9.0",
+    "pg": "^8.13.0",
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/nodemailer": "^6.4.0",
+    "@types/pg": "^8.11.0",
+    "tsup": "^8.3.0",
+    "tsx": "^4.19.0",
+    "@ari/synthetic-data": "workspace:*"
+  }
+}

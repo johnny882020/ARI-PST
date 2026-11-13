@@ -1,0 +1,20 @@
+name: Bug
+description: Something is broken. Use synthetic data only.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not paste personal data, patient data or secrets. Use synthetic examples."
+  - type: textarea
+    id: what
+    attributes: { label: What happened, description: Steps, expected, actual }
+    validations: { required: true }
+  - type: input
+    id: env
+    attributes: { label: Environment, placeholder: "preview / staging / production, version (git SHA)" }
+  - type: input
+    id: trace
+    attributes: { label: traceId from the error, placeholder: "no personal data" }
+  - type: dropdown
+    id: sev
+    attributes: { label: Severity, options: ["Sev1 - data exposure or outage", "Sev2 - major feature down", "Sev3 - minor", "Sev4 - cosmetic"] }

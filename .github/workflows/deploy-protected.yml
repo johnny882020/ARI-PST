@@ -1,0 +1,89 @@
+# Deploys the protected area (ari-api incl. SPA, and the cron jobs) to production.
+# Gate 1: ci-gate green on the exact commit. Gate 2: staging runs the same SHA.
+# Gate 3: manual approval in GitHub Environment "production-protected" (2 required reviewers, no self-approval).
+# The public site is NOT deployed here: Render deploys it by autoDeployTrigger=checksPass.
+# Secrets live ONLY in the environment: RENDER_DEPLOY_HOOK_API, RENDER_DEPLOY_HOOKS_CRON (one URL per line),
+# RENDER_API_KEY_ROLLBACK. Repo variables: STAGING_URL, PROD_URL, RENDER_API_SERVICE_ID, DEPLOY_PAUSED.
+name: deploy-protected
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  checks: read
+concurrency:
+  group: deploy-protected
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    outputs:
+      sha: ${{ steps.s.outputs.sha }}
+    steps:
+      - name: Pause switch
+        env: { PAUSED: "${{ vars.DEPLOY_PAUSED }}" }
+        run: '[ "$PAUSED" != "true" ] || { echo "DEPLOY_PAUSED=true. Stopping before approval."; exit 1; }'
+      - id: s
+        env:
+          WR_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_SHA: ${{ github.sha }}
+        run: echo "sha=${WR_SHA:-$GH_SHA}" >> "$GITHUB_OUTPUT"
+      - name: Staging must run this SHA
+        env:
+          STAGING_URL: ${{ vars.STAGING_URL }}
+          SHA: ${{ steps.s.outputs.sha }}
+        run: |
+          [ -n "$STAGING_URL" ] || { echo "Set repo variable STAGING_URL"; exit 1; }
+          for i in $(seq 1 30); do
+            v=$(curl -fsS "$STAGING_URL/readyz" | python3 -c "import json,sys;print(json.load(sys.stdin).get('version',''))" || true)
+            [ "$v" = "$SHA" ] && { echo "staging runs $v"; exit 0; }
+            sleep 20
+          done
+          echo "staging does not run $SHA"; exit 1
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment:
+      name: production-protected
+      url: ${{ vars.PROD_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ needs.verify.outputs.sha }}" }
+      - name: Trigger Render deploy hooks (API first, then crons)
+        env:
+          HOOK_API: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+          HOOKS_CRON: ${{ secrets.RENDER_DEPLOY_HOOKS_CRON }}
+          SHA: ${{ needs.verify.outputs.sha }}
+        run: |
+          curl -fsS -X POST "${HOOK_API}&ref=${SHA}" > /dev/null
+          echo "$HOOKS_CRON" | while read -r h; do [ -n "$h" ] && curl -fsS -X POST "${h}&ref=${SHA}" > /dev/null; done
+          echo "hooks sent for $SHA"
+      - name: Wait until the new version is live
+        env:
+          PROD_URL: ${{ vars.PROD_URL }}
+          SHA: ${{ needs.verify.outputs.sha }}
+        run: |
+          for i in $(seq 1 80); do
+            v=$(curl -fsS "$PROD_URL/readyz" | python3 -c "import json,sys;print(json.load(sys.stdin).get('version',''))" || true)
+            [ "$v" = "$SHA" ] && { echo "live: $v"; exit 0; }
+            sleep 15
+          done
+          echo "deploy did not become live"; exit 1
+      - name: Post-deploy smoke
+        env: { BASE_URL: "${{ vars.PROD_URL }}" }
+        run: bash scripts/smoke.sh --wait 30
+      - name: Rollback on failure (see docs/runbooks/RB-01-bad-deploy.md)
+        if: failure()
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY_ROLLBACK }}
+          SERVICE_ID: ${{ vars.RENDER_API_SERVICE_ID }}
+        run: |
+          [ -n "$RENDER_API_KEY" ] && [ -n "$SERVICE_ID" ] || { echo "No rollback credentials. Roll back by hand (RB-01)."; exit 1; }
+          prev=$(curl -fsS -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services/$SERVICE_ID/deploys?limit=10" | python3 -c "import json,sys;d=json.load(sys.stdin);print([x['deploy']['id'] for x in d if x['deploy']['status']=='deactivated'][0])")
+          curl -fsS -X POST -H "Authorization: Bearer $RENDER_API_KEY" -H "Content-Type: application/json" "https://api.render.com/v1/services/$SERVICE_ID/rollback" -d "{\"deployId\":\"$prev\"}"

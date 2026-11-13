@@ -1,0 +1,28 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Crumbs from "../../components/Crumbs.astro";
+import Form from "../../components/Form.astro";
+import { LOCALES, type Locale } from "../../content/schemas";
+import { t, fmtDate } from "../../i18n/ui";
+import { path } from "../../lib/paths";
+import { page, list, hasTranslation, settings } from "../../lib/content";
+import { eventLd, faqLd } from "../../lib/seo";
+export function getStaticPaths() { return LOCALES.map((locale) => ({ params: { locale } })); }
+const locale = Astro.params.locale as Locale;
+
+const p = await page(locale, 'contact');
+const d = p.data;
+const { Content } = await render(p);
+const hasOther = await hasTranslation('pages', locale === 'he' ? 'en' : 'he', 'contact');
+const crumbs = [{ name: t(locale, 'home'), path: path(locale) }, { name: d.title, path: path(locale, 'contact') }];
+const notice = d.needs_review ? t(locale, 'reviewNotice') : '';
+---
+<BaseLayout locale={locale} title={d.title} description={d.description} slug="contact" hasOther={hasOther} crumbs={crumbs} >
+  <Crumbs locale={locale} crumbs={crumbs} />
+  <h1>{d.title}</h1>
+  {d.intro && <p class="lead">{d.intro}</p>}
+  {notice && <p class="notice" role="note">{notice}</p>}
+  <Form locale={locale} kind="contact" notice={d.form_notice!} consent={d.consent_text!} success={d.success_text!} email={d.office_role_email!} />
+  <p class="muted small">{locale === 'he' ? 'תיבת המשרד' : 'Office mailbox'}: <a href={`mailto:${d.office_role_email}`}>{d.office_role_email}</a></p>
+</BaseLayout>

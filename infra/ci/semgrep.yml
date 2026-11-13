@@ -1,0 +1,8 @@
+rules:
+  - id: ari-no-pull-request-target-checkout
+    message: Do not check out PR code in privileged workflows.
+    languages: [yaml]
+    severity: ERROR
+    pattern-regex: "pull_request_target"
+    paths:
+      include: [".github/workflows/*"]

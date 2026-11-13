@@ -1,0 +1,98 @@
+---
+import type { Locale } from '../content/schemas';
+import { t } from '../i18n/ui';
+import { path } from '../lib/paths';
+import { API_BASE, ALTCHA_URL } from '../lib/env';
+interface Props {
+  locale: Locale;
+  kind: 'join' | 'contact';
+  notice: string;
+  consent: string;
+  success: string;
+  email: string;
+}
+const { locale, kind, notice, consent, success, email } = Astro.props;
+const L = (k: string) => t(locale, k);
+const msg = {
+  errSummary: L('errSummary'), errRequired: L('errRequired'), errEmail: L('errEmail'), errConsent: L('errConsent'),
+  errIdentifier: L('errIdentifier'), errLinks: L('errLinks'), errSend: L('errSend'), errRate: L('errRate'),
+  sending: L('sending'), verifying: L('verifying'), success,
+};
+const roles = ['researcher', 'clinician', 'center', 'partner', 'family', 'other'];
+const roleKey = (r: string) => 'role' + r[0]!.toUpperCase() + r.slice(1);
+const interests = ['tumor-biology', 'biobanking', 'data-sharing'];
+const interestLabel: Record<string, Record<Locale, string>> = {
+  'tumor-biology': { he: 'ביולוגיה של גידולים', en: 'Tumor biology' },
+  biobanking: { he: 'ביו-בנקים ודגימות', en: 'Biobanking and samples' },
+  'data-sharing': { he: 'שיתוף נתונים ופרטיות', en: 'Data sharing and privacy' },
+};
+const subjects = ['general', 'press', 'partner', 'access'];
+const subjKey = (s: string) => 'subject' + s[0]!.toUpperCase() + s.slice(1);
+const p = `${kind}-`;
+---
+<form class="form" data-form={kind} data-api-base={API_BASE} data-challenge-url={ALTCHA_URL} data-msg={JSON.stringify(msg)} method="post" novalidate aria-labelledby={`${p}title`}>
+  <h2 id={`${p}title`}>{L(kind === 'join' ? 'formJoin' : 'formContact')}</h2>
+  <p class="notice info" role="note">{notice}</p>
+  <div class="err-summary" data-summary tabindex="-1" hidden></div>
+
+  <div class="field">
+    <label for={`${p}name`}>{L('name')}</label>
+    <input id={`${p}name`} name="name" type="text" autocomplete="name" required dir="auto" maxlength="120" />
+  </div>
+  {kind === 'join' && (
+    <>
+      <div class="field">
+        <label for={`${p}org`}>{L('organization')} <span class="hint">({L('optional')})</span></label>
+        <input id={`${p}org`} name="organization" type="text" autocomplete="organization" dir="auto" maxlength="160" />
+      </div>
+      <div class="field">
+        <label for={`${p}role`}>{L('role')}</label>
+        <select id={`${p}role`} name="role" required>
+          <option value="">{L('choose')}</option>
+          {roles.map((r) => <option value={r}>{L(roleKey(r))}</option>)}
+        </select>
+      </div>
+    </>
+  )}
+  <div class="field">
+    <label for={`${p}email`}>{L('email')}</label>
+    <input id={`${p}email`} name="email" type="email" autocomplete="email" required dir="ltr" maxlength="200" />
+  </div>
+  {kind === 'contact' && (
+    <div class="field">
+      <label for={`${p}subject`}>{L('subject')}</label>
+      <select id={`${p}subject`} name="subject" required>
+        <option value="">{L('choose')}</option>
+        {subjects.map((s) => <option value={s}>{L(subjKey(s))}</option>)}
+      </select>
+    </div>
+  )}
+  {kind === 'join' && (
+    <fieldset>
+      <legend>{L('interests')} <span class="hint">({L('optional')})</span></legend>
+      {interests.map((i) => (
+        <label class="opt"><input type="checkbox" name="interests" value={i} />{interestLabel[i]![locale]}</label>
+      ))}
+    </fieldset>
+  )}
+  <div class="field">
+    <label for={`${p}message`}>{L('message')}</label>
+    <textarea id={`${p}message`} name="message" required dir="auto" maxlength="2000" rows="6"></textarea>
+  </div>
+
+  <label class="opt">
+    <input id={`${p}consent`} type="checkbox" name="consent_contact" required />
+    <span>{consent} <a href={path(locale, 'privacy')}>{L('privacy')}</a></span>
+  </label>
+
+  <!-- Honeypot: hidden from people and assistive tech. Bots fill it. -->
+  <div class="hp" aria-hidden="true">
+    <label for={`${p}website`}>Website</label>
+    <input id={`${p}website`} name="website" type="text" tabindex="-1" autocomplete="off" />
+  </div>
+
+  <div><button type="submit" class="btn btn-primary">{L('send')}</button></div>
+  <p data-status role="status" tabindex="-1"></p>
+  <noscript><p class="notice">{L('noscript')} <a href={`mailto:${email}`}>{email}</a></p></noscript>
+</form>
+<script>import '../scripts/forms';</script>

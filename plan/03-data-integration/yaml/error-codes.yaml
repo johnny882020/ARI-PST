@@ -1,0 +1,16 @@
+# Stable error codes for application/problem+json. Messages are i18n keys errors.<code> (he, en).
+- { code: VALIDATION_FAILED,     status: 422, type: /problems/validation-failed }
+- { code: UNAUTHENTICATED,       status: 401, type: /problems/unauthenticated }
+- { code: FORBIDDEN,             status: 403, type: /problems/forbidden }
+- { code: NOT_FOUND,             status: 404, type: /problems/not-found }
+- { code: CONFLICT,              status: 409, type: /problems/conflict }
+- { code: ETAG_MISMATCH,         status: 412, type: /problems/etag-mismatch }
+- { code: IDEMPOTENCY_CONFLICT,  status: 409, type: /problems/idempotency-conflict }
+- { code: RATE_LIMITED,          status: 429, type: /problems/rate-limited }
+- { code: SOD_VIOLATION,         status: 409, type: /problems/separation-of-duties }
+- { code: IMPORT_FILE_INVALID,   status: 422, type: /problems/import-file-invalid }
+- { code: IMPORT_FILE_TOO_LARGE, status: 413, type: /problems/import-file-too-large }
+- { code: IMPORT_HASH_MISMATCH,  status: 409, type: /problems/import-hash-mismatch }
+- { code: REQUEST_STATE_INVALID, status: 409, type: /problems/request-state-invalid }
+- { code: QUORUM_NOT_REACHED,    status: 409, type: /problems/quorum-not-reached }
+- { code: INTERNAL,              status: 500, type: /problems/internal }

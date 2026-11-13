@@ -1,0 +1,34 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Crumbs from "../../components/Crumbs.astro";
+import Form from "../../components/Form.astro";
+import { LOCALES, type Locale } from "../../content/schemas";
+import { t, fmtDate } from "../../i18n/ui";
+import { path } from "../../lib/paths";
+import { page, list, hasTranslation, settings } from "../../lib/content";
+import { eventLd, faqLd } from "../../lib/seo";
+export function getStaticPaths() { return LOCALES.map((locale) => ({ params: { locale } })); }
+const locale = Astro.params.locale as Locale;
+
+const p = await page(locale, 'patients');
+const d = p.data;
+const { Content } = await render(p);
+const hasOther = await hasTranslation('pages', locale === 'he' ? 'en' : 'he', 'patients');
+const crumbs = [{ name: t(locale, 'home'), path: path(locale) }, { name: d.title, path: path(locale, 'patients') }];
+const notice = d.needs_review ? t(locale, 'reviewNotice') : '';
+---
+<BaseLayout locale={locale} title={d.title} description={d.description} slug="patients" hasOther={hasOther} crumbs={crumbs} ld={d.faq && !d.needs_review ? [faqLd(d.faq)] : []}>
+  <Crumbs locale={locale} crumbs={crumbs} />
+  <h1>{d.title}</h1>
+  {d.intro && <p class="lead">{d.intro}</p>}
+  {notice && <p class="notice" role="note">{notice}</p>}
+  <p>{d.plain_intro}</p>
+  <h2>{t(locale, 'privacyPromise')}</h2><p>{d.privacy_promise}</p>
+  <h2>{t(locale, 'faq')}</h2>
+  {d.faq!.map((f) => <details class="faq"><summary>{f.q}</summary><p>{f.a}</p></details>)}
+  {d.support_links && d.support_links.length > 0 && <><h2>{t(locale, 'supportLinks')}</h2><ul>{d.support_links.map((l) => <li><a href={l.url} rel="noopener">{l.label}</a> ({l.org})</li>)}</ul></>}
+  <h2>{d.contact_cta}</h2>
+  <p><a class="btn btn-primary" href={`${path(locale, 'contact')}?subject=general`}>{t(locale, 'subjectGeneral')}</a></p>
+  <p class="notice info" role="note">{t(locale, 'subjectGeneral')}: {locale === 'he' ? 'נא לא לשלוח פרטים רפואיים או מזהים.' : 'please do not send medical or identifying details.'}</p>
+</BaseLayout>

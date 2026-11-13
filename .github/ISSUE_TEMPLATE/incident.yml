@@ -1,0 +1,15 @@
+name: Incident
+description: Open an incident record. No personal data.
+labels: [incident]
+body:
+  - type: input
+    id: sev
+    attributes: { label: Severity (Sev1-Sev4) }
+    validations: { required: true }
+  - type: input
+    id: runbook
+    attributes: { label: Runbook, placeholder: "RB-01 .. RB-08" }
+  - type: textarea
+    id: timeline
+    attributes: { label: Timeline (UTC) and impact, description: "Counts only. No data values." }
+    validations: { required: true }

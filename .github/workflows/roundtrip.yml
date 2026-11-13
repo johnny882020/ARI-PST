@@ -1,0 +1,18 @@
+# Export/import round trip (REQ-070 portability). Synthetic data only.
+# NOT YET ENFORCED: the export/import/verify tools (export:full, import:full, verify:roundtrip, check:capability-map)
+# do not exist yet (docs/KNOWN-ISSUES.md). The schedule is removed so that nothing reports a false green.
+# A manual run fails on purpose with this message.
+name: roundtrip
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export-import-roundtrip:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Not implemented
+        run: |
+          echo "::error::Round trip is not implemented yet (export:full / import:full / verify:roundtrip). See docs/KNOWN-ISSUES.md."
+          exit 1

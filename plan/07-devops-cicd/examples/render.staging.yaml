@@ -1,0 +1,187 @@
+# ARI-PST Portal - STAGING Blueprint (tracks branch: staging). Generated from render.yaml by scripts/gen-staging.py.
+# Differences: all services autoDeployTrigger=checksPass, 1 API instance, small DB, previews off, separate names.
+# Synthetic data only. Do not edit by hand; edit render.yaml and regenerate (CI checks drift).
+previews:
+  generation: 'off'
+envVarGroups:
+- name: ari-stg-common
+  envVars:
+  - key: NODE_ENV
+    value: production
+  - key: LOG_FORMAT
+    value: json
+  - key: DATA_CLASSIFICATION
+    value: synthetic
+- name: ari-stg-api-secrets
+  envVars:
+  - key: SESSION_SECRET
+    generateValue: true
+  - key: AUDIT_HMAC_KEY
+    generateValue: true
+  - key: SMTP_URL
+    sync: false
+  - key: OBJECTSTORE_ACCESS_KEY
+    sync: false
+  - key: OBJECTSTORE_SECRET_KEY
+    sync: false
+databases:
+- name: ari-stg-db
+  databaseName: ari_portal_stg
+  user: ari_app
+  region: frankfurt
+  plan: basic-256mb
+  diskSizeGB: 5
+  postgresMajorVersion: '16'
+  ipAllowList: []
+services:
+- type: web
+  name: ari-stg-public-site
+  runtime: static
+  region: frankfurt
+  rootDir: .
+  buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @ari/public-site build
+  staticPublishPath: apps/public-site/dist
+  autoDeployTrigger: checksPass
+  buildFilter:
+    paths:
+    - apps/public-site/**
+    - packages/design-system/**
+    - packages/i18n/**
+    - pnpm-lock.yaml
+    ignoredPaths:
+    - '**/*.md'
+  headers:
+  - path: /*
+    name: Strict-Transport-Security
+    value: max-age=63072000; includeSubDomains
+  - path: /*
+    name: X-Content-Type-Options
+    value: nosniff
+  - path: /*
+    name: Referrer-Policy
+    value: strict-origin-when-cross-origin
+  - path: /*
+    name: Content-Security-Policy
+    value: default-src 'self'; img-src 'self' data:; frame-ancestors 'none'
+  routes:
+  - type: rewrite
+    source: /he/*
+    destination: /he/index.html
+  - type: rewrite
+    source: /en/*
+    destination: /en/index.html
+- type: web
+  name: ari-stg-app
+  runtime: static
+  region: frankfurt
+  rootDir: .
+  buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @ari/web build
+  staticPublishPath: apps/web/dist
+  autoDeployTrigger: checksPass
+  headers:
+  - path: /*
+    name: Cache-Control
+    value: no-store
+  - path: /*
+    name: X-Frame-Options
+    value: DENY
+  routes:
+  - type: rewrite
+    source: /*
+    destination: /index.html
+- type: web
+  name: ari-stg-api
+  runtime: node
+  region: frankfurt
+  plan: starter
+  rootDir: .
+  buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @ari/api build
+  preDeployCommand: pnpm --filter @ari/api migrate:deploy
+  startCommand: pnpm --filter @ari/api start
+  healthCheckPath: /healthz
+  maxShutdownDelaySeconds: 60
+  autoDeployTrigger: checksPass
+  numInstances: 1
+  envVars:
+  - fromGroup: ari-stg-common
+  - fromGroup: ari-stg-api-secrets
+  - key: DATABASE_URL
+    fromDatabase:
+      name: ari-stg-db
+      property: connectionString
+  - key: PUBLIC_ORIGIN
+    value: https://staging.portal.example.org
+  - key: REGION_PIN
+    value: frankfurt
+  - key: REPORT_WORKER_URL
+    fromService:
+      type: pserv
+      name: ari-stg-internal
+      property: hostport
+- type: pserv
+  name: ari-stg-internal
+  runtime: node
+  region: frankfurt
+  plan: starter
+  rootDir: .
+  buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @ari/api build
+  startCommand: pnpm --filter @ari/api start:internal
+  autoDeployTrigger: checksPass
+  envVars:
+  - fromGroup: ari-stg-common
+  - key: DATABASE_URL
+    fromDatabase:
+      name: ari-stg-db
+      property: connectionString
+- type: cron
+  name: ari-stg-cron-staleness
+  runtime: node
+  region: frankfurt
+  plan: starter
+  schedule: 10 5 * * *
+  rootDir: .
+  buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @ari/api build
+  startCommand: pnpm --filter @ari/api job:staleness-check
+  autoDeployTrigger: checksPass
+  envVars:
+  - fromGroup: ari-stg-common
+  - key: DATABASE_URL
+    fromDatabase:
+      name: ari-stg-db
+      property: connectionString
+- type: cron
+  name: ari-stg-cron-backup-export
+  runtime: docker
+  region: frankfurt
+  plan: starter
+  schedule: 20 2 * * *
+  dockerfilePath: ./infra/docker/backup-export.Dockerfile
+  dockerContext: .
+  autoDeployTrigger: checksPass
+  envVars:
+  - fromGroup: ari-stg-common
+  - fromGroup: ari-stg-api-secrets
+  - key: DATABASE_URL
+    fromDatabase:
+      name: ari-stg-db
+      property: connectionString
+  - key: BACKUP_ENCRYPTION_KEY
+    sync: false
+- type: cron
+  name: ari-stg-cron-audit-verify
+  runtime: node
+  region: frankfurt
+  plan: starter
+  schedule: 35 * * * *
+  rootDir: .
+  buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @ari/api build
+  startCommand: pnpm --filter @ari/api job:audit-chain-verify
+  autoDeployTrigger: checksPass
+  envVars:
+  - fromGroup: ari-stg-common
+  - key: ALERT_WEBHOOK_URL
+    sync: false
+  - key: DATABASE_URL
+    fromDatabase:
+      name: ari-stg-db
+      property: connectionString

@@ -1,0 +1,113 @@
+tc_id,req_id,level,title,automation
+TC-001,REQ-001,e2e,Public site and protected app both reachable; login entry on public site leads to the app,auto
+TC-002,REQ-002,privacy,Schema lint: no column or field named like a patient identifier in DB or OpenAPI,auto
+TC-003,REQ-002,review,Data-flow review: no identified clinical store exists in any portal module,manual
+TC-004,REQ-003,integration,Import synthetic Shaare Zedek batch and synthetic Madgam batch; both centers searchable,auto
+TC-005,REQ-004,e2e,Public pages show researchers centers infrastructure and partners sections,auto
+TC-006,REQ-005,e2e,researcher_il searches and sees aggregate counts with no record-level data,auto
+TC-007,REQ-005,e2e,Discovery by diagnosis and sample type works in he and en,auto
+TC-008,REQ-006,e2e,Request lifecycle: cart then form then pre-check then decision then delivery with status tracking,auto
+TC-009,REQ-007,e2e,national_coordinator creates a record with the minimal entry screen,auto
+TC-010,REQ-007,security,center_clinician has no create or update path on sample-index,auto
+TC-011,REQ-007,manual,Coordinator time-on-task for entry of one record meets threshold,manual
+TC-012,REQ-008,contract,Enum and format fields reject unknown values per schema v1,auto
+TC-013,REQ-008,integration,CSV import rejects rows that break the uniform field rules with row-level report,auto
+TC-014,REQ-009,review,Scope check: no clinical note or treatment field exists in schema or UI,manual
+TC-015,REQ-009,privacy,No free-text clinical field accepted by any record endpoint,auto
+TC-016,REQ-010,unit,Schema lint: no freezer box shelf or physical inventory fields,auto
+TC-017,REQ-011,integration,Architecture test: no analytics or AI package and no analytics route in build,auto
+TC-018,REQ-012,security,anonymous gets 401 on every protected endpoint,auto
+TC-019,REQ-012,e2e,anonymous is redirected from app routes to login,auto
+TC-020,REQ-013,integration,researcher_il sees aggregates and submits a request,auto
+TC-021,REQ-014,integration,researcher_intl sees aggregates and is denied request submission,auto
+TC-022,REQ-015,integration,center_clinician reads full coded record of own center,auto
+TC-023,REQ-015,security,center_clinician reading another center record gets 404 (IDOR),auto
+TC-024,REQ-015,integration,Clinician record view shows reference to local center system and no identity field,auto
+TC-025,REQ-016,integration,national_coordinator reads cross-center non-identified index and edits it,auto
+TC-026,REQ-017,e2e,committee_member votes and N-of-M decision is recorded; dashboard shows queue,auto
+TC-027,REQ-017,security,committee_member cannot edit the index,auto
+TC-028,REQ-018,security,system_admin cannot approve a request and cannot read sample data,auto
+TC-029,REQ-018,e2e,system_admin manages roles reads logs and edits content,auto
+TC-030,REQ-019,e2e,All ten public pages render in he and en,auto
+TC-031,REQ-019,integration,Link checker finds no broken internal link,auto
+TC-032,REQ-020,e2e,Hebrew pages render RTL with correct mirrored layout (visual snapshot),auto
+TC-033,REQ-020,unit,i18n key parity: every key exists in he and en,auto
+TC-034,REQ-020,unit,Lint: no hardcoded UI string and no physical CSS property (logical properties only),auto
+TC-035,REQ-020,manual,Native Hebrew reviewer checks wording and bidi on key screens,manual
+TC-036,REQ-021,e2e,Mobile viewport 360px has no horizontal scroll on public and app pages,auto
+TC-037,REQ-021,perf,Lighthouse mobile budget on Home and Search,auto
+TC-038,REQ-022,a11y,axe-core finds zero serious or critical issues on all pages in he and en,auto
+TC-039,REQ-022,manual,Keyboard-only and screen reader pass (NVDA and VoiceOver) on core journeys,manual
+TC-040,REQ-022,manual,Check against Israeli standard (SI 5568; UNVERIFIED edition) and WCAG 2.1 AA checklist,manual
+TC-041,REQ-023,e2e,SEO: title meta hreflang sitemap robots and canonical present,auto
+TC-042,REQ-024,e2e,Non-technical editor changes a news item through CMS and sees it on preview,semi
+TC-043,REQ-025,e2e,Analytics script does not load before consent and carries no identifier,auto
+TC-044,REQ-026,e2e,Privacy policy and terms are linked from footer in he and en,auto
+TC-045,REQ-027,integration,Record view shows contact_ref role of the holding center,auto
+TC-046,REQ-028,unit,Sample record schema validates every v1 field,auto
+TC-047,REQ-028,property,Generated valid records pass and mutated invalid records fail,auto
+TC-048,REQ-029,review,Schema fields trace to Madgam base fields and RedCAP definitions (mapping doc from A3),manual
+TC-049,REQ-030,integration,Free-text search finds Hebrew and English terms,auto
+TC-050,REQ-030,integration,Trigram search tolerates a typo in a diagnosis term,auto
+TC-051,REQ-031,integration,Each filter (diagnosis sample type age center attached data time point) narrows results,auto
+TC-052,REQ-031,property,Adding a filter never increases the result count,auto
+TC-053,REQ-032,contract,External aggregate endpoints have no record-level schema (Spectral rule),auto
+TC-054,REQ-032,security,researcher_il and researcher_intl responses never contain sample_code,auto
+TC-055,REQ-033,unit,Counts below k are suppressed and merged into a broader category,auto
+TC-056,REQ-033,property,Suppression invariants: no published cell below k; totals preserved,auto
+TC-057,REQ-033,property,Differencing: no pair of allowed queries reveals a cell below k,auto
+TC-058,REQ-033,security,Differencing attack suite over the API with real rate limits,auto
+TC-059,REQ-034,e2e,Full request flow incl. center coordination and MTA/DTA step through delivery,auto
+TC-060,REQ-034,integration,Idempotency key: repeated POST creates one request,auto
+TC-061,REQ-035,contract,Request form validation: required fields and IRB/Helsinki reference,auto
+TC-062,REQ-036,e2e,Applicant sees every step with timestamp and status,auto
+TC-063,REQ-037,security,Authorization matrix: every role x every endpoint,auto
+TC-064,REQ-038,privacy,No link-key field exists; link-key-like input is rejected,auto
+TC-065,REQ-039,privacy,Only redcap_clinical flag is stored; no RedCAP identifier or value crosses the boundary,auto
+TC-066,REQ-040,integration,Record without ethics_approval_ref is rejected,auto
+TC-067,REQ-041,privacy,De-identification validators reject identifier-shaped values in all fields,auto
+TC-068,REQ-042,property,Identifier detectors (ID number with checksum phone email date MRN-like) reject in every string field,auto
+TC-069,REQ-042,privacy,Canary: seeded fake identifiers never reach DB index logs analytics or errors,auto
+TC-070,REQ-043,security,TLS config scan: TLS 1.2+ HSTS no weak ciphers on all hosts,auto
+TC-071,REQ-043,review,Evidence: encryption at rest enabled on DB and object store (platform setting screenshot),manual
+TC-072,REQ-044,e2e,TOTP and passkey enrollment and login work (virtual authenticator),auto
+TC-073,REQ-044,security,Protected endpoints reject a session that has not passed the second factor,auto
+TC-074,REQ-045,security,RBAC: role changes take effect at next request and revoked role loses access,auto
+TC-075,REQ-045,integration,RLS: DB role scoped to center_id cannot read other center rows,auto
+TC-076,REQ-046,integration,Audit event written for view download approve and role change,auto
+TC-077,REQ-046,security,Audit table is append-only; UPDATE and DELETE denied,auto
+TC-078,REQ-047,integration,Retention job removes or anonymizes data after policy period on synthetic data,auto
+TC-079,REQ-047,resilience,Deletion also reaches backups index and exports per policy,semi
+TC-080,REQ-048,resilience,Backup restore drill meets RPO and RTO,semi
+TC-081,REQ-051,e2e,DTA and MTA status is tracked per center in the request,auto
+TC-082,REQ-053,security,Public site holds no API credentials; separate origin and cookies; CSP in place,auto
+TC-083,REQ-054,review,GATE-PROD-DATA entry-condition checklist signed with evidence,manual
+TC-084,REQ-055,integration,RedCAP mapping import stores field reference only and no identifier,auto
+TC-085,REQ-056,integration,Madgam schema alignment check and update import run,auto
+TC-086,REQ-058,integration,Genomics appears as availability flag only; no sequence data accepted,auto
+TC-087,REQ-062,e2e,Phase 1 smoke: public site login search request audit,auto
+TC-088,REQ-063,manual,UAT: at least one request completed the full path through delivery,manual
+TC-089,REQ-066,integration,Metric events emitted for each success metric,auto
+TC-090,REQ-066,e2e,Metrics dashboard values equal fixture-derived expected values,auto
+TC-091,REQ-067,integration,Records past freshness limit are flagged stale,auto
+TC-092,REQ-067,e2e,Coordinator sees stale queue and re-verifies a record,auto
+TC-093,REQ-068,e2e,Entry screen has only minimal fields; clinician sees repeat value view,auto
+TC-094,REQ-068,manual,Clinician usability: repeat value is clear (SUS and task success),manual
+TC-095,REQ-069,review,Pipeline: PR preview uses synthetic data; deploy blocked when CI fails,semi
+TC-096,REQ-070,integration,Architecture test: domain imports no platform library (dependency-cruiser),auto
+TC-097,REQ-070,integration,Export then import round trip equals original data,auto
+TC-098,REQ-071,manual,Brand and tone review by panel against brand rubric,manual
+TC-099,REQ-072,perf,k6 load test meets latency and error thresholds,auto
+TC-100,REQ-072,resilience,Rollback to previous release works and migration is forward-compatible,semi
+TC-101,REQ-072,resilience,Dependency outage (email store) degrades gracefully and recovers,auto
+TC-102,REQ-045,security,Session tests: idle and absolute timeout; fixation; logout invalidates server session,auto
+TC-103,REQ-045,security,Rate limit on login and search returns 429 with Retry-After,auto
+TC-104,REQ-043,security,Secrets tests: gitleaks clean; no secret in image or client bundle,auto
+TC-105,REQ-043,security,SAST SCA and container scan gates pass with no high findings,auto
+TC-106,REQ-054,security,DAST baseline on staging has no high findings,auto
+TC-107,REQ-033,privacy,Re-identification suite on synthetic data: attacker success below target,auto
+TC-108,REQ-066,privacy,Analytics events contain no identifier and no free text,auto
+TC-109,REQ-028,privacy,Synthetic data generator meets spec (A3 coordination): valid schema and no real-looking identifiers,auto
+TC-110,REQ-001,perf,Public site Core Web Vitals within budget,auto
+TC-111,REQ-020,e2e,Language switch keeps page and state; he is default,auto
+TC-112,REQ-036,security,Applicant sees only own request (IDOR on request endpoints),auto

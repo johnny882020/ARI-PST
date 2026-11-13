@@ -1,0 +1,236 @@
+# ARI-PST CI. The ONLY required status check is "ci-gate". Job ids are the A8 check names (C-15).
+# Third-party actions are pinned by tag. SHA pinning TODO list: .github/SHA-PINNING-TODO.md
+#
+# Every `pnpm run X` below exists in the root package.json and runs a real check. There are no placeholder scripts.
+# NOT YET ENFORCED (no tool or test exists yet; tracked in docs/KNOWN-ISSUES.md, section "CI gates not yet enforced"):
+#   - Spectral ruleset on the OpenAPI file (job `spectral` only checks that the generated client matches the spec)
+#   - fast-check property tests (job `property` runs the privacy attack simulation in db/tests/privacy.test.mjs)
+#   - Schemathesis fuzzing and the oasdiff breaking-change check (job `contract-schemathesis` runs the authz matrix
+#     and the IDOR/contract tests, which validate every response against the OpenAPI file)
+#   - migration lint and the "old schema from main + seed + new migrations" expand/contract run
+#   - REQ-to-test traceability (`trace-check` is removed until the tests carry REQ ids)
+#   - axe on the protected SPA (job `axe` covers the public site only)
+# Database jobs start their own PostgreSQL 16 from /usr/lib/postgresql/16/bin (present on ubuntu-24.04 runners):
+# db/scripts/test-db.sh (55432), apps/api/scripts/test-db.sh (55433), scripts/sim-render-db.sh (55435).
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main, staging]
+  merge_group:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+# No top-level "paths" filter: a skipped required check would hang Render "checksPass".
+jobs:
+  lint-types:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+
+  spectral:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm run lint:openapi        # generated API client must match packages/contracts/openapi.yaml. Spectral: NOT YET ENFORCED
+
+  arch-deps:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm run arch                # dependency-cruiser: domain imports no platform library (this is the portability check)
+
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm run test:unit           # all packages except the two that need PostgreSQL (see integration-pg). The synthetic-data guard tests run there (apps/api/test/integration.test.ts)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: coverage, path: coverage/, retention-days: 14, if-no-files-found: ignore }
+
+  property:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm run test:property       # privacy attack simulation as the real database roles. fast-check: NOT YET ENFORCED
+
+  integration-pg:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm run test:rls            # db tests: bootstrap + migrate as app_migrator, then SQL tests as the real non-superuser roles (C-06)
+      - run: pnpm run test:integration    # API tests against a migrated database, logged in as app_runtime
+      # NOT YET ENFORCED: migration lint; old-schema-from-main + seed + new migrations (expand/contract safety).
+
+  contract-schemathesis:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm run test:contract       # authz matrix from x-roles + IDOR/contract tests (responses validated against OpenAPI). Schemathesis + oasdiff: NOT YET ENFORCED
+
+  sast-codeql:
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    uses: ./.github/workflows/codeql.yml
+
+  sast-semgrep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container: { image: "semgrep/semgrep:1.97.0" }
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep scan --config p/typescript --config p/nodejs --config infra/ci/semgrep.yml --error --metrics=off
+
+  sca:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions: { contents: read, pull-requests: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm audit --prod --audit-level=high
+      - run: pnpm dlx license-checker-rseidelsohn@4 --production --onlyAllow "MIT;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;CC0-1.0;BlueOak-1.0.0;Python-2.0;MPL-2.0"
+      - uses: actions/dependency-review-action@v4
+        if: github.event_name == 'pull_request'
+        with: { fail-on-severity: high, deny-licenses: "GPL-3.0-only, AGPL-3.0-only" }
+
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  container-scan:
+    name: container-scan (config + Blueprint policy)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - run: pip install pyyaml==6.0.2
+      - run: python3 scripts/verify-render-yaml.py
+      - run: python3 scripts/gen-staging.py --check
+      - name: conftest policy on Blueprints
+        run: docker run --rm -v "$PWD:/project" openpolicyagent/conftest:v0.56.0 test render.yaml infra/render.staging.yaml -p infra/policy
+      - uses: aquasecurity/trivy-action@0.28.0
+        with: { scan-type: config, scan-ref: ".", exit-code: "1", severity: "HIGH,CRITICAL" }
+      # No Dockerfile exists in Phase 1 (Render native runtimes). Add hadolint here if one is introduced.
+
+  cms-guard:
+    name: cms-guard (RT-10)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Content-editor branches may only change apps/public-site/src/content/**
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'cms/')
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          bad=$(git diff --name-only "$BASE" "$HEAD" | grep -v '^apps/public-site/src/content/' || true)
+          if [ -n "$bad" ]; then echo "cms/* branch changed files outside content:"; echo "$bad"; exit 1; fi
+      - name: Workflows must not use pull_request_target
+        run: "! grep -rn 'pull_request_target' .github/workflows/ | grep -v 'semgrep'"
+
+  build:
+    needs: [lint-types, unit, arch-deps]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm run build
+      - run: tar -czf build.tgz apps/public-site/dist apps/web/dist apps/api/dist
+      - run: pnpm dlx @cyclonedx/cyclonedx-npm@1 --output-format JSON --output-file sbom.cdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: |
+            build.tgz
+            sbom.cdx.json
+          retention-days: 30
+      - name: Provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v2
+        with: { subject-path: build.tgz }
+
+  canary-smoke:
+    # Does what a Render deploy does: fresh database with ONE non-superuser owner (scripts/sim-render-db.sh), pre-deploy step
+    # (roles, migrations as app_migrator, synthetic seed), API in production mode as app_runtime, scripts/smoke.sh, then every
+    # role signs in through the SPA (password + TOTP) and one request goes from cart to closed. See scripts/e2e-fullstack.mjs.
+    needs: [build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm --filter @ari/api... build && pnpm --filter @ari/web build
+      - run: pnpm --filter @ari/web exec playwright install --with-deps chromium
+      - run: pnpm run test:e2e:full
+
+  e2e-smoke-he-en:
+    needs: [build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm --filter @ari/web exec playwright install --with-deps chromium
+      - run: pnpm run test:e2e:smoke      # SPA against the mock API (apps/web/mock-server), he + en. Builds the SPA itself.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: apps/web/playwright-report/, retention-days: 7, if-no-files-found: ignore }
+
+  axe:
+    needs: [build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm --filter @ari/web exec playwright install --with-deps chromium
+      - run: pnpm run test:a11y           # axe on the built public site, he + en. Protected SPA: NOT YET ENFORCED
+
+  ci-gate:
+    name: ci-gate
+    if: always()
+    needs: [lint-types, spectral, arch-deps, unit, property, integration-pg, contract-schemathesis, sast-codeql, sast-semgrep, sca, secrets, container-scan, cms-guard, build, canary-smoke, e2e-smoke-he-en, axe]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fail if any needed job did not succeed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | python3 -c "import json,sys; n=json.load(sys.stdin); bad=[k for k,v in n.items() if v['result']!='success']; print('not ok:',bad); sys.exit(1 if bad else 0)"

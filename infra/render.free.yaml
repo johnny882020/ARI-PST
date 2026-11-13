@@ -1,0 +1,84 @@
+# ARI-PST Portal - DEMO Blueprint for Render FREE plans. Synthetic data only. Not for production, not for real data.
+# Use: Dashboard, New, Blueprint, this repo, Blueprint file path: infra/render.free.yaml   (docs/deployment.md section 13)
+#
+# What you get: ONE free web service (API + protected SPA on one host) and ONE free Postgres, seeded with synthetic data.
+# What is OFF compared with render.yaml:
+#   - public site (ari-public) and its forms            - all cron jobs: hourly snapshot refresh, staleness, purge/retention,
+#   - PR previews, staging, approval gate                 audit-chain verify, export (the snapshot is refreshed at every start
+#   - second instance (no HA; free services sleep         and after a coordinator import instead)
+#     after ~15 idle minutes, first request is slow)    - e-mail (console mailer: invites and notices are not delivered)
+#   - backups / PITR (free Postgres is deleted by       - object store (uploads live in memory and are lost on restart)
+#     Render after its free period; UNVERIFIED: 30 d)   - private-network-only database rule is unchanged (ipAllowList: [])
+# Free services have no preDeployCommand (UNVERIFIED), so roles + migrations + seed run in startCommand before the API starts.
+# DEMO_MODE=true is reported by /livez (checks.demo = "on") so the UI can show a demo banner.
+
+databases:
+  - name: ari-demo-db
+    databaseName: ari_portal_demo
+    user: ari_owner                # bootstrap only; the API logs in as app_runtime
+    region: frankfurt
+    plan: free
+    postgresMajorVersion: "16"
+    ipAllowList: []
+
+services:
+  - type: web
+    name: ari-demo-api
+    runtime: node
+    region: frankfurt
+    plan: free
+    numInstances: 1
+    rootDir: .
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @ari/api... build && pnpm --filter @ari/web build
+    startCommand: node scripts/render-predeploy.mjs && node apps/api/dist/server.js
+    healthCheckPath: /readyz
+    autoDeployTrigger: "off"       # deploy by hand: Dashboard, Manual Deploy
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22.21.1
+      - key: DATA_CLASSIFICATION
+        value: synthetic
+      - key: DEMO_MODE
+        value: "true"
+      - key: SEED_SYNTHETIC
+        value: "true"
+      - key: SEED_PROFILE
+        value: tiny                # 40 synthetic samples, 2 centers (small enough for the free database and 512 MB RAM)
+      - key: SEED_USER_PASSWORD
+        generateValue: true
+      - key: IP_HASH_SALT
+        generateValue: true
+      - key: SECRETS_KEY
+        generateValue: true
+      - key: DB_PASSWORD_MIGRATOR
+        generateValue: true
+      - key: DB_PASSWORD_RUNTIME
+        generateValue: true
+      - key: DB_PASSWORD_BG
+        generateValue: true
+      - key: DATABASE_URL_OWNER
+        fromDatabase:
+          name: ari-demo-db
+          property: connectionString
+      - key: DB_HOST
+        fromDatabase:
+          name: ari-demo-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: ari-demo-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: ari-demo-db
+          property: database
+      - key: WEB_DIST_DIR
+        value: apps/web/dist
+      - key: OUTBOX_INTERVAL_MS
+        value: "60000"
+      - key: DB_POOL_MAX
+        value: "5"
+      - key: ARGON_MEMORY_KIB
+        value: "19456"

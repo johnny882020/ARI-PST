@@ -1,0 +1,144 @@
+{
+  "steps": [
+    {
+      "name": "researcher: search page renders aggregate tiles",
+      "ok": true
+    },
+    {
+      "name": "suppression: no raw small number / '<5' / threshold anywhere in search UI over 12 facet combos",
+      "ok": true,
+      "detail": "checked 5 facets; suppressed tiles seen: 39"
+    },
+    {
+      "name": "suppressed state offers explanation (Why are some numbers hidden?)",
+      "ok": true,
+      "detail": "Why are some numbers hidden?\n\nWhen a group is very small, a number could help identify a child. We h"
+    },
+    {
+      "name": "search: free text no results -> empty state",
+      "ok": true,
+      "detail": "Search the index |  | We keep coded, de-identified sample information only. Names and ID numbers stay at the hospital. |  | Search samples | Search | Sample type | FFPE tissue | — | Count not shown, to protect privacy | "
+    },
+    {
+      "name": "add to cart, keyboard-only (Tab/Enter)",
+      "ok": true,
+      "detail": "|Added to request cart. Open the cart"
+    },
+    {
+      "name": "cart: remove item + empty state + re-add",
+      "ok": true
+    },
+    {
+      "name": "request wizard: validation errors on empty step",
+      "ok": true
+    },
+    {
+      "name": "request wizard: identifier-like text blocked (must stay on step 1 with an error)",
+      "ok": false
+    },
+    {
+      "name": "request wizard: complete and submit",
+      "ok": true
+    },
+    {
+      "name": "request detail: 8-step tracker present",
+      "ok": true,
+      "detail": "8 steps"
+    },
+    {
+      "name": "researcher console clean (excl. expected anonymous 401 session probe)",
+      "ok": true
+    },
+    {
+      "name": "coordinator: registrations list + approve",
+      "ok": true,
+      "detail": "Researcher registrations |  | Approve or reject new researchers. |  | Registrations | Name\tInstitution\tE-mail\tRequested\tDecision | Dr. Pending Applicant\tSynthetic Universit"
+    },
+    {
+      "name": "coordinator: precheck page for submitted request",
+      "ok": true,
+      "detail": "3 requests"
+    },
+    {
+      "name": "coordinator: CSV import wizard dry-run (valid + invalid file)",
+      "ok": true,
+      "detail": "bad file flagged"
+    },
+    {
+      "name": "coordinator: console clean",
+      "ok": true
+    },
+    {
+      "name": "committee committee@example.test: open decision page and vote",
+      "ok": true,
+      "detail": "Committee decision | Summary |  | Synthetic question about outcomes |  | Planned use of samples and data: Synthetic planned use |  | Ethics or Helsinki approval number: HEL-SYN-900 |  | FFPE tissue |  | Votes |  | 1 of 2 appro"
+    },
+    {
+      "name": "committee committee2@example.test: open decision page and vote",
+      "ok": true,
+      "detail": "Committee decision | Summary |  | Synthetic question about outcomes |  | Planned use of samples and data: Synthetic planned use |  | Ethics or Helsinki approval number: HEL-SYN-900 |  | FFPE tissue |  | Votes |  | 2 of 2 appro"
+    },
+    {
+      "name": "admin: users page, grant role requires second approver (no self-approval UI)",
+      "ok": true,
+      "detail": "Users and roles | Invite a user | System administrators cannot approve requests or read sample data. A role grant needs a second approver. | Users | Name\tE-mail\tRoles\tStatus\tAction | Dr. Synthetic Researcher\tre"
+    },
+    {
+      "name": "admin: privacy settings k change shows pending second approval, never a threshold in public text",
+      "ok": true,
+      "detail": "Privacy threshold |  | How large a group must be before its count is shown. |  | Changes need a reason and a second approver. | default |  | Current value: 5 |  | New value (required) | Whole number, at least 5. | Reason (required) | Propose change | center_breakdown |  | Current"
+    },
+    {
+      "name": "admin: audit log has no identifiers (emails) in rows",
+      "ok": true
+    },
+    {
+      "name": "session-timeout dialog appears before expiry, Extend works, Esc does not dismiss",
+      "ok": true
+    },
+    {
+      "name": "login: wrong password shows generic error, no account enumeration",
+      "ok": true,
+      "detail": "לא הצלחנו לחבר אתכם\nהדוא״ל או הסיסמה אינם נכונים. נא לבדוק ולנסות שוב. מספר אסמכתה לתמיכה: trace-2c78f382"
+    },
+    {
+      "name": "login: empty submit shows validation",
+      "ok": true
+    },
+    {
+      "name": "mfa: wrong code shows error, recovery code path exists",
+      "ok": true
+    },
+    {
+      "name": "register: validation + success message",
+      "ok": true
+    }
+  ],
+  "suppression": [
+    {
+      "i": 0,
+      "suppressedTiles": 7
+    },
+    {
+      "i": 1,
+      "suppressedTiles": 8
+    },
+    {
+      "i": 2,
+      "suppressedTiles": 8
+    },
+    {
+      "i": 3,
+      "suppressedTiles": 8
+    },
+    {
+      "i": 4,
+      "suppressedTiles": 8
+    }
+  ],
+  "idNotBlocked": {
+    "stayed": false,
+    "errs": []
+  },
+  "importBadText": "Import result\n\nDry run Ready to commit\n\nRows\n1\nCoordinator view: exact counts\nAccepted\n1\nWarnings\n0\nRejected\n0\nRows with problems\nRow\tOutcome\tIssues\nNo rows with problems.\nCommit this import"
+}

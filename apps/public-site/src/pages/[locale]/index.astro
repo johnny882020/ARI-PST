@@ -1,0 +1,48 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Crumbs from "../../components/Crumbs.astro";
+import { LOCALES, type Locale } from "../../content/schemas";
+import { t, fmtDate } from "../../i18n/ui";
+import { path } from "../../lib/paths";
+import { page, list, hasTranslation, settings } from "../../lib/content";
+import { eventLd, faqLd } from "../../lib/seo";
+export function getStaticPaths() { return LOCALES.map((locale) => ({ params: { locale } })); }
+const locale = Astro.params.locale as Locale;
+
+const p = await page(locale, 'home');
+const d = p.data;
+const partners = (await list('partners', locale)).sort((a, b) => a.data.order - b.data.order).filter((x) => d.featured_partners?.includes(x.data.slug));
+const news = (await list('news', locale)).filter((x) => d.featured_news?.includes(x.data.slug));
+const hasOther = await hasTranslation('pages', locale === 'he' ? 'en' : 'he', 'home');
+const s = await settings(locale);
+---
+<BaseLayout locale={locale} title={d.title} description={d.description} slug="" hasOther={hasOther}>
+  <section class="hero">
+    <p class="chip"><bdi>ARI-PST × Tech4Cancer</bdi></p>
+    <h1>{d.hero!.headline}</h1>
+    <p class="lead">{d.hero!.subline}</p>
+    <div class="row">
+      <a class="btn btn-primary" href={d.hero!.cta_primary.url} data-umami-event="cta_click" data-umami-event-id="home-primary">{d.hero!.cta_primary.label}</a>
+      {d.hero!.cta_secondary && <a class="btn" href={d.hero!.cta_secondary.url} data-umami-event="cta_click" data-umami-event-id="home-secondary">{d.hero!.cta_secondary.label}</a>}
+    </div>
+  </section>
+  <h2>{t(locale, 'howItWorks')}</h2>
+  <ul class="grid">
+    {d.value_props!.map((v, i) => <li class="card"><h3>{i + 1}. {v.title}</h3><p>{v.text}</p></li>)}
+  </ul>
+  <h2>{t(locale, 'partnersTitle')}</h2>
+  <ul class="grid">
+    {partners.map((x) => <li class="card"><h3><bdi>{x.data.title}</bdi></h3><p class="muted small">{x.data.country}</p></li>)}
+  </ul>
+  <p><a href={path(locale, 'partners')}>{t(locale, 'partnersTitle')}</a></p>
+  {news.length > 0 && (<>
+    <h2>{t(locale, 'news')}</h2>
+    <ul class="grid">
+      {news.map((n) => <li class="card"><h3><a href={path(locale, `news/${n.data.slug}`)}>{n.data.title}</a></h3><p class="muted small">{fmtDate(locale, n.data.date)}</p><p>{n.data.summary}</p></li>)}
+    </ul>
+  </>)}
+  <h2>{t(locale, 'goToLogin')}</h2>
+  <p>{d.login_teaser}</p>
+  <p><a class="btn btn-primary" href={path(locale, 'login')}>{t(locale, 'login')}</a></p>
+</BaseLayout>

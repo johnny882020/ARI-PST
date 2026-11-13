@@ -1,0 +1,30 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Crumbs from "../../../components/Crumbs.astro";
+import { LOCALES, type Locale } from "../../../content/schemas";
+import { t, fmtDate } from "../../../i18n/ui";
+import { path } from "../../../lib/paths";
+import { page, list, hasTranslation } from "../../../lib/content";
+import { newsArticleLd } from "../../../lib/seo";
+
+export async function getStaticPaths() {
+  const out = [];
+  for (const locale of LOCALES) for (const e of await list('research-areas', locale)) out.push({ params: { locale, slug: e.data.slug }, props: { entry: e } });
+  return out;
+}
+const locale = Astro.params.locale as Locale;
+const { entry } = Astro.props;
+const d = entry.data;
+const { Content } = await render(entry);
+const idx = await page(locale, 'research-index');
+const hasOther = await hasTranslation('research-areas', locale === 'he' ? 'en' : 'he', d.slug);
+const crumbs = [{ name: t(locale, 'home'), path: path(locale) }, { name: idx.data.title, path: path(locale, 'research') }, { name: d.name, path: path(locale, `research/${d.slug}`) }];
+---
+<BaseLayout locale={locale} title={d.name} description={d.description} slug={`research/${d.slug}`} hasOther={hasOther} crumbs={crumbs}>
+  <Crumbs locale={locale} crumbs={crumbs} />
+  <h1>{d.name}</h1>
+  <p class="lead">{d.summary}</p>
+  <div class="prose"><Content /></div>
+  <p><a href={path(locale, 'research')}>{t(locale, 'back')}: {idx.data.title}</a></p>
+</BaseLayout>

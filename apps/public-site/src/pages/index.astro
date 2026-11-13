@@ -1,0 +1,30 @@
+---
+import '../styles/tokens.css';
+import '../styles/global.css';
+import { SITE_URL } from '../lib/env';
+---
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ARI-PST × Tech4Cancer</title>
+    <meta name="description" content="ARI-PST × Tech4Cancer - עברית / English" />
+    <link rel="canonical" href={`${SITE_URL}/he/`} />
+    <link rel="alternate" hreflang="he" href={`${SITE_URL}/he/`} />
+    <link rel="alternate" hreflang="en" href={`${SITE_URL}/en/`} />
+    <link rel="alternate" hreflang="x-default" href={`${SITE_URL}/he/`} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <main id="main" tabindex="-1">
+      <h1><bdi>ARI-PST × Tech4Cancer</bdi></h1>
+      <p class="lead" lang="he">מדע שהולך לצד המשפחות</p>
+      <p class="lead" lang="en" dir="ltr">Science that walks beside families</p>
+      <p class="row">
+        <a class="btn btn-primary" href="/he/" hreflang="he" lang="he">עברית</a>
+        <a class="btn btn-primary" href="/en/" hreflang="en" lang="en">English</a>
+      </p>
+    </main>
+  </body>
+</html>

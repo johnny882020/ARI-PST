@@ -1,0 +1,12 @@
+# Last matching pattern wins. Teams are placeholders (synthetic org).
+*                                   @ari-org/engineering
+/db/migrations/                     @ari-org/data-owners @ari-org/security
+/packages/domain/                   @ari-org/architects
+/packages/contracts/                @ari-org/architects @ari-org/api-owners
+/apps/api/src/adapters/audit-pg/    @ari-org/security
+/apps/api/src/adapters/auth-local/  @ari-org/security
+/infra/                             @ari-org/platform @ari-org/security
+/.github/                           @ari-org/platform @ari-org/security
+/CODEOWNERS                         @ari-org/platform
+/apps/public-site/content/          @ari-org/content-editors
+/docs/                              @ari-org/engineering

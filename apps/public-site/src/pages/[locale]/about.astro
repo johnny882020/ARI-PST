@@ -1,0 +1,32 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Crumbs from "../../components/Crumbs.astro";
+import Form from "../../components/Form.astro";
+import { LOCALES, type Locale } from "../../content/schemas";
+import { t, fmtDate } from "../../i18n/ui";
+import { path } from "../../lib/paths";
+import { page, list, hasTranslation, settings } from "../../lib/content";
+import { eventLd, faqLd } from "../../lib/seo";
+export function getStaticPaths() { return LOCALES.map((locale) => ({ params: { locale } })); }
+const locale = Astro.params.locale as Locale;
+
+const p = await page(locale, 'about');
+const d = p.data;
+const { Content } = await render(p);
+const hasOther = await hasTranslation('pages', locale === 'he' ? 'en' : 'he', 'about');
+const crumbs = [{ name: t(locale, 'home'), path: path(locale) }, { name: d.title, path: path(locale, 'about') }];
+const notice = d.needs_review ? t(locale, 'reviewNotice') : '';
+---
+<BaseLayout locale={locale} title={d.title} description={d.description} slug="about" hasOther={hasOther} crumbs={crumbs} >
+  <Crumbs locale={locale} crumbs={crumbs} />
+  <h1>{d.title}</h1>
+  {d.intro && <p class="lead">{d.intro}</p>}
+  {notice && <p class="notice" role="note">{notice}</p>}
+  <h2>{t(locale, 'mission')}</h2><p>{d.mission}</p>
+  <div class="prose"><Content /></div>
+  <h2>{t(locale, 'principles')}</h2>
+  <ul class="grid">{d.principles!.map((x) => <li class="card"><h3>{x.title}</h3><p>{x.text}</p></li>)}</ul>
+  <h2>{t(locale, 'governance')}</h2><p>{d.governance}</p>
+  {d.milestones && <><h2>{t(locale, 'milestones')}</h2><ul class="timeline">{d.milestones.map((m) => <li><strong><bdi>{m.year}</bdi></strong>: {m.text}</li>)}</ul></>}
+</BaseLayout>

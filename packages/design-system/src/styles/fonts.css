@@ -1,0 +1,17 @@
+/* Opt-in. Self-hosted fonts only; never call a font CDN at runtime (privacy).
+   Files are not bundled yet. See ../../fonts/README.md for the steps.
+   Until files exist, local() picks up installed fonts and the stacks fall back to system fonts. */
+@font-face {
+  font-family: "Heebo";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: local("Heebo");
+}
+@font-face {
+  font-family: "Rubik";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: local("Rubik");
+}

@@ -1,0 +1,66 @@
+# Deploys the protected area (ari-api, ari-app, ari-internal, crons) to production.
+# Gate 1: ci-gate green on the exact commit. Gate 2: manual approval in GitHub Environment "production-protected".
+# The public site is NOT deployed here. It uses Render autoDeployTrigger=checksPass.
+name: deploy-protected
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+  checks: read
+concurrency:
+  group: deploy-protected
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    outputs:
+      sha: ${{ steps.s.outputs.sha }}
+    steps:
+      - id: s
+        run: echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+      - name: Staging must be green on this SHA
+        run: |
+          v=$(curl -fsS "https://staging.portal.example.org/healthz" | python3 -c "import json,sys;print(json.load(sys.stdin)['version'])")
+          [ "$v" = "${{ steps.s.outputs.sha }}" ] || { echo "staging runs $v, not this SHA"; exit 1; }
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: production-protected        # required reviewers: 2 people from CODEOWNERS group, no self-approval
+      url: https://portal.example.org
+    steps:
+      - name: Trigger Render deploy hooks (API first, then SPA)
+        env:
+          HOOK_API: ${{ secrets.RENDER_DEPLOY_HOOK_API }}       # environment secret. Not in Git.
+          HOOK_APP: ${{ secrets.RENDER_DEPLOY_HOOK_APP }}
+          SHA: ${{ needs.verify.outputs.sha }}
+        run: |
+          curl -fsS -X POST "${HOOK_API}&ref=${SHA}"
+      - name: Wait for new version on health endpoint
+        env: { SHA: "${{ needs.verify.outputs.sha }}" }
+        run: |
+          for i in $(seq 1 60); do
+            v=$(curl -fsS https://portal.example.org/api/healthz | python3 -c "import json,sys;print(json.load(sys.stdin).get('version',''))" || true)
+            [ "$v" = "$SHA" ] && { echo "live: $v"; exit 0; }
+            sleep 15
+          done
+          echo "deploy did not become live"; exit 1
+      - name: Deploy SPA after API is healthy
+        env:
+          HOOK_APP: ${{ secrets.RENDER_DEPLOY_HOOK_APP }}
+          SHA: ${{ needs.verify.outputs.sha }}
+        run: curl -fsS -X POST "${HOOK_APP}&ref=${SHA}"
+      - name: Post-deploy smoke + SLO burn check
+        run: pnpm dlx k6 run --quiet infra/ci/smoke.js
+      - name: Auto-rollback on failure (see 05-release-strategy.md)
+        if: failure()
+        env: { RENDER_API_KEY: "${{ secrets.RENDER_API_KEY_ROLLBACK }}", SERVICE_ID: "${{ vars.RENDER_API_SERVICE_ID }}" }
+        run: |
+          prev=$(curl -fsS -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services/$SERVICE_ID/deploys?limit=5" | python3 -c "import json,sys;d=json.load(sys.stdin);print([x['deploy']['id'] for x in d if x['deploy']['status']=='deactivated'][0])")
+          curl -fsS -X POST -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services/$SERVICE_ID/rollback" -d "{\"deployId\":\"$prev\"}" -H "Content-Type: application/json"

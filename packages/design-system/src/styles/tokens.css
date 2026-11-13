@@ -1,0 +1,209 @@
+/* ARI-PST x Tech4Cancer - design tokens v0.1 (plan draft)
+   Rules: logical properties only. No left/right in components. Contrast numbers: see 04-accessibility.md.
+   Theme: follows OS. Override with data-theme="light" or data-theme="dark" on <html>. */
+
+:root {
+  /* ---- Brand palette (raw, light) ---- */
+  --ari-teal-700: #0b5c73;   /* primary */
+  --ari-teal-800: #084a5d;
+  --ari-teal-100: #e4f1f5;
+  --ari-clay-600: #a8461f;   /* warm accent */
+  --ari-clay-100: #fbe9e1;
+  --ari-gold-400: #f2b84b;   /* decorative only, never text */
+  --ari-ink-900: #1d2230;
+  --ari-ink-600: #4a5262;
+  --ari-ink-400: #7b8494;
+
+  /* ---- Semantic color (light) ---- */
+  --color-bg: #fbfaf8;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #eef0f3;
+  --color-text: #1d2230;
+  --color-text-muted: #4a5262;
+  --color-text-on-primary: #ffffff;
+  --color-primary: #0b5c73;
+  --color-primary-hover: #084a5d;
+  --color-primary-subtle: #e4f1f5;
+  --color-accent: #a8461f;
+  --color-accent-subtle: #fbe9e1;
+  --color-on-accent: #ffffff;
+  --color-decor-warm: #f2b84b;
+  --color-border: #d5d9e0;          /* decorative dividers */
+  --color-border-strong: #7b8494;   /* input and control edges, 3:1 */
+  --color-focus: #0b5c73;
+  --color-success: #1e6b3b;  --color-success-subtle: #e6f3ea;
+  --color-warning: #7a5200;  --color-warning-subtle: #fff3d6;
+  --color-danger:  #b3261e;  --color-danger-subtle:  #fce8e6;
+  --color-info:    #0b5c73;  --color-info-subtle:    #e4f1f5;
+  --color-suppressed-bg: #eef0f3;
+  --color-scrim: rgb(29 34 48 / 0.45);
+
+  /* ---- Typography ---- */
+  --font-sans: system-ui, -apple-system, "Segoe UI", "Heebo", "Assistant", "Arial Hebrew", Arial, sans-serif;
+  --font-he: "Heebo", "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-display: "Rubik", "Heebo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  --fs-caption: 0.8125rem;   /* 13 */
+  --fs-small: 0.875rem;      /* 14 */
+  --fs-body: 1rem;           /* 16 */
+  --fs-lead: 1.1875rem;      /* 19 */
+  --fs-h4: 1.25rem;
+  --fs-h3: 1.5rem;
+  --fs-h2: 2rem;
+  --fs-h1: 2.75rem;
+  --fs-display: 3.5rem;
+  --lh-tight: 1.2;
+  --lh-snug: 1.4;
+  --lh-body: 1.6;            /* Hebrew needs more air */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --measure: 68ch;
+
+  /* ---- Spacing (8-pt, with 4 half-step) ---- */
+  --space-1: 0.25rem;  /* 4 */
+  --space-2: 0.5rem;   /* 8 */
+  --space-3: 0.75rem;  /* 12 */
+  --space-4: 1rem;     /* 16 */
+  --space-5: 1.5rem;   /* 24 */
+  --space-6: 2rem;     /* 32 */
+  --space-7: 3rem;     /* 48 */
+  --space-8: 4rem;     /* 64 */
+  --space-9: 6rem;     /* 96 */
+  --gutter: 1rem;
+  --container: 72rem;
+  --target-min: 2.75rem;     /* 44 px touch target */
+
+  /* ---- Radius ---- */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-pill: 999px;
+
+  /* ---- Elevation (depth is light, not heavy) ---- */
+  --shadow-0: none;
+  --shadow-1: 0 1px 2px rgb(29 34 48 / 0.06), 0 1px 1px rgb(29 34 48 / 0.04);
+  --shadow-2: 0 4px 12px rgb(29 34 48 / 0.08), 0 1px 3px rgb(29 34 48 / 0.06);
+  --shadow-3: 0 12px 32px rgb(29 34 48 / 0.12), 0 2px 6px rgb(29 34 48 / 0.06);
+  --z-sticky: 100; --z-overlay: 200; --z-modal: 300; --z-toast: 400;
+
+  /* ---- Motion ---- */
+  --dur-instant: 80ms;
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+  --dur-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);  /* small overshoot, physics-like */
+
+  /* ---- Focus ---- */
+  --focus-ring: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-focus);
+}
+
+/* ---- Dark theme: OS preference ---- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #12161c;
+    --color-surface: #1a2029;
+    --color-surface-raised: #212833;
+    --color-surface-sunken: #242b36;
+    --color-text: #edeff3;
+    --color-text-muted: #aeb6c4;
+    --color-text-on-primary: #0a1a20;
+    --color-primary: #6cc4da;
+    --color-primary-hover: #8fd3e4;
+    --color-primary-subtle: #12303a;
+    --color-accent: #f0a27a;
+    --color-accent-subtle: #3a2216;
+    --color-on-accent: #1a0e08;
+    --color-decor-warm: #f2b84b;
+    --color-border: #313948;
+    --color-border-strong: #7d8799;
+    --color-focus: #6cc4da;
+    --color-success: #7fd39b; --color-success-subtle: #17301f;
+    --color-warning: #f2c46b; --color-warning-subtle: #3a2c0e;
+    --color-danger:  #ff9a91; --color-danger-subtle:  #3d1b18;
+    --color-info:    #6cc4da; --color-info-subtle:    #12303a;
+    --color-suppressed-bg: #242b36;
+    --color-scrim: rgb(0 0 0 / 0.6);
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-2: 0 4px 12px rgb(0 0 0 / 0.45);
+    --shadow-3: 0 12px 32px rgb(0 0 0 / 0.55);
+  }
+}
+/* ---- Dark theme: explicit ---- */
+:root[data-theme="dark"] {
+  --color-bg: #12161c;
+  --color-surface: #1a2029;
+  --color-surface-raised: #212833;
+  --color-surface-sunken: #242b36;
+  --color-text: #edeff3;
+  --color-text-muted: #aeb6c4;
+  --color-text-on-primary: #0a1a20;
+  --color-primary: #6cc4da;
+  --color-primary-hover: #8fd3e4;
+  --color-primary-subtle: #12303a;
+  --color-accent: #f0a27a;
+  --color-accent-subtle: #3a2216;
+  --color-on-accent: #1a0e08;
+  --color-border: #313948;
+  --color-border-strong: #7d8799;
+  --color-focus: #6cc4da;
+  --color-success: #7fd39b; --color-success-subtle: #17301f;
+  --color-warning: #f2c46b; --color-warning-subtle: #3a2c0e;
+  --color-danger:  #ff9a91; --color-danger-subtle:  #3d1b18;
+  --color-info:    #6cc4da; --color-info-subtle:    #12303a;
+  --color-suppressed-bg: #242b36;
+  --color-scrim: rgb(0 0 0 / 0.6);
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 4px 12px rgb(0 0 0 / 0.45);
+  --shadow-3: 0 12px 32px rgb(0 0 0 / 0.55);
+}
+
+/* ---- Responsive type and gutter ---- */
+@media (min-width: 48em) {
+  :root { --gutter: 1.5rem; }
+}
+@media (max-width: 47.99em) {
+  :root { --fs-h1: 2.125rem; --fs-h2: 1.625rem; --fs-display: 2.5rem; }
+}
+
+/* ---- Reduced motion: no movement, only instant state change ---- */
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-instant: 0.01ms; --dur-fast: 0.01ms; --dur-base: 0.01ms; --dur-slow: 0.01ms; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- Forced colors (Windows High Contrast) ---- */
+@media (forced-colors: active) {
+  :root { --focus-ring: 0 0 0 2px CanvasText; }
+}
+
+/* ---- Base: language and direction ---- */
+:lang(he) { font-family: var(--font-he); line-height: var(--lh-body); }
+:lang(en) { font-family: var(--font-sans); }
+html { color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+body { margin: 0; background: var(--color-bg); color: var(--color-text); font-size: var(--fs-body); line-height: var(--lh-body); }
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+bdi, [dir="auto"] { unicode-bidi: isolate; }
+.num, .ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+
+/* ---- Direction helper: 1 in LTR, -1 in RTL. Use calc(var(--dir) * n) for transforms. ---- */
+:root { --dir: 1; }
+[dir="rtl"] { --dir: -1; }
+[dir="ltr"] { --dir: 1; }
+
+/* ---- In-app reduce-motion switch ---- */
+:root[data-motion="reduce"] { --dur-instant: 0.01ms; --dur-fast: 0.01ms; --dur-base: 0.01ms; --dur-slow: 0.01ms; }

@@ -1,0 +1,34 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Crumbs from "../../../components/Crumbs.astro";
+import { LOCALES, type Locale } from "../../../content/schemas";
+import { t, fmtDate } from "../../../i18n/ui";
+import { path } from "../../../lib/paths";
+import { page, list, hasTranslation } from "../../../lib/content";
+import { newsArticleLd } from "../../../lib/seo";
+
+export async function getStaticPaths() {
+  const out = [];
+  for (const locale of LOCALES) for (const e of await list('news', locale)) out.push({ params: { locale, slug: e.data.slug }, props: { entry: e } });
+  return out;
+}
+const locale = Astro.params.locale as Locale;
+const { entry } = Astro.props;
+const d = entry.data;
+const { Content } = await render(entry);
+const idx = await page(locale, 'news-index');
+const hasOther = await hasTranslation('news', locale === 'he' ? 'en' : 'he', d.slug);
+const url = path(locale, `news/${d.slug}`);
+const crumbs = [{ name: t(locale, 'home'), path: path(locale) }, { name: idx.data.title, path: path(locale, 'news') }, { name: d.title, path: url }];
+---
+<BaseLayout locale={locale} title={d.title} description={d.description} slug={`news/${d.slug}`} hasOther={hasOther} crumbs={crumbs} ogType="article"
+  ld={[newsArticleLd({ locale, headline: d.title, description: d.description, date: d.date, modified: d.updated, url })]}>
+  <Crumbs locale={locale} crumbs={crumbs} />
+  <article>
+    <h1>{d.title}</h1>
+    <p class="muted small">{t(locale, 'published')}: <time datetime={d.date.toISOString().slice(0, 10)}>{fmtDate(locale, d.date)}</time></p>
+    <div class="prose"><Content /></div>
+  </article>
+  <p><a href={path(locale, 'news')}>{t(locale, 'allNews')}</a></p>
+</BaseLayout>

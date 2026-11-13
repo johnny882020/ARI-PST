@@ -1,0 +1,32 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Crumbs from "../../components/Crumbs.astro";
+import Form from "../../components/Form.astro";
+import { LOCALES, type Locale } from "../../content/schemas";
+import { t, fmtDate } from "../../i18n/ui";
+import { path } from "../../lib/paths";
+import { page, list, hasTranslation, settings } from "../../lib/content";
+import { eventLd, faqLd } from "../../lib/seo";
+import { PORTAL_URL } from "../../lib/env";
+export function getStaticPaths() { return LOCALES.map((locale) => ({ params: { locale } })); }
+const locale = Astro.params.locale as Locale;
+
+const p = await page(locale, 'login-entry');
+const d = p.data;
+const { Content } = await render(p);
+const hasOther = await hasTranslation('pages', locale === 'he' ? 'en' : 'he', 'login-entry');
+const crumbs = [{ name: t(locale, 'home'), path: path(locale) }, { name: d.title, path: path(locale, 'login') }];
+const notice = d.needs_review ? t(locale, 'reviewNotice') : '';
+---
+<BaseLayout locale={locale} title={d.title} description={d.description} slug="login" hasOther={hasOther} crumbs={crumbs} >
+  <Crumbs locale={locale} crumbs={crumbs} />
+  <h1>{d.title}</h1>
+  {d.intro && <p class="lead">{d.intro}</p>}
+  {notice && <p class="notice" role="note">{notice}</p>}
+  <h2>{t(locale, 'whoCanLogin')}</h2>
+  <ul class="grid">{d.who_can_login!.map((x) => <li class="card"><h3>{x.role}</h3><p>{x.text}</p></li>)}</ul>
+  <p><a class="btn btn-primary" href={PORTAL_URL} data-umami-event="login_entry_click">{t(locale, 'goToLogin')}</a></p>
+  <h2>{t(locale, 'requestAccess')}</h2>
+  <p>{d.request_access_text} <a href={path(locale, 'join')}>{t(locale, 'formJoin')}</a></p>
+</BaseLayout>

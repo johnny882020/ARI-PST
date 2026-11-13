@@ -1,0 +1,24 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Crumbs from "../../../components/Crumbs.astro";
+import { LOCALES, type Locale } from "../../../content/schemas";
+import { t, fmtDate } from "../../../i18n/ui";
+import { path } from "../../../lib/paths";
+import { page, list, hasTranslation } from "../../../lib/content";
+import { newsArticleLd } from "../../../lib/seo";
+
+export function getStaticPaths() { return LOCALES.map((locale) => ({ params: { locale } })); }
+const locale = Astro.params.locale as Locale;
+const p = await page(locale, 'news-index');
+const d = p.data;
+const items = (await list('news', locale)).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const hasOther = await hasTranslation('pages', locale === 'he' ? 'en' : 'he', 'news-index');
+const crumbs = [{ name: t(locale, 'home'), path: path(locale) }, { name: d.title, path: path(locale, 'news') }];
+---
+<BaseLayout locale={locale} title={d.title} description={d.description} slug="news" hasOther={hasOther} crumbs={crumbs}>
+  <Crumbs locale={locale} crumbs={crumbs} />
+  <h1>{d.title}</h1>
+  <p class="lead">{d.intro}</p>
+  <ul class="grid">{items.map((n) => <li class="card"><h2 class="card-title"><a href={path(locale, `news/${n.data.slug}`)}>{n.data.title}</a></h2><p class="muted small"><time datetime={n.data.date.toISOString().slice(0, 10)}>{fmtDate(locale, n.data.date)}</time></p><p>{n.data.summary}</p></li>)}</ul>
+</BaseLayout>

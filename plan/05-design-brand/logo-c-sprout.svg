@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 120" role="img" aria-labelledby="t"><title id="t">ARI-PST x Tech4Cancer - Concept C, Sprout</title>
+<g transform="translate(8 12)"><circle cx="48" cy="48" r="44" fill="none" stroke="#0b5c73" stroke-width="4"/>
+<path d="M48 78 V46" stroke="#0b5c73" stroke-width="5" stroke-linecap="round"/>
+<path d="M48 50 C48 34 36 28 24 30 C24 44 34 52 48 50Z" fill="#0b5c73"/>
+<path d="M48 42 C48 26 60 20 72 22 C72 36 62 44 48 42Z" fill="#a8461f"/>
+<circle cx="48" cy="82" r="3" fill="#f2b84b"/></g>
+<text x="116" y="58" font-family="Heebo, Rubik, system-ui, sans-serif" font-size="34" font-weight="700" fill="#1d2230">ARI-PST</text>
+<text x="116" y="92" font-family="Heebo, Rubik, system-ui, sans-serif" font-size="20" font-weight="500" fill="#4a5262">× Tech4Cancer</text></svg>

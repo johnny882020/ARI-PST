@@ -1,0 +1,41 @@
+{
+  "site_name": "ARI-PST × Tech4Cancer",
+  "tagline": "Science that walks beside families",
+  "nav": [
+    {
+      "slug": "about",
+      "label": "About"
+    },
+    {
+      "slug": "research",
+      "label": "Research areas"
+    },
+    {
+      "slug": "community",
+      "label": "Community"
+    },
+    {
+      "slug": "infrastructure",
+      "label": "Infrastructure"
+    },
+    {
+      "slug": "partners",
+      "label": "Global partners"
+    },
+    {
+      "slug": "news",
+      "label": "News"
+    },
+    {
+      "slug": "patients",
+      "label": "Children and families"
+    },
+    {
+      "slug": "join",
+      "label": "Join and contact"
+    }
+  ],
+  "footer_text": "This portal holds no patient identity. This site contains public information only.",
+  "social": [],
+  "analytics_enabled": false
+}

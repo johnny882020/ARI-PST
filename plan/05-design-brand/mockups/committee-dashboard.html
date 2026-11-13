@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Committee dashboard - ARI-PST x Tech4Cancer</title><style>/* ARI-PST x Tech4Cancer - design tokens v0.1 (plan draft)
+   Rules: logical properties only. No left/right in components. Contrast numbers: see 04-accessibility.md.
+   Theme: follows OS. Override with data-theme="light" or data-theme="dark" on <html>. */
+
+:root {
+  /* ---- Brand palette (raw, light) ---- */
+  --ari-teal-700: #0b5c73;   /* primary */
+  --ari-teal-800: #084a5d;
+  --ari-teal-100: #e4f1f5;
+  --ari-clay-600: #a8461f;   /* warm accent */
+  --ari-clay-100: #fbe9e1;
+  --ari-gold-400: #f2b84b;   /* decorative only, never text */
+  --ari-ink-900: #1d2230;
+  --ari-ink-600: #4a5262;
+  --ari-ink-400: #7b8494;
+
+  /* ---- Semantic color (light) ---- */
+  --color-bg: #fbfaf8;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #eef0f3;
+  --color-text: #1d2230;
+  --color-text-muted: #4a5262;
+  --color-text-on-primary: #ffffff;
+  --color-primary: #0b5c73;
+  --color-primary-hover: #084a5d;
+  --color-primary-subtle: #e4f1f5;
+  --color-accent: #a8461f;
+  --color-accent-subtle: #fbe9e1;
+  --color-on-accent: #ffffff;
+  --color-decor-warm: #f2b84b;
+  --color-border: #d5d9e0;          /* decorative dividers */
+  --color-border-strong: #7b8494;   /* input and control edges, 3:1 */
+  --color-focus: #0b5c73;
+  --color-success: #1e6b3b;  --color-success-subtle: #e6f3ea;
+  --color-warning: #7a5200;  --color-warning-subtle: #fff3d6;
+  --color-danger:  #b3261e;  --color-danger-subtle:  #fce8e6;
+  --color-info:    #0b5c73;  --color-info-subtle:    #e4f1f5;
+  --color-suppressed-bg: #eef0f3;
+  --color-scrim: rgb(29 34 48 / 0.45);
+
+  /* ---- Typography ---- */
+  --font-sans: system-ui, -apple-system, "Segoe UI", "Heebo", "Assistant", "Arial Hebrew", Arial, sans-serif;
+  --font-he: "Heebo", "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-display: "Rubik", "Heebo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  --fs-caption: 0.8125rem;   /* 13 */
+  --fs-small: 0.875rem;      /* 14 */
+  --fs-body: 1rem;           /* 16 */
+  --fs-lead: 1.1875rem;      /* 19 */
+  --fs-h4: 1.25rem;
+  --fs-h3: 1.5rem;
+  --fs-h2: 2rem;
+  --fs-h1: 2.75rem;
+  --fs-display: 3.5rem;
+  --lh-tight: 1.2;
+  --lh-snug: 1.4;
+  --lh-body: 1.6;            /* Hebrew needs more air */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --measure: 68ch;
+
+  /* ---- Spacing (8-pt, with 4 half-step) ---- */
+  --space-1: 0.25rem;  /* 4 */
+  --space-2: 0.5rem;   /* 8 */
+  --space-3: 0.75rem;  /* 12 */
+  --space-4: 1rem;     /* 16 */
+  --space-5: 1.5rem;   /* 24 */
+  --space-6: 2rem;     /* 32 */
+  --space-7: 3rem;     /* 48 */
+  --space-8: 4rem;     /* 64 */
+  --space-9: 6rem;     /* 96 */
+  --gutter: 1rem;
+  --container: 72rem;
+  --target-min: 2.75rem;     /* 44 px touch target */
+
+  /* ---- Radius ---- */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-pill: 999px;
+
+  /* ---- Elevation (depth is light, not heavy) ---- */
+  --shadow-0: none;
+  --shadow-1: 0 1px 2px rgb(29 34 48 / 0.06), 0 1px 1px rgb(29 34 48 / 0.04);
+  --shadow-2: 0 4px 12px rgb(29 34 48 / 0.08), 0 1px 3px rgb(29 34 48 / 0.06);
+  --shadow-3: 0 12px 32px rgb(29 34 48 / 0.12), 0 2px 6px rgb(29 34 48 / 0.06);
+  --z-sticky: 100; --z-overlay: 200; --z-modal: 300; --z-toast: 400;
+
+  /* ---- Motion ---- */
+  --dur-instant: 80ms;
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+  --dur-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);  /* small overshoot, physics-like */
+
+  /* ---- Focus ---- */
+  --focus-ring: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-focus);
+}
+
+/* ---- Dark theme: OS preference ---- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #12161c;
+    --color-surface: #1a2029;
+    --color-surface-raised: #212833;
+    --color-surface-sunken: #242b36;
+    --color-text: #edeff3;
+    --color-text-muted: #aeb6c4;
+    --color-text-on-primary: #0a1a20;
+    --color-primary: #6cc4da;
+    --color-primary-hover: #8fd3e4;
+    --color-primary-subtle: #12303a;
+    --color-accent: #f0a27a;
+    --color-accent-subtle: #3a2216;
+    --color-on-accent: #1a0e08;
+    --color-decor-warm: #f2b84b;
+    --color-border: #313948;
+    --color-border-strong: #7d8799;
+    --color-focus: #6cc4da;
+    --color-success: #7fd39b; --color-success-subtle: #17301f;
+    --color-warning: #f2c46b; --color-warning-subtle: #3a2c0e;
+    --color-danger:  #ff9a91; --color-danger-subtle:  #3d1b18;
+    --color-info:    #6cc4da; --color-info-subtle:    #12303a;
+    --color-suppressed-bg: #242b36;
+    --color-scrim: rgb(0 0 0 / 0.6);
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-2: 0 4px 12px rgb(0 0 0 / 0.45);
+    --shadow-3: 0 12px 32px rgb(0 0 0 / 0.55);
+  }
+}
+/* ---- Dark theme: explicit ---- */
+:root[data-theme="dark"] {
+  --color-bg: #12161c;
+  --color-surface: #1a2029;
+  --color-surface-raised: #212833;
+  --color-surface-sunken: #242b36;
+  --color-text: #edeff3;
+  --color-text-muted: #aeb6c4;
+  --color-text-on-primary: #0a1a20;
+  --color-primary: #6cc4da;
+  --color-primary-hover: #8fd3e4;
+  --color-primary-subtle: #12303a;
+  --color-accent: #f0a27a;
+  --color-accent-subtle: #3a2216;
+  --color-on-accent: #1a0e08;
+  --color-border: #313948;
+  --color-border-strong: #7d8799;
+  --color-focus: #6cc4da;
+  --color-success: #7fd39b; --color-success-subtle: #17301f;
+  --color-warning: #f2c46b; --color-warning-subtle: #3a2c0e;
+  --color-danger:  #ff9a91; --color-danger-subtle:  #3d1b18;
+  --color-info:    #6cc4da; --color-info-subtle:    #12303a;
+  --color-suppressed-bg: #242b36;
+  --color-scrim: rgb(0 0 0 / 0.6);
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 4px 12px rgb(0 0 0 / 0.45);
+  --shadow-3: 0 12px 32px rgb(0 0 0 / 0.55);
+}
+
+/* ---- Responsive type and gutter ---- */
+@media (min-width: 48em) {
+  :root { --gutter: 1.5rem; }
+}
+@media (max-width: 47.99em) {
+  :root { --fs-h1: 2.125rem; --fs-h2: 1.625rem; --fs-display: 2.5rem; }
+}
+
+/* ---- Reduced motion: no movement, only instant state change ---- */
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-instant: 0.01ms; --dur-fast: 0.01ms; --dur-base: 0.01ms; --dur-slow: 0.01ms; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- Forced colors (Windows High Contrast) ---- */
+@media (forced-colors: active) {
+  :root { --focus-ring: 0 0 0 2px CanvasText; }
+}
+
+/* ---- Base: language and direction ---- */
+:lang(he) { font-family: var(--font-he); line-height: var(--lh-body); }
+:lang(en) { font-family: var(--font-sans); }
+html { color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+body { margin: 0; background: var(--color-bg); color: var(--color-text); font-size: var(--fs-body); line-height: var(--lh-body); }
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+bdi, [dir="auto"] { unicode-bidi: isolate; }
+.num, .ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+
+
+*{box-sizing:border-box}
+body{min-height:100vh}
+.skip{position:absolute;inset-block-start:-4rem;inset-inline-start:var(--space-4);background:var(--color-primary);color:var(--color-text-on-primary);padding:var(--space-2) var(--space-4);border-radius:var(--radius-sm)}
+.skip:focus{inset-block-start:var(--space-2)}
+a{color:var(--color-primary)}
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--gutter);background:var(--color-surface);border-block-end:1px solid var(--color-border);position:sticky;inset-block-start:0;z-index:var(--z-sticky)}
+.brand{display:flex;align-items:center;gap:var(--space-3);font-weight:var(--fw-bold);text-decoration:none;color:var(--color-text);direction:ltr}
+.brand small{display:block;font-weight:var(--fw-medium);color:var(--color-text-muted);font-size:var(--fs-caption)}
+nav.main{display:flex;gap:var(--space-1);flex-wrap:wrap;flex:1}
+nav.main a{padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);text-decoration:none;color:var(--color-text);min-block-size:var(--target-min);display:inline-flex;align-items:center}
+nav.main a[aria-current=page]{background:var(--color-primary-subtle);color:var(--color-primary);font-weight:var(--fw-semibold)}
+nav.main a:hover{background:var(--color-surface-sunken)}
+.tools{display:flex;gap:var(--space-2)}
+button,.btn{font:inherit;min-block-size:var(--target-min);padding:var(--space-2) var(--space-5);border-radius:var(--radius-pill);border:1px solid var(--color-border-strong);background:var(--color-surface);color:var(--color-text);cursor:pointer;transition:background var(--dur-fast) var(--ease-standard),transform var(--dur-fast) var(--ease-standard);text-decoration:none;display:inline-flex;align-items:center;gap:var(--space-2)}
+button:hover{background:var(--color-surface-sunken)}
+button:active{transform:scale(.98)}
+.btn-primary{background:var(--color-primary);color:var(--color-text-on-primary);border-color:var(--color-primary);font-weight:var(--fw-semibold)}
+.btn-primary:hover{background:var(--color-primary-hover)}
+.btn-quiet{border-color:transparent;background:transparent;color:var(--color-primary)}
+.btn-sm{padding:var(--space-1) var(--space-3);min-block-size:2rem}
+main{max-inline-size:var(--container);margin-inline:auto;padding:var(--space-6) var(--gutter) var(--space-9)}
+h1{font-family:var(--font-display);font-size:var(--fs-h1);line-height:var(--lh-tight);margin-block:0 var(--space-4)}
+h2{font-family:var(--font-display);font-size:var(--fs-h3);line-height:var(--lh-snug);margin-block:var(--space-7) var(--space-4)}
+h3{font-size:var(--fs-h4);margin-block:0 var(--space-2)}
+p{max-inline-size:var(--measure)}
+.lead{font-size:var(--fs-lead);color:var(--color-text-muted)}
+.muted{color:var(--color-text-muted)}
+.grid{display:grid;gap:var(--space-4);grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}
+.card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-5);box-shadow:var(--shadow-1)}
+.hero{background:linear-gradient(135deg,var(--color-primary-subtle),var(--color-accent-subtle));border-radius:var(--radius-xl);padding:var(--space-8) var(--space-6);margin-block-end:var(--space-6)}
+.tile .v{font-size:var(--fs-h2);font-weight:var(--fw-bold);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;display:inline-block}
+.tile .l{color:var(--color-text-muted);font-size:var(--fs-small)}
+.tile.supp{background:var(--color-suppressed-bg)}
+.chip{display:inline-flex;align-items:center;gap:var(--space-1);padding:2px var(--space-3);border-radius:var(--radius-pill);background:var(--color-primary-subtle);color:var(--color-primary);font-size:var(--fs-small)}
+.badge{display:inline-flex;align-items:center;gap:var(--space-1);padding:2px var(--space-2);border-radius:var(--radius-xs);font-size:var(--fs-caption);font-weight:var(--fw-semibold)}
+.b-ok{background:var(--color-success-subtle);color:var(--color-success)}.b-wait{background:var(--color-warning-subtle);color:var(--color-warning)}.b-info{background:var(--color-info-subtle);color:var(--color-info)}.b-err{background:var(--color-danger-subtle);color:var(--color-danger)}.b-mute{background:var(--color-suppressed-bg);color:var(--color-text-muted)}
+.field{display:grid;gap:var(--space-1);margin-block-end:var(--space-4)}
+label,legend{font-weight:var(--fw-medium)}
+input,select,textarea{font:inherit;min-block-size:var(--target-min);padding:var(--space-2) var(--space-3);border:1px solid var(--color-border-strong);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);inline-size:100%}
+.search{display:flex;gap:var(--space-2)}
+.search input{border-radius:var(--radius-pill);padding-inline:var(--space-5);min-block-size:3.25rem;font-size:var(--fs-lead)}
+.hint{font-size:var(--fs-small);color:var(--color-text-muted)}
+.layout{display:grid;gap:var(--space-5);grid-template-columns:1fr}
+@media(min-width:64em){.layout{grid-template-columns:16rem 1fr}}
+fieldset{border:0;padding:0;margin:0 0 var(--space-4)}
+.opt{display:flex;align-items:center;gap:var(--space-2);min-block-size:var(--target-min)}
+.opt input{inline-size:1.25rem;min-block-size:1.25rem}
+.opt .n{margin-inline-start:auto;color:var(--color-text-muted);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.tw{overflow-x:auto;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface)}
+table{border-collapse:collapse;inline-size:100%;min-inline-size:36rem}
+caption{text-align:start;padding:var(--space-3) var(--space-4);font-weight:var(--fw-semibold)}
+th,td{padding:var(--space-3) var(--space-4);text-align:start;border-block-end:1px solid var(--color-border);block-size:3rem}
+th{font-size:var(--fs-small);color:var(--color-text-muted);background:var(--color-surface-sunken)}
+td.num,th.num{text-align:end}
+.num{font-variant-numeric:tabular-nums}
+.supp-cell{color:var(--color-text-muted);background:var(--color-suppressed-bg);border-radius:var(--radius-sm);padding:2px var(--space-2)}
+.banner{display:flex;gap:var(--space-3);padding:var(--space-4);border-radius:var(--radius-md);background:var(--color-info-subtle);color:var(--color-text);border-inline-start:4px solid var(--color-info);margin-block:var(--space-4)}
+.banner.warn{background:var(--color-warning-subtle);border-color:var(--color-warning)}
+.timeline{list-style:none;margin:0;padding:0}
+.timeline li{display:grid;grid-template-columns:2rem 1fr;gap:var(--space-3);padding-block-end:var(--space-5);position:relative}
+.timeline li::before{content:"";position:absolute;inset-inline-start:.95rem;inset-block:1.75rem 0;inline-size:2px;background:var(--color-border)}
+.timeline li:last-child::before{display:none}
+.dot{inline-size:2rem;block-size:2rem;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-sunken);border:2px solid var(--color-border-strong);font-size:var(--fs-small);font-weight:var(--fw-bold)}
+.done .dot{background:var(--color-success);border-color:var(--color-success);color:var(--color-bg)}
+.cur .dot{background:var(--color-primary);border-color:var(--color-primary);color:var(--color-text-on-primary)}
+.demo{background:var(--color-warning-subtle);color:var(--color-warning);text-align:center;padding:var(--space-1) var(--space-3);font-size:var(--fs-small);font-weight:var(--fw-semibold)}
+footer{border-block-start:1px solid var(--color-border);padding:var(--space-5) var(--gutter);color:var(--color-text-muted);font-size:var(--fs-small);display:flex;flex-wrap:wrap;gap:var(--space-4)}
+.row{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center}
+.mirror{display:inline-block}
+[dir=rtl] .mirror{transform:scaleX(-1)}
+.stack>*+*{margin-block-start:var(--space-3)}
+.sw{display:flex;gap:var(--space-2);align-items:center}
+@media(prefers-reduced-motion:reduce){button:active{transform:none}}
+</style></head><body><div class="lv" lang="he" dir="rtl">
+<a class="skip" href="#main-he">דלג לתוכן הראשי</a>
+<div class="demo" role="note">דוגמת עיצוב. נתונים סינתטיים בלבד.</div>
+<header class="top"><a class="brand" href="index-home.html"><svg width="40" height="40" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="24" fill="#0b5c73"/><g stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M24 62 L42 36 L66 46 L74 70"/><path d="M42 36 L48 20"/></g><g fill="#fff"><circle cx="24" cy="62" r="6"/><circle cx="42" cy="36" r="6"/><circle cx="66" cy="46" r="6"/><circle cx="74" cy="70" r="6"/></g><circle cx="48" cy="20" r="7" fill="#f2b84b"/></svg><span>ARI-PST<small>× Tech4Cancer</small></span></a>
+<nav class="main" aria-label="פורטל ARI-PST"><a href="index-home.html">בית</a><a href="researcher-dashboard.html">לוח חוקר</a><a href="search-results.html">חיפוש</a><a href="request-cart.html">סל בקשה</a><a href="request-tracker.html">מעקב בקשות</a><a href="coordinator-entry.html">הזנת רכז</a><a href="committee-dashboard.html" aria-current="page">ועדה וניהול</a></nav>
+<div class="tools"><button type="button" data-act="lang">English</button><button type="button" data-act="theme" aria-label="ערכת נושא">◐</button></div></header>
+<main id="main-he" tabindex="-1"><h1>לוח ועדה וניהול</h1>
+<div class="grid"><div class="card tile"><div class="v">3</div><div class="l">בקשות פתוחות</div></div><div class="card tile supp"><div class="v" aria-hidden="true">—</div><div class="l">זמן ממוצע עד מסירה (ימים)</div><div class="hint"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6" stroke="currentColor" stroke-width="1.5"/></svg> אין עדיין מספיק נתונים</div></div><div class="card tile"><div class="v">2</div><div class="l">מרכזים מזינים</div></div><div class="card tile"><div class="v">3</div><div class="l">רשומות לא עדכניות</div></div></div>
+<h2>ממתינות להחלטה</h2>
+<div class="tw" role="region" tabindex="0" aria-label="תור בקשות"><table><caption>בקשות לוועדה</caption><thead><tr><th scope="col">ID</th><th scope="col">מחקר</th><th scope="col">התקבלה</th><th scope="col" class="num">הצבעות</th><th scope="col">סטטוס</th><th scope="col"></th></tr></thead><tbody><tr><td><bdi dir="ltr">REQ-SYN-0001</bdi></td><td><bdi>Synthetic Study Alpha</bdi></td><td><bdi dir="ltr" class="num">2026-09-05</bdi></td><td class="num"><bdi dir="ltr">2/3</bdi></td><td><span class="badge b-info">בהצבעה</span></td><td><button type="button" class="btn-sm">פתיחה</button></td></tr><tr><td><bdi dir="ltr">REQ-SYN-0003</bdi></td><td><bdi>Synthetic Study Gamma</bdi></td><td><bdi dir="ltr" class="num">2026-09-07</bdi></td><td class="num"><bdi dir="ltr">0/3</bdi></td><td><span class="badge b-wait">ממתין</span></td><td><button type="button" class="btn-sm">פתיחה</button></td></tr><tr><td><bdi dir="ltr">REQ-SYN-0004</bdi></td><td><bdi>Synthetic Study Delta</bdi></td><td><bdi dir="ltr" class="num">2026-09-08</bdi></td><td class="num"><bdi dir="ltr">3/3</bdi></td><td><span class="badge b-ok">מוכן להחלטה</span></td><td><button type="button" class="btn-sm">פתיחה</button></td></tr></tbody></table></div>
+<div class="banner" role="note"><span>הפרדת תפקידים: מנהל/ת מערכת אינו רואה נתוני דגימות ואינו מאשר בקשות. חברי ועדה אינם עורכים את המאגר.</span></div>
+<h2>פעילות אחרונה (יומן)</h2><div class="card"><p class="muted" style="margin:0">2026-09-08 · <bdi dir="ltr">usr_SYN01</bdi> · אישר שלב בדיקה</p></div></main>
+<footer><span>ARI-PST × Tech4Cancer</span><a href="#">פרטיות</a><a href="#">תנאי שימוש</a><a href="#">הצהרת נגישות</a><span>בפורטל הזה אין זהות של מטופלים</span></footer></div><div class="lv" lang="en" dir="ltr" hidden>
+<a class="skip" href="#main-en">Skip to main content</a>
+<div class="demo" role="note">Design mockup. Synthetic data only.</div>
+<header class="top"><a class="brand" href="index-home.html"><svg width="40" height="40" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="24" fill="#0b5c73"/><g stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M24 62 L42 36 L66 46 L74 70"/><path d="M42 36 L48 20"/></g><g fill="#fff"><circle cx="24" cy="62" r="6"/><circle cx="42" cy="36" r="6"/><circle cx="66" cy="46" r="6"/><circle cx="74" cy="70" r="6"/></g><circle cx="48" cy="20" r="7" fill="#f2b84b"/></svg><span>ARI-PST<small>× Tech4Cancer</small></span></a>
+<nav class="main" aria-label="ARI-PST Portal"><a href="index-home.html">Home</a><a href="researcher-dashboard.html">Researcher dashboard</a><a href="search-results.html">Search</a><a href="request-cart.html">Request cart</a><a href="request-tracker.html">Request tracker</a><a href="coordinator-entry.html">Coordinator entry</a><a href="committee-dashboard.html" aria-current="page">Committee & admin</a></nav>
+<div class="tools"><button type="button" data-act="lang">עברית</button><button type="button" data-act="theme" aria-label="Theme">◐</button></div></header>
+<main id="main-en" tabindex="-1"><h1>Committee & admin dashboard</h1>
+<div class="grid"><div class="card tile"><div class="v">3</div><div class="l">Open requests</div></div><div class="card tile supp"><div class="v" aria-hidden="true">—</div><div class="l">Average days to delivery</div><div class="hint"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6" stroke="currentColor" stroke-width="1.5"/></svg> Not enough data yet</div></div><div class="card tile"><div class="v">2</div><div class="l">Centers feeding</div></div><div class="card tile"><div class="v">3</div><div class="l">Stale records</div></div></div>
+<h2>Waiting for decision</h2>
+<div class="tw" role="region" tabindex="0" aria-label="Request queue"><table><caption>Requests for the committee</caption><thead><tr><th scope="col">ID</th><th scope="col">Study</th><th scope="col">Received</th><th scope="col" class="num">Votes</th><th scope="col">Status</th><th scope="col"></th></tr></thead><tbody><tr><td><bdi dir="ltr">REQ-SYN-0001</bdi></td><td><bdi>Synthetic Study Alpha</bdi></td><td><bdi dir="ltr" class="num">2026-09-05</bdi></td><td class="num"><bdi dir="ltr">2/3</bdi></td><td><span class="badge b-info">Voting</span></td><td><button type="button" class="btn-sm">Open</button></td></tr><tr><td><bdi dir="ltr">REQ-SYN-0003</bdi></td><td><bdi>Synthetic Study Gamma</bdi></td><td><bdi dir="ltr" class="num">2026-09-07</bdi></td><td class="num"><bdi dir="ltr">0/3</bdi></td><td><span class="badge b-wait">Waiting</span></td><td><button type="button" class="btn-sm">Open</button></td></tr><tr><td><bdi dir="ltr">REQ-SYN-0004</bdi></td><td><bdi>Synthetic Study Delta</bdi></td><td><bdi dir="ltr" class="num">2026-09-08</bdi></td><td class="num"><bdi dir="ltr">3/3</bdi></td><td><span class="badge b-ok">Ready</span></td><td><button type="button" class="btn-sm">Open</button></td></tr></tbody></table></div>
+<div class="banner" role="note"><span>Separation of duties: a system admin cannot see sample data or approve requests. Committee members cannot edit the index.</span></div>
+<h2>Recent activity (audit log)</h2><div class="card"><p class="muted" style="margin:0">2026-09-08 · <bdi dir="ltr">usr_SYN01</bdi> · completed pre-check</p></div></main>
+<footer><span>ARI-PST × Tech4Cancer</span><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Accessibility statement</a><span>This portal holds no patient identity</span></footer></div><script>
+(function(){var h=document.documentElement;function S(k,v){try{localStorage.setItem(k,v)}catch(e){}}function G(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function setLang(l){document.querySelectorAll('.lv').forEach(function(n){n.hidden=n.lang!==l});h.lang=l;h.dir=l==='he'?'rtl':'ltr';S('ari-lang',l)}
+function setTheme(t){h.setAttribute('data-theme',t);S('ari-theme',t)}
+var q=new URLSearchParams(location.search);var l=q.get('lang')||G('ari-lang')||'he';setLang(l);var t=q.get('theme')||G('ari-theme');if(t)setTheme(t);
+document.addEventListener('click',function(e){var b=e.target.closest('[data-act]');if(!b)return;if(b.dataset.act==='lang')setLang(h.lang==='he'?'en':'he');if(b.dataset.act==='theme'){var cur=h.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');setTheme(cur==='dark'?'light':'dark')}})})();
+</script></body></html>

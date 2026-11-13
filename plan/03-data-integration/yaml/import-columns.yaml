@@ -1,0 +1,48 @@
+# Import template v1: columns accepted by CSV/XLSX bulk import.
+# Any other column makes the whole file fail with rule UNKNOWN_COLUMN (header check, before row checks).
+# Header names are snake_case, English. A Hebrew display header row is allowed in the XLSX template as row 2 and is skipped.
+schema_version: v1
+file:
+  formats: [csv, xlsx]
+  csv: { encoding: utf-8, bom_allowed: true, delimiter: ",", quote: '"', newline: any }
+  xlsx: { sheet: samples, max_sheets_read: 1, formulas: reject, macros: reject, external_links: reject }
+  max_bytes: 10485760
+  max_rows: 20000
+  upsert_key: sample_code          # empty on create. Server assigns. Present on update.
+columns:
+  - { name: sample_code,        required: false, type: string, pattern: '^smp_[0-9A-HJKMNP-TV-Z]{26}$', note: "Empty = create. Filled = update or verify." }
+  - { name: source_center_code, required: true,  type: string, vocab: centers.code }
+  - { name: diagnosis_source_value, required: true, type: string, note: "Source code or label. Mapped through diagnosis_map. Unmapped = VOCAB error." }
+  - { name: age_band_at_diagnosis, required: true, type: enum, values: ['0_lt1','1_lt3','3_lt6','6_lt10','10_lt15','15_lt18'] }
+  - { name: sex,                required: true,  type: enum, values: [female, male, other_or_unknown] }
+  - { name: sample_type,        required: true,  type: enum, values: [ffpe, frozen, csf, plasma_or_liquid_biopsy, isolated_dna_rna] }
+  - { name: availability,       required: true,  type: enum, values: [available, limited, depleted] }
+  - { name: quantity_class,     required: false, type: enum, values: [small, medium, large] }
+  - { name: clinical_timepoint, required: true,  type: enum, values: [diagnosis, during_treatment, relapse] }
+  - { name: collection_month,   required: true,  type: string, pattern: '^(19[89][0-9]|20[0-9]{2})-(0[1-9]|1[0-2])$' }
+  - { name: attached_data,      required: false, type: set, separator: ";", values: [wes, wgs, rna_seq, mri, digital_pathology, redcap_clinical] }
+  - { name: consent_status,     required: false, type: enum, default: unknown, values: [consent_obtained, broad_consent, waiver_by_committee, restricted, unknown] }
+  - { name: ethics_approval_ref, required: false, type: string, pattern: '^[A-Za-z0-9._/-]{3,64}$', note: "Must exist for the same center and be active. Missing = warning ETHICS_MISSING." }
+  - { name: verified,           required: false, type: boolean, default: false, note: "true = also set last_verified_at. Update rows with no other change = verify_only." }
+identifier_guards:       # applied to EVERY cell of EVERY column. A hit rejects the row (rule IDENTIFIER_SUSPECTED). The value is never stored or echoed.
+  - { id: G1, name: israeli_id_like,   regex: '(?<![0-9])[0-9]{9}(?![0-9])' }
+  - { id: G2, name: phone_like,        regex: '(?<![0-9])(\+?972|0)[- ]?[0-9]{1,2}[- ]?[0-9]{3}[- ]?[0-9]{4}(?![0-9])' }
+  - { id: G3, name: email_like,        regex: '[^\s@]+@[^\s@]+\.[^\s@]+' }
+  - { id: G4, name: full_date_like,    regex: '(?<![0-9])([0-9]{1,2}[./-][0-9]{1,2}[./-][0-9]{2,4}|[0-9]{4}-[0-9]{2}-[0-9]{2})(?![0-9])' }
+  - { id: G5, name: long_digit_run,    regex: '(?<![0-9])[0-9]{7,}(?![0-9])', note: "MRN-like" }
+  - { id: G6, name: free_text_cell,    rule: "any cell longer than 64 chars" }
+row_rules:
+  - { id: R1, rule: "sample_code present => row must belong to a center the job may touch; update must not change source_center" }
+  - { id: R2, rule: "identical rows within a file > 3 => warning DUPLICATE_ROW" }
+  - { id: R3, rule: "update that moves last_verified_at backward or changes nothing and verified=false => outcome warning, action none" }
+  - { id: R4, rule: "ethics approval expired => warning ETHICS_EXPIRED (error in strict mode)" }
+modes:
+  default: lenient       # warnings allowed on commit with acceptWarnings=true
+  strict: { warnings_are_errors: true }
+diagnosis_map:           # source list to portal code. One block per source. Filled in Phase 0 with clinical lead. Examples are synthetic.
+  madgam:
+    "EXAMPLE_SRC_MB_WNT": mb_wnt
+    "EXAMPLE_SRC_DIPG": dmg_h3k27
+  redcap_center_synth_a:
+    "1": pilocytic_astrocytoma
+    "2": mb_shh
