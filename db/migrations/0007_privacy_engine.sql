@@ -52,9 +52,11 @@ CREATE FUNCTION agg.k_for(p_field_set text) RETURNS int LANGUAGE sql STABLE SECU
 
 -- vec[1] = donors of the cell; vec[2..] = donors of neighbour queries (broader: drop a filter / parent / cover; narrower: one OR value removed).
 -- Unsafe when a displayable neighbour differs by 1..k-1 donors (nested sets, so the difference is a group smaller than k).
+-- Two banded answers (both < 10) show no numbers, so their difference is not observable and is ignored.
 CREATE FUNCTION agg._safe(vec int[], k int) RETURNS boolean LANGUAGE sql IMMUTABLE AS $$
   SELECT vec[1] >= k AND NOT EXISTS (SELECT 1 FROM generate_subscripts(vec, 1) i
-    WHERE i >= 2 AND ((vec[i] - vec[1] BETWEEN 1 AND k - 1) OR (vec[1] - vec[i] BETWEEN 1 AND k - 1 AND vec[i] >= k))) $$;
+    WHERE i >= 2 AND NOT (vec[1] < 10 AND vec[i] < 10)
+      AND ((vec[i] - vec[1] BETWEEN 1 AND k - 1) OR (vec[1] - vec[i] BETWEEN 1 AND k - 1 AND vec[i] >= k))) $$;
 CREATE FUNCTION agg._vadd(a int[], b int[]) RETURNS int[] LANGUAGE sql IMMUTABLE AS $$
   SELECT CASE WHEN a IS NULL THEN b ELSE ARRAY(SELECT a[i] + b[i] FROM generate_subscripts(a, 1) i ORDER BY i) END $$;
 
