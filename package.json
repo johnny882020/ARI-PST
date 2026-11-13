@@ -1,0 +1,15 @@
+{
+  "name": "ari-pst-portal",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "arch": "depcruise --config .dependency-cruiser.cjs packages/domain/src apps/api/src"
+  },
+  "devDependencies": { "typescript": "^5.6.0", "vitest": "^2.1.0", "dependency-cruiser": "^16.8.0" }
+}
