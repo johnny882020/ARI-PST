@@ -54,7 +54,7 @@ Private network: `ari-api` reaches `ari-internal` and `ari-db` by internal addre
 - Preview DB is a new empty DB. API seeds from `packages/synthetic-data` when `IS_PULL_REQUEST=true` (UNVERIFIED name).
 - Previews have no secrets (`sync: false` excluded). API refuses to start in preview if `DATA_CLASSIFICATION != synthetic`.
 - Public cron jobs do not run in previews (opt out per service if needed, UNVERIFIED field).
-- Previews are for forks? Disable previews for forked PRs (security). Setting location UNVERIFIED.
+- Disable previews for forked PRs (security). Setting location UNVERIFIED.
 
 ## Zero downtime and health checks
 - Render starts the new instance, waits for the health check, then switches traffic, then stops the old one with SIGTERM (UNVERIFIED details).
