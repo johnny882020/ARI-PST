@@ -625,6 +625,19 @@ paths:
           content:
             text/csv:
               schema: { type: string }
+  /import-jobs/{jobId}/result-map:
+    get:
+      tags: [import]
+      operationId: downloadImportResultMap
+      summary: CSV of rowNo and sampleCode for created rows. Kept 30 days. Audited as a download.
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+      responses:
+        '200':
+          description: CSV with columns row_no and sample_code.
+          content:
+            text/csv:
+              schema: { type: string }
   /import-jobs/{jobId}/commit:
     post:
       tags: [import]
