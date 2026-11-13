@@ -1,5 +1,7 @@
 # ARI-PST Portal — Roadmap
 
+Status (2026-11-13): the Phase 1 build (S1 to S9 content) is done and in verification on synthetic data; S10 to S12 (hardening, UAT, release candidate) and the external gates remain. See `MASTER-PLAN.md` (Build status) and `../docs/KNOWN-ISSUES.md`.
+
 Sprints are 2 weeks. Dates are relative (S1 = first sprint after the owner starts the build).
 Assumes 3–6 engineers (ASSUMPTION-06). Estimates are rough and need the team's review.
 

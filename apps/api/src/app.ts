@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import Fastify, { type FastifyInstance } from 'fastify';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
@@ -61,8 +62,13 @@ export async function buildApp(deps: Deps, opts: { logger?: boolean } = {}): Pro
   };
   registerContractRoutes(app, deps, handlers);
 
-  const dist = config.webDistDir ?? resolve(process.cwd(), '../web/dist');
-  if (existsSync(dist)) {
+  // Root aliases for platform health checks (the contract paths are under /api).
+  app.get('/livez', async () => health.livez());
+  app.get('/readyz', async (_req, reply) => { const r = await health.readyz(); return reply.code(r.code).send(r.body); });
+  const here = dirname(fileURLToPath(import.meta.url));
+  const dist = [config.webDistDir, resolve(process.cwd(), '../web/dist'), resolve(process.cwd(), 'apps/web/dist'), resolve(here, '../../web/dist'), resolve(here, '../../../apps/web/dist')]
+    .filter((x): x is string => Boolean(x)).find((d) => existsSync(resolve(d, 'index.html')));
+  if (dist) {
     await app.register(fastifyStatic, { root: dist, wildcard: false, index: ['index.html'], cacheControl: true, maxAge: '1h' });
     app.decorate('spaFallback', true);
   }

@@ -23,3 +23,12 @@ END $$;
 GRANT SELECT ON audit.audit_events, audit.chain_head, audit.chain_truncation TO app_break_glass;
 CREATE POLICY breakglass_read ON audit.audit_events FOR SELECT TO app_break_glass USING (portal.breakglass_active());
 SELECT portal._assign_owners();
+
+-- GRANTs to the migrator itself are dropped when ownership moves to the definer roles. Re-grant as the owners.
+SET LOCAL ROLE app_core;
+GRANT EXECUTE ON FUNCTION portal.bootstrap_first_admin(text,text), portal.request_expire_overdue(timestamptz),
+  portal.staleness_run(), portal.retention_run(timestamptz) TO app_migrator;
+RESET ROLE;
+SET LOCAL ROLE app_agg;
+GRANT EXECUTE ON FUNCTION agg.refresh_snapshot() TO app_migrator;
+RESET ROLE;

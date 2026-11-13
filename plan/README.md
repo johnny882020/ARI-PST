@@ -21,6 +21,9 @@ Reading order:
 | `09-sre/` | A9 | SLOs, observability, backup, runbooks, incidents |
 | `requests/` | all | Cross-agent requests |
 | `10-review/` | R1, R2 | Findings |
+| `11-integration/` | Orchestrator | `canonical-decisions.md` (wins over every plan) |
+
+Status: plan complete. Phase 1 built and in verification (synthetic data only). Build status and gaps: `MASTER-PLAN.md` (Build status), `../docs/KNOWN-ISSUES.md`, `../docs/CHANGELOG.md`. Operator docs: `../docs/deployment.md`, `../docs/architecture.md`, `../docs/runbooks/`. QA evidence: `../docs/qa/`. Documentation audit: `../docs/DOCS-AUDIT.md`.
 
 Wave 3 files: `11-integration/canonical-decisions.md`, `decision-register.md`, `traceability-matrix.csv` (REQ coverage: design 72/72, tests 63/72; 9 REQs are Phase 0 or later gate items).
-Not yet verified: Render facts (docs were unreachable), legal items, Mermaid rendering.
+Not yet verified: Render facts (docs were unreachable), legal items. Mermaid blocks were parse-checked on 2026-11-13 (see `../docs/DOCS-AUDIT.md`).
