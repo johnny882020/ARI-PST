@@ -26,7 +26,7 @@ GRANT portal_external, portal_clinician, portal_coordinator, portal_committee, p
 -- portal_app has no inherited privileges. It can only SET ROLE to the above. portal_agg is not grantable to it.
 
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
-GRANT USAGE ON SCHEMA portal, search TO portal_external, portal_clinician, portal_coordinator, portal_committee, portal_admin, portal_agg;
+GRANT USAGE ON SCHEMA ext, portal, search TO portal_external, portal_clinician, portal_coordinator, portal_committee, portal_admin, portal_agg;
 GRANT USAGE ON SCHEMA audit TO portal_external, portal_clinician, portal_coordinator, portal_committee, portal_admin;
 REVOKE ALL ON ALL TABLES IN SCHEMA portal, audit FROM PUBLIC;
 

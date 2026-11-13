@@ -3,8 +3,9 @@
 -- Synthetic data only until GATE-PROD-DATA is closed.
 -- IDs are text with a prefix and a 26-char ULID (Crockford base32).
 
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-CREATE EXTENSION IF NOT EXISTS unaccent;
+CREATE SCHEMA IF NOT EXISTS ext;   -- extensions live here so that app roles need no access to schema public
+CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA ext;
+CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA ext;
 
 CREATE SCHEMA IF NOT EXISTS portal;
 CREATE SCHEMA IF NOT EXISTS audit;

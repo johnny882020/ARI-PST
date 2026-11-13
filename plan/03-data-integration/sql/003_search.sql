@@ -1,15 +1,15 @@
 -- Migration 0003: search + k-anonymous aggregate functions.
 -- External roles have no SELECT on samples. They call these SECURITY DEFINER functions.
 -- The functions are owned by portal_agg. portal_agg can read samples (policy samples_agg_read) and nothing else of value.
-SET search_path = portal, public;
+SET search_path = portal, ext, public;
 
 GRANT CREATE ON SCHEMA search TO portal_agg;   -- revoked at the end of this file
 
 -- ---------- Text normalisation (he + en) ----------
 -- unaccent is STABLE. We wrap it as IMMUTABLE for expression indexes. The dictionary is fixed, so this is safe.
-CREATE FUNCTION search.norm(t text) RETURNS text LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+CREATE FUNCTION search.norm(t text) RETURNS text LANGUAGE sql IMMUTABLE PARALLEL SAFE SET search_path = ext, pg_catalog AS $$
   SELECT btrim(regexp_replace(
-           lower(public.unaccent('public.unaccent', regexp_replace(coalesce(t,''), '[֑-ׇ]', '', 'g'))),
+           lower(ext.unaccent('ext.unaccent', regexp_replace(coalesce(t,''), '[֑-ׇ]', '', 'g'))),
            '[^[:alnum:]א-ת]+', ' ', 'g'))
 $$;
 
@@ -176,7 +176,7 @@ END $$;
 -- ---------- Smart search: free text -> diagnosis codes (vocabulary only; samples hold no free text) ----------
 CREATE FUNCTION search.expand_query(p_q text, p_limit int DEFAULT 10)
 RETURNS TABLE (diagnosis_code text, score real, matched_via text)
-LANGUAGE sql STABLE AS $$
+LANGUAGE sql STABLE SET search_path = ext, portal, search, pg_catalog AS $$
   WITH q AS (
     SELECT search.norm(left(p_q, 200)) AS n,
            -- Hebrew one-letter prefixes (ה ב ל ו מ ש כ): also try the word without the prefix.
