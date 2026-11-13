@@ -1,0 +1,17 @@
+# gitleaks config. Extends the default ruleset. No secrets belong in Git.
+title = "ARI-PST gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic and documentation placeholders"
+paths = [
+  '''pnpm-lock\.yaml''',
+  '''plan/.*''',
+  '''docs/.*\.md''',
+]
+regexes = [
+  '''ci-only-not-secret''',
+  '''postgres://[a-z_]+:(changeme|password|ci-only-not-secret)@localhost''',
+]

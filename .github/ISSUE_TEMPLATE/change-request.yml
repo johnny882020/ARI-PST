@@ -1,0 +1,22 @@
+name: Change request
+description: Propose a feature or an infrastructure change.
+labels: [change]
+body:
+  - type: textarea
+    id: why
+    attributes: { label: Why, description: Problem and who benefits }
+    validations: { required: true }
+  - type: input
+    id: req
+    attributes: { label: Requirement IDs, placeholder: "REQ-034, REQ-046" }
+  - type: textarea
+    id: risk
+    attributes: { label: Risk and rollback }
+  - type: checkboxes
+    id: classes
+    attributes:
+      label: Touches
+      options:
+        - label: Database migration
+        - label: Auth, RBAC, audit or RLS
+        - label: render.yaml or CI

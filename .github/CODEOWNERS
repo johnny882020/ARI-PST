@@ -1,0 +1,18 @@
+# Last matching pattern wins. Replace @ARI-ORG placeholders with real GitHub teams before enabling
+# "Require review from Code Owners". Placeholder teams that do not exist block merges.
+# Teams: engineering, platform, security, data-owners, architects, api-owners, content-editors, release-approvers.
+*                                   @ARI-ORG/engineering
+/db/migrations/                     @ARI-ORG/data-owners @ARI-ORG/security
+/db/migrate.mjs                     @ARI-ORG/data-owners @ARI-ORG/security
+/packages/domain/                   @ARI-ORG/architects
+/packages/contracts/                @ARI-ORG/architects @ARI-ORG/api-owners
+/apps/api/src/adapters/audit-pg/    @ARI-ORG/security
+/apps/api/src/adapters/auth-local/  @ARI-ORG/security
+/render.yaml                        @ARI-ORG/platform @ARI-ORG/security
+/infra/                             @ARI-ORG/platform @ARI-ORG/security
+/scripts/                           @ARI-ORG/platform
+/.github/                           @ARI-ORG/platform @ARI-ORG/security
+/.gitleaks.toml                     @ARI-ORG/security
+/docs/runbooks/                     @ARI-ORG/platform
+# RT-10: content editors may only touch content. Workflow, infra and code stay with engineering.
+/apps/public-site/content/          @ARI-ORG/content-editors

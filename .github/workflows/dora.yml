@@ -1,0 +1,23 @@
+name: dora
+on:
+  schedule:
+    - cron: "50 6 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  deployments: read
+  issues: read
+jobs:
+  report:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: DORA report (team level, no per-person metrics)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: python3 scripts/dora_report.py --days 28 --out dora.md
+      - uses: actions/upload-artifact@v4
+        with: { name: dora-report, path: dora.md }
+      - run: cat dora.md >> "$GITHUB_STEP_SUMMARY"

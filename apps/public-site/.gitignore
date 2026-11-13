@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-*
+.astro
+.lighthouseci
+public/admin/vendor/
+.env
+.env.*
+!.env.example

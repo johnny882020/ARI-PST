@@ -1,0 +1,12 @@
+name: setup
+description: Node + pnpm + install (frozen lockfile)
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4          # TODO(sha-pin): reads packageManager from package.json
+    - uses: actions/setup-node@v4         # TODO(sha-pin)
+      with:
+        node-version: "22"
+        cache: pnpm
+    - run: pnpm install --frozen-lockfile
+      shell: bash

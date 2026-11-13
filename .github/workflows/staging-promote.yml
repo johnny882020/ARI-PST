@@ -1,0 +1,24 @@
+# Fast-forward the "staging" branch to main after CI is green. Only this bot pushes to staging.
+name: staging-promote
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: write
+concurrency:
+  group: staging-promote
+  cancel-in-progress: false
+jobs:
+  promote:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, ref: "${{ github.event.workflow_run.head_sha }}" }
+      - name: Fast-forward staging
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          git push origin "$SHA:refs/heads/staging"     # fails if not a fast-forward. Never force.

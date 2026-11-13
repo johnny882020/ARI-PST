@@ -1,0 +1,3 @@
+# ZAP baseline rule overrides: <rule id>	<IGNORE|WARN|FAIL>	<comment>
+10038	FAIL	CSP header must be present
+10020	FAIL	Clickjacking protection
