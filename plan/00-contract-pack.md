@@ -184,3 +184,11 @@ Wave 1 agents write plan files only. They do not write application code, except 
 
 ## 10. Quality bars (each needs measurable acceptance criteria)
 User friendly · Reliable · Highly secure and private · Apple-style design · Strong brand · Modular.
+
+## 11. Owner answers (2026-11-13) — confirm the defaults above
+- GATE-CLINICIAN-ID: owner chose **coded record + link-out**. Portal never stores identity.
+- GATE-K: owner chose **k = 5** (configurable).
+- GATE-REGION: owner chose **Frankfurt (EU)** for now. Still needs legal review before real data.
+- ASSUMPTION-03 confirmed: researchers **self-register, then national_coordinator approves**.
+- Phase 1 = fully functional (all roles, permissions, DB, security layers). Real data stays blocked by GATE-PROD-DATA.
+- Render account: owner's own. Deploy only after the owner links the repo and gives the API key through a secure form.

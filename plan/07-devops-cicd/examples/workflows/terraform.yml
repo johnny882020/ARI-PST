@@ -1,0 +1,32 @@
+name: terraform
+on:
+  pull_request:
+    paths: ["infra/terraform/**"]
+  push:
+    branches: [main]
+    paths: ["infra/terraform/**"]
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    defaults: { run: { working-directory: infra/terraform } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: "1.9.8" }
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false
+      - run: terraform validate
+      - uses: aquasecurity/trivy-action@0.28.0
+        with: { scan-type: config, scan-ref: infra/terraform, exit-code: "1", severity: "HIGH,CRITICAL" }
+      - name: Policy-as-code on plan (conftest)
+        run: echo "terraform plan -out tf.plan; terraform show -json tf.plan | conftest test -p ../policy-tf -  (needs remote backend credentials via OIDC)"
+  apply:
+    if: github.ref == 'refs/heads/main'
+    needs: plan
+    runs-on: ubuntu-24.04
+    environment: production-infra   # manual approval, required reviewers
+    steps:
+      - run: echo "terraform apply tf.plan  (illustrative; needs backend + OIDC role)"

@@ -1,0 +1,28 @@
+# DAST on the PR preview. Runs after Render reports the preview deploy. Synthetic data only.
+name: dast-preview
+on:
+  deployment_status:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  zap-baseline:
+    if: github.event.deployment_status.state == 'success' && github.event.deployment.environment != 'production-protected'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve preview URL
+        id: url
+        run: echo "target=${{ github.event.deployment_status.environment_url }}" >> "$GITHUB_OUTPUT"
+      - name: Guard - only onrender.com preview hosts
+        run: |
+          case "${{ steps.url.outputs.target }}" in
+            https://*.onrender.com*) ;;
+            *) echo "Refusing to scan non-preview host"; exit 1 ;;
+          esac
+      - uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ steps.url.outputs.target }}
+          rules_file_name: infra/ci/zap-rules.tsv
+          fail_action: true

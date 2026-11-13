@@ -1,0 +1,45 @@
+# Portability checks (REQ-070). Nightly + manual. Synthetic data only.
+name: base44-readiness
+on:
+  schedule:
+    - cron: "40 1 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export-import-roundtrip:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      pg-a:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: ci-only-not-secret, POSTGRES_DB: src }
+        ports: ["5433:5432"]
+      pg-b:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: ci-only-not-secret, POSTGRES_DB: dst }
+        ports: ["5434:5432"]
+    env:
+      SRC_URL: postgres://postgres:ci-only-not-secret@localhost:5433/src
+      DST_URL: postgres://postgres:ci-only-not-secret@localhost:5434/dst
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: "9" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: DATABASE_URL=$SRC_URL pnpm run db:migrate && DATABASE_URL=$SRC_URL pnpm run db:seed-synthetic
+      - name: Full export (open formats - CSV + JSON + SQL schema)
+        run: pnpm run export:full --from "$SRC_URL" --out export/
+      - name: Import into empty DB
+        run: DATABASE_URL=$DST_URL pnpm run db:migrate && pnpm run import:full --to "$DST_URL" --in export/
+      - name: Compare (row counts, checksums, audit chain, constraints)
+        run: pnpm run verify:roundtrip --a "$SRC_URL" --b "$DST_URL"
+      - name: Port contract tests against the alternate adapter set
+        run: pnpm run test:portability -- --adapters=in-memory,postgres
+      - name: Capability map drift (docs/platform-capability-map.md vs code)
+        run: pnpm run check:capability-map
+      - name: Notify on failure
+        if: failure()
+        run: echo "::error::Portability round trip failed. Open issue RB-portability."
