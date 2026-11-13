@@ -56,8 +56,8 @@ export interface SampleRecord {
 export interface Page<T> { items: T[]; nextCursor: string | null }
 export interface SampleListQuery { centerId?: string; diagnosisCode?: string; sampleType?: string; availability?: string; staleness?: Staleness; cursor?: string; limit: number }
 export interface DiagnosisTermRecord { diagnosisCode: string; parentCode: string | null; level: 'group' | 'family' | 'type'; icdo3Morph: string | null; labelHe: string; labelEn: string }
-export interface Bucket { bucket: string; level: string; count: number | null; suppressed: boolean }
-export interface AggregateCount { count: number | null; suppressed: boolean; k: number }
+export interface Bucket { bucket: string; level: string; count: number | null; suppressed: boolean; band?: string }
+export interface AggregateCount { count: number | null; suppressed: boolean; k: number; band?: string | null }
 
 export interface RequestItemRecord { id: string; criteria: Filters; requestedCount: number | null; shownCountBucket: string | null }
 export interface RequestStepRecord { stepKey: StepKey; centerId: string | null; status: 'pending' | 'in_progress' | 'done' | 'skipped' | 'blocked'; publicNote: string | null; internalNote?: string | null; startedAt: string | null; completedAt: string | null }

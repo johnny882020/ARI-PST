@@ -27,10 +27,7 @@ export function predicateCount(f: Filters): number {
 export function queryCost(f: Filters): number { return 1 + predicateCount(f); }
 export function validateFilterShape(f: Filters, limits: QueryLimits = QUERY_LIMITS): string | null {
   if (predicateCount(f) > limits.maxPredicates) return 'MAX_PREDICATES';
-  for (const k of FILTER_KEYS) if ((f[k]?.length ?? 0) > (k === 'diagnosis' ? 50 : 50) ) return 'MAX_VALUES';
-  for (const k of ['sampleType', 'ageBand', 'sex', 'centerId', 'timepoint', 'availability'] as const) {
-    if ((f[k]?.length ?? 0) > Math.max(limits.maxOrValues, 6)) return 'MAX_OR_VALUES';
-  }
+  for (const k of FILTER_KEYS) if ((f[k]?.length ?? 0) > limits.maxOrValues) return 'MAX_OR_VALUES';
   return null;
 }
 export function stableStringify(v: unknown): string {
