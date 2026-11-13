@@ -1,0 +1,16 @@
+{"version":9,"type":"context-options","origin":"library","browserName":"","playwrightVersion":"1.63.0","options":{},"platform":"linux","wallTime":1794589891610,"monotonicTime":2601.347,"sdkLanguage":"javascript","title":"admin.spec.ts:6 › admin: k policy cannot go below the floor; change needs a second approver (en)"}
+{"type":"before","callId":"call@11","startTime":2934.295,"class":"APIRequestContext","method":"fetch","params":{"url":"/api/v1/__reset","method":"POST"},"stepId":"pw:api@39"}
+{"type":"log","callId":"call@11","time":2952.339,"message":"→ POST http://localhost:4300/api/v1/__reset"}
+{"type":"log","callId":"call@11","time":2952.492,"message":"  user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36"}
+{"type":"log","callId":"call@11","time":2952.515,"message":"  accept: */*"}
+{"type":"log","callId":"call@11","time":2952.525,"message":"  accept-encoding: gzip,deflate,br"}
+{"type":"log","callId":"call@11","time":2965.834,"message":"← 200 OK"}
+{"type":"log","callId":"call@11","time":2965.884,"message":"  set-cookie: __Host-csrf=3957d6d5473a673e61ab384d; Path=/; Secure; SameSite=Strict"}
+{"type":"log","callId":"call@11","time":2965.905,"message":"  content-type: application/json"}
+{"type":"log","callId":"call@11","time":2965.917,"message":"  cache-control: no-store"}
+{"type":"log","callId":"call@11","time":2965.927,"message":"  x-content-type-options: nosniff"}
+{"type":"log","callId":"call@11","time":2965.964,"message":"  date: Fri, 13 Nov 2026 17:11:31 GMT"}
+{"type":"log","callId":"call@11","time":2965.987,"message":"  connection: keep-alive"}
+{"type":"log","callId":"call@11","time":2966.004,"message":"  keep-alive: timeout=5"}
+{"type":"log","callId":"call@11","time":2966.015,"message":"  transfer-encoding: chunked"}
+{"type":"after","callId":"call@11","endTime":2972.551,"result":{"response":{"url":"http://localhost:4300/api/v1/__reset","status":200,"statusText":"OK","headers":[{"name":"Set-Cookie","value":"__Host-csrf=3957d6d5473a673e61ab384d; Path=/; Secure; SameSite=Strict"},{"name":"content-type","value":"application/json"},{"name":"cache-control","value":"no-store"},{"name":"x-content-type-options","value":"nosniff"},{"name":"Date","value":"Fri, 13 Nov 2026 17:11:31 GMT"},{"name":"Connection","value":"keep-alive"},{"name":"Keep-Alive","value":"timeout=5"},{"name":"Transfer-Encoding","value":"chunked"}],"serverAddr":{"ipAddress":"127.0.0.1","port":4300},"timing":{"startTime":1794589891950,"domainLookupStart":0,"domainLookupEnd":17.705999999999676,"connectStart":17.705999999999676,"secureConnectionStart":-1,"connectEnd":18.579999999999927,"requestStart":18.579999999999927,"responseStart":23.210000000000036},"responseEndTiming":28.98700000000008,"fetchUid":"d033bd1bc19560f0c70f5dd87737d957"}}}

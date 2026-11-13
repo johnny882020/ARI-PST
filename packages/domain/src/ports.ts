@@ -88,10 +88,10 @@ export interface UserRepo {
   getById(id: string): Promise<UserRecord | null>;
   getByEmail(email: string): Promise<UserRecord | null>;
   list(q: { status?: string; role?: string; cursor?: string; limit: number; researchersOnly?: boolean }): Promise<Page<UserRecord>>;
-  create(u: { id: string; email: string; displayName: string; locale: 'he' | 'en'; status: UserRecord['status']; institution?: string | null; isIsraeliAcademic?: boolean }): Promise<UserRecord>;
-  update(id: string, p: { displayName?: string; status?: UserRecord['status']; locale?: 'he' | 'en'; emailVerifiedAt?: string }): Promise<UserRecord | null>;
+  create(u: { email: string; displayName: string; locale: 'he' | 'en'; status: UserRecord['status']; institution?: string | null; isIsraeliAcademic?: boolean }): Promise<UserRecord>;
+  update(id: string, p: { displayName?: string; status?: UserRecord['status'] }): Promise<UserRecord | null>;
   grantRole(a: { id: string; userId: string; role: Role; centerId: string | null; grantedBy: string; approvedBy?: string }): Promise<RoleAssignmentRecord>;
-  registerResearcher(r: { id: string; email: string; displayName: string; institution: string; isIsraeliAcademic: boolean; locale: 'he' | 'en' }): Promise<boolean>;
+  registerResearcher(r: { email: string; displayName: string; institution: string; isIsraeliAcademic: boolean; locale: 'he' | 'en' }): Promise<{ userId: string; verificationToken: string } | null>;
   updateSelf(id: string, p: { displayName?: string; locale?: 'he' | 'en' }): Promise<void>;
   approveRegistration(userId: string): Promise<void>;
   rejectRegistration(userId: string): Promise<void>;

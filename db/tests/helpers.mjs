@@ -74,7 +74,7 @@ export async function addSamples(rows) {
   for (const r of rows) {
     await a.query(`INSERT INTO portal.samples (id, donor_ref, source_center_id, diagnosis_code, age_band_at_diagnosis, sex, sample_type, availability,
       clinical_timepoint, collection_month, contact_ref) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'2024-05','Center research coordinator')`,
-      [sid(++sampleCounter), r.donor ?? `${String(sampleCounter).padStart(32, '0').replace(/0/g, 'a')}`.slice(0, 32), r.center, r.dx, r.age ?? '3_lt6', r.sex ?? 'female',
+      [sid(++sampleCounter), r.donor ?? sampleCounter.toString(16).padStart(32, '0'), r.center, r.dx, r.age ?? '3_lt6', r.sex ?? 'female',
        r.type ?? 'ffpe', r.availability ?? 'available', r.tp ?? 'diagnosis']);
   }
 }

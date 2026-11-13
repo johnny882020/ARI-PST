@@ -101,6 +101,18 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'not_found' USING ERRCODE = 'P0002'; END IF;
   PERFORM audit.record('sample.update', 'sample', p_id, 'allow', '{"fields":["last_verified_at"]}');
 END $$;
+CREATE FUNCTION portal.user_update_self(p_display_name text, p_locale text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, portal, pg_temp AS $$
+BEGIN
+  IF portal.cur_user_id() IS NULL THEN RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501'; END IF;
+  UPDATE portal.users SET display_name = coalesce(p_display_name, display_name), locale = coalesce(p_locale, locale) WHERE id = portal.cur_user_id();
+END $$;
+CREATE FUNCTION portal.user_admin_rename(p_user_id text, p_display_name text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, portal, pg_temp AS $$
+BEGIN
+  PERFORM portal._require_role('system_admin');
+  UPDATE portal.users SET display_name = p_display_name WHERE id = p_user_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'not_found' USING ERRCODE = 'P0002'; END IF;
+END $$;
+GRANT EXECUTE ON FUNCTION portal.user_update_self(text,text), portal.user_admin_rename(text,text) TO app_runtime;
 GRANT EXECUTE ON FUNCTION authn.find_login(text), authn.user_roles(text), authn.profile(text), authn.set_verified(text,boolean), authn.touch_login(text),
   ops.outbox_enqueue(text,text,text,text,text,text,jsonb), ops.outbox_claim(int), ops.outbox_mark(text,boolean,boolean), ops.outbox_list(int), ops.metrics(),
   portal.sample_verify(text) TO app_runtime;

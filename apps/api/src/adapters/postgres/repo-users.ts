@@ -33,15 +33,12 @@ export function makeUserRepo(q: Q, ctx: Ctx): UserRepo {
       return { items: rows.map((u) => userOf(u, m.get(u.id) ?? [])), nextCursor: r.rows.length > p.limit && last ? Buffer.from(JSON.stringify({ c: iso(last.created_at), i: last.id })).toString('base64url') : null };
     },
     async create(u) {
-      await q.query('SELECT portal.user_invite($1,$2,$3)', [u.email, u.displayName, u.locale]).then(async (r) => {
-        // user_invite generates the id. We keep the generated one and return it through the record.
-        (u as { id: string }).id = r.rows[0].user_invite;
-      });
-      return (await one('id = $1', u.id))!;
+      const r = await q.query('SELECT portal.user_invite($1,$2,$3) AS id', [u.email, u.displayName, u.locale]);   // the database generates the id
+      return (await one('id = $1', r.rows[0].id))!;
     },
     async update(id, p) {
       if (p.status) await q.query('SELECT portal.user_set_status($1,$2)', [id, p.status]);
-      if (p.displayName !== undefined) await q.query('UPDATE portal.users SET display_name = $2 WHERE id = $1', [id, p.displayName]);
+      if (p.displayName !== undefined) await q.query('SELECT portal.user_admin_rename($1,$2)', [id, p.displayName]);
       return one('id = $1', id);
     },
     async grantRole(a) {
@@ -56,14 +53,14 @@ export function makeUserRepo(q: Q, ctx: Ctx): UserRepo {
     async activeRoles(userId) { return (await rolesFor([userId])).get(userId) ?? []; },
     async registerResearcher(r) {
       try {
+        await q.query('SAVEPOINT reg');
         const res = await q.query('SELECT user_id, verification_token FROM portal.user_register($1,$2,$3,$4)', [r.email, r.displayName, r.locale, r.isIsraeliAcademic ? 'researcher_il' : 'researcher_intl']);
-        (r as unknown as { issued: { userId: string; token: string } }).issued = { userId: res.rows[0].user_id, token: res.rows[0].verification_token };
-        return true;
-      } catch (e) { if ((e as { code?: string }).code === '23505') return false; throw e; }
+        await q.query('RELEASE SAVEPOINT reg');
+        return { userId: res.rows[0].user_id as string, verificationToken: res.rows[0].verification_token as string };
+      } catch (e) { if ((e as { code?: string }).code === '23505') { await q.query('ROLLBACK TO SAVEPOINT reg'); return null; } throw e; }
     },
     async updateSelf(id, p) {
-      if (p.displayName !== undefined) await q.query('UPDATE portal.users SET display_name = $2 WHERE id = $1', [id, p.displayName]);
-      if (p.locale !== undefined) await q.query('UPDATE portal.users SET locale = $2 WHERE id = $1', [id, p.locale]);
+      void id; await q.query('SELECT portal.user_update_self($1,$2)', [p.displayName ?? null, p.locale ?? null]);
     },
     async approveRegistration(userId) { await q.query('SELECT portal.researcher_approve($1)', [userId]); },
     async rejectRegistration(userId) { await q.query('SELECT portal.researcher_reject($1)', [userId]); },
