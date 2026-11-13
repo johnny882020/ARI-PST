@@ -135,7 +135,7 @@ Plan is complete (waves 1 to 3). The Phase 1 build is done and in verification, 
 | Contract | `packages/contracts/openapi.yaml`, `packages/api-client` (generated) | Built, with `x-roles` |
 | Database | `db/` (bootstrap, 9 forward-only migrations, runner, seed, tests) | Built. Tests need local PostgreSQL 16 |
 | API | `apps/api` (ten modules, adapters, four cron jobs) | Built. Some Blueprint and code settings do not match yet |
-| Protected app | `apps/web` (30 routes, he/en, mock server, Playwright) | Built subset of the route table |
+| Protected app | `apps/web` (route table in `route-table.tsx`, he/en, mock server, Playwright) | Built subset of the route table |
 | Public site | `apps/public-site` (Astro, he/en, Decap CMS, consent analytics) | Built |
 | Design system, i18n, synthetic data | `packages/design-system`, `packages/i18n`, `packages/synthetic-data` | Built |
 | Render Blueprint | `render.yaml` (one `ari-api` serves API and SPA), `infra/render.staging.yaml`, `infra/policy` | Built, not applied to Render |

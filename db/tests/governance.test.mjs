@@ -122,6 +122,5 @@ describe('break glass (RT-27)', () => {
     await fails(bg.query('SELECT portal.breakglass_begin()'), 'no_active_grant');
     expect((await bg.query('SELECT count(*)::int n FROM portal.samples')).rows[0].n).toBe(0);   // RLS: grant expired
     await admin().query('ALTER ROLE app_break_glass NOLOGIN');
-    await bg.end().catch(() => {});
   });
 });
