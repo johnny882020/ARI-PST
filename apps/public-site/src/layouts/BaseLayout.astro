@@ -1,0 +1,109 @@
+---
+import '../styles/tokens.css';
+import '../styles/global.css';
+import type { Locale } from '../content/schemas';
+import { DIR, OG_LOCALE, t, LANG_NAME } from '../i18n/ui';
+import { path, otherLocale } from '../lib/paths';
+import { settings } from '../lib/content';
+import { abs, hreflangLinks, organizationLd, websiteLd, breadcrumbLd, ldString, type Crumb } from '../lib/seo';
+import { PORTAL_URL, ANALYTICS_ON, NOINDEX_ALL } from '../lib/env';
+import Logo from '../components/Logo.astro';
+import Consent from '../components/Consent.astro';
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  /** Path within the locale, '' for home, e.g. 'news/portal-phase-one'. */
+  slug?: string;
+  hasOther?: boolean;
+  ogType?: 'website' | 'article';
+  ld?: unknown[];
+  noindex?: boolean;
+  crumbs?: Crumb[];
+  ogImage?: string;
+}
+const { locale, title, description, slug = '', hasOther = true, ogType = 'website', ld = [], noindex = false, crumbs = [], ogImage = '/og-default.png' } = Astro.props;
+const s = await settings(locale);
+const other = otherLocale(locale);
+const topSlug = slug.split('/')[0];
+const fullTitle = slug === '' ? `${title} | ${s.site_name}` : `${title} | ${s.site_name}`;
+const canonical = abs(path(locale, slug));
+const links = hreflangLinks(locale, slug, hasOther);
+const robots = noindex || NOINDEX_ALL ? 'noindex, nofollow' : 'index, follow';
+const switchHref = hasOther ? path(other, slug) : path(other);
+const jsonLd = [organizationLd('/favicon.svg'), websiteLd(locale), ...(crumbs.length ? [breadcrumbLd(crumbs)] : []), ...ld];
+const footerLinks = [
+  ['privacy', t(locale, 'privacy')], ['terms', t(locale, 'terms')],
+  ['accessibility', t(locale, 'accessibility')], ['analytics-notice', t(locale, 'analyticsNotice')],
+] as const;
+---
+<!doctype html>
+<html lang={locale} dir={DIR[locale]}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content={robots} />
+    <link rel="canonical" href={canonical} />
+    {links.map((l) => <link rel="alternate" hreflang={l.hreflang} href={l.href} />)}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:site_name" content={s.site_name} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={OG_LOCALE[locale]} />
+    {hasOther && <meta property="og:locale:alternate" content={OG_LOCALE[other]} />}
+    <meta property="og:image" content={abs(ogImage)} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <script type="application/ld+json" set:html={ldString(jsonLd)} />
+  </head>
+  <body>
+    <a class="skip" href="#main">{t(locale, 'skip')}</a>
+    <header class="site-header">
+      <div class="bar">
+        <a class="brand" href={path(locale)} aria-label={`${s.site_name} - ${t(locale, 'home')}`}>
+          <Logo />
+          <span>ARI-PST<small>× Tech4Cancer</small></span>
+        </a>
+        <div class="tools">
+          <a class="btn btn-sm" href={switchHref} hreflang={other} lang={other} aria-label={t(locale, 'switchToLabel')} data-umami-event="language_switch">{LANG_NAME[other]}</a>
+          <a class="btn btn-primary btn-sm" href={PORTAL_URL} data-umami-event="login_entry_click">{t(locale, 'login')}</a>
+        </div>
+        <div class="nav-wrap">
+          <details class="menu">
+            <summary>{t(locale, 'menu')}</summary>
+            <nav aria-label={t(locale, 'mainNav')}>
+              <ul class="navlist">
+                {s.nav.map((n) => (
+                  <li><a href={path(locale, n.slug)} aria-current={topSlug === n.slug ? 'page' : undefined}>{n.label}</a></li>
+                ))}
+              </ul>
+            </nav>
+          </details>
+        </div>
+      </div>
+    </header>
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="bar">
+        <p>{s.footer_text}</p>
+        <nav aria-label={t(locale, 'footerNav')}>
+          <ul>
+            {footerLinks.map(([sl, label]) => <li><a href={path(locale, sl)}>{label}</a></li>)}
+            {ANALYTICS_ON && <li><button type="button" class="link-btn" data-consent-open>{t(locale, 'privacySettings')}</button></li>}
+          </ul>
+        </nav>
+      </div>
+    </footer>
+    {ANALYTICS_ON && <Consent locale={locale} />}
+    <script>import '../scripts/menu';</script>
+  </body>
+</html>

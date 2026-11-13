@@ -1,0 +1,17 @@
+---
+import type { Locale } from '../content/schemas';
+import { t } from '../i18n/ui';
+import { path } from '../lib/paths';
+import { UMAMI_SRC, UMAMI_ID } from '../lib/env';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+---
+<div id="consent" class="consent" role="region" aria-labelledby="consent-title" hidden data-umami-src={UMAMI_SRC} data-website-id={UMAMI_ID}>
+  <h2 id="consent-title" class="small">{t(locale, 'consentTitle')}</h2>
+  <p>{t(locale, 'consentText')} <a href={path(locale, 'analytics-notice')}>{t(locale, 'consentMore')}</a></p>
+  <div class="row">
+    <button type="button" class="btn btn-primary" data-consent="accept">{t(locale, 'consentAccept')}</button>
+    <button type="button" class="btn btn-primary" data-consent="decline">{t(locale, 'consentDecline')}</button>
+  </div>
+</div>
+<script>import '../scripts/consent';</script>

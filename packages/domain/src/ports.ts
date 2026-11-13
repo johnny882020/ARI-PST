@@ -197,6 +197,8 @@ export interface Repository {
 // ---------- Auth ----------
 export interface SessionRecord {
   id: string; userId: string; createdAt: number; lastSeenAt: number; mfaAt: number | null; ipHash: string | null; csrfToken: string;
+  /** Snapshot of active roles at login. Role changes and suspension revoke the user's sessions. */
+  roles: RoleAssignmentRecord[]; displayName: string; locale: 'he' | 'en';
 }
 export type MfaFactor = 'totp' | 'webauthn';
 export interface AuthPort {
@@ -222,7 +224,7 @@ export interface AuthPort {
   consumeChallenge(token: string, peek?: boolean): Promise<{ userId: string; attempts: number } | null>;
   failChallenge(token: string): Promise<void>;
   // Sessions (server-side)
-  createSession(userId: string, opts: { mfaAt: number; ipHash: string | null }): Promise<SessionRecord>;
+  createSession(userId: string, opts: { mfaAt: number; ipHash: string | null; roles: RoleAssignmentRecord[]; displayName: string; locale: 'he' | 'en' }): Promise<SessionRecord>;
   getSession(id: string): Promise<SessionRecord | null>;
   touchSession(id: string, now: number): Promise<void>;
   stepUpSession(id: string, now: number): Promise<void>;
