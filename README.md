@@ -20,9 +20,8 @@ Run one area:
 pnpm --filter @ari/public-site dev          # public site (he/en)
 pnpm --filter @ari/web dev                  # protected app; `pnpm --filter @ari/web mock` serves a mock API
 pnpm --filter @ari/design-system gallery:dev   # component gallery
-pnpm --filter ./db test                     # database tests (see db/README.md)
+pnpm --filter @ari/db test                    # database tests (see db/README.md)
 ```
-Package names may differ; check each `package.json`.
 
 ## Layout
 | Path | What |
