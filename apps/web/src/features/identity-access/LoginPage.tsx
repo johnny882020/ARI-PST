@@ -32,7 +32,7 @@ export function LoginPage() {
       const r = await unwrap(api.POST("/auth/login", { body: v }));
       // No second factor yet (first sign-in after e-mail verification): the challenge alone gives an
       // enrolment-only session, and the user must add a factor before anything else.
-      if ((r as { enrollmentRequired?: boolean }).enrollmentRequired || r.factors.length === 0) {
+      if (r.enrollmentRequired || r.factors.length === 0) {
         qc.setQueryData(qk.session, await unwrap(api.POST("/auth/mfa/verify", { body: { challengeToken: r.challengeToken } })));
         nav("/setup-mfa", { replace: true });
         return;

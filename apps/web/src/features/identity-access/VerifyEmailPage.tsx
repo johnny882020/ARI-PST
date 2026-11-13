@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, Button, Input } from "@ari/design-system";
 import { isApiProblem, unwrapVoid } from "@ari/api-client";
 import type { MessageKey } from "@ari/i18n";
-import { postVerifyEmail } from "../../lib/api";
+import { api } from "../../lib/api";
 import { useT } from "../../app/locale";
 import { PageHeading } from "../../shared/page";
 import { ErrorSummary } from "../../shared/forms";
@@ -56,7 +56,7 @@ export function VerifyEmailPage() {
     async (v) => {
       setProblem(null);
       try {
-        await unwrapVoid(postVerifyEmail({ token, password: v.password }));
+        await unwrapVoid(api.POST("/auth/verify-email", { body: { token, password: v.password } }));
         f.reset({ password: "", confirm: "" });
         setDone(true);
       } catch (e) {
