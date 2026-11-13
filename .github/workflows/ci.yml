@@ -138,7 +138,7 @@ jobs:
       - run: python3 scripts/gen-staging.py --check
       - name: conftest policy on Blueprints
         run: docker run --rm -v "$PWD:/project" openpolicyagent/conftest:v0.56.0 test render.yaml infra/render.staging.yaml -p infra/policy
-      - uses: aquasecurity/trivy-action@0.28.0
+      - uses: aquasecurity/trivy-action@v0.36.0
         with: { scan-type: config, scan-ref: ".", exit-code: "1", severity: "HIGH,CRITICAL" }
       # No Dockerfile exists in Phase 1 (Render native runtimes). Add hadolint here if one is introduced.
 
