@@ -63,12 +63,14 @@ export class PgRepository implements Repository {
     const c: Ctx = anon ? { ...ctx, actor: { ...ctx.actor, userId: null, role: 'anonymous' } } : ctx;
     try { await this.tx(c, (tx) => tx.audit.record(c, { ...ev, details })); } catch { /* audit of a denial must never mask the denial itself */ }
   }
+  /** DB reachable + applied migration level (NNNN). migrationsOk only says "a level could be read"; Health compares it to the build. */
   async ping() {
     try {
       await this.pool.query('SELECT 1');
-      let latest: string | null = null; let ok = true;
-      try { const r = await this.pool.query('SELECT max(name) AS n FROM public.schema_migrations'); latest = r.rows[0]?.n ?? null; ok = latest !== null; } catch { latest = null; ok = true; }
-      return { ok: true, migrationsOk: ok, latestMigration: latest };
+      let latest: string | null = null;
+      try { latest = (await this.pool.query('SELECT portal.migration_level() AS v')).rows[0]?.v ?? null; }
+      catch { try { latest = (await this.pool.query('SELECT max(version) AS v FROM public.schema_migrations')).rows[0]?.v ?? null; } catch { latest = null; } }
+      return { ok: true, migrationsOk: latest !== null, latestMigration: latest };
     } catch { return { ok: false, migrationsOk: false, latestMigration: null }; }
   }
 }

@@ -197,5 +197,5 @@ GRANT EXECUTE ON FUNCTION authn.find_login(text), authn.user_roles(text), authn.
   portal.user_update_self(text,text), portal.user_admin_rename(text,text), portal.sample_verify(text), portal.migration_level(),
   ops.outbox_enqueue(text,text,text,text,text,text,jsonb), ops.outbox_claim(int), ops.outbox_mark(text,boolean,boolean), ops.outbox_list(int),
   ops.log_query(text,text,int), ops.budget_spent(text), ops.metrics() TO app_runtime;
-GRANT EXECUTE ON FUNCTION portal.migration_level() TO app_readonly_bg;
+GRANT EXECUTE ON FUNCTION portal.migration_level() TO app_readonly_bg, app_break_glass;
 SELECT portal._assign_owners();

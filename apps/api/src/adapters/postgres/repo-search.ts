@@ -17,6 +17,7 @@ export function makeSearchRepo(q: Q, ctx: Ctx): SearchRepo {
       const r = await q.query('SELECT bucket, bucket_level, n, band, masked FROM agg.facet_counts($1::jsonb, $2)', [JSON.stringify(f), facet]);
       return r.rows.map((x) => ({ bucket: x.bucket, level: x.bucket_level, count: x.masked ? null : (x.n ?? null), suppressed: Boolean(x.masked), ...(x.band ? { band: x.band } : {}) }));
     },
+    async refreshSnapshot() { await q.query('SELECT agg.refresh_snapshot()'); },
     async k() { try { const r = await q.query(`SELECT k FROM portal.k_policies WHERE field_set = 'default'`); return r.rows[0]?.k ?? 5; } catch { return 5; } },
     async expand(text, limit) {
       const r = await q.query('SELECT diagnosis_code, score, matched_via FROM search.expand_query($1, $2)', [text, limit]);

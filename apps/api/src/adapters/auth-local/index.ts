@@ -59,6 +59,10 @@ export class PgAuth implements AuthPort {
     await this.q('UPDATE authn.credentials SET totp_pending_enc = $2 WHERE user_id = $1', [userId, this.enc(secret)]);
     return { secretBase32: secret, otpauthUri: otpauthUri(secret, label, this.opt.rpName) };
   }
+  /** Synthetic seed only (jobs/seed-synthetic.ts): stores a confirmed TOTP secret without the enrolment ceremony. */
+  async seedTotpSecret(userId: string, secretBase32: string) {
+    await this.q('UPDATE authn.credentials SET totp_secret_enc = $2, totp_pending_enc = NULL, totp_confirmed_at = now(), totp_last_step = -1 WHERE user_id = $1', [userId, this.enc(secretBase32)]);
+  }
   async totpConfirm(userId: string, code: string) {
     const r = (await this.q('SELECT totp_pending_enc FROM authn.credentials WHERE user_id = $1', [userId])).rows[0];
     if (!r?.totp_pending_enc) return false;

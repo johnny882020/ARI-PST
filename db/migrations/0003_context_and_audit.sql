@@ -123,7 +123,7 @@ RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, audit, 
   SELECT audit.record_internal(p_actor, p_role, p_center, p_action, p_object_type, p_object_id, p_outcome, p_trace, p_details) $$;
 
 -- Verification. Returns one row per broken lane (empty = intact). Logs audit.verify.ok / audit.verify.fail.
-CREATE FUNCTION audit.verify_chain() RETURNS TABLE (lane smallint, broken_seq bigint, reason text) LANGUAGE plpgsql SECURITY DEFINER
+CREATE FUNCTION audit.verify_chain(p_log boolean DEFAULT true) RETURNS TABLE (lane smallint, broken_seq bigint, reason text) LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, ext, audit, portal, pg_temp AS $$
 DECLARE l smallint; r audit.audit_events%ROWTYPE; prev bytea; expect_seq bigint; k bytea; calc bytea; t audit.chain_truncation%ROWTYPE;
         h audit.chain_head%ROWTYPE; bad boolean := false; done boolean;
@@ -147,8 +147,8 @@ BEGIN
       IF h.last_hash <> prev OR h.last_seq <> expect_seq - 1 THEN lane := l; broken_seq := h.last_seq; reason := 'head_mismatch'; RETURN NEXT; bad := true; END IF;
     END IF;
   END LOOP;
-  PERFORM audit.record_internal(coalesce(portal.cur_user_id(), 'system:audit-verify'), coalesce(portal.cur_role(), 'system'), NULL,
-     CASE WHEN bad THEN 'audit.verify.fail' ELSE 'audit.verify.ok' END, 'audit_chain', NULL, CASE WHEN bad THEN 'error' ELSE 'allow' END, NULL, '{}');
+  IF p_log THEN PERFORM audit.record_internal(coalesce(portal.cur_user_id(), 'system:audit-verify'), coalesce(portal.cur_role(), 'system'), NULL,
+     CASE WHEN bad THEN 'audit.verify.fail' ELSE 'audit.verify.ok' END, 'audit_chain', NULL, CASE WHEN bad THEN 'error' ELSE 'allow' END, NULL, '{}'); END IF;
 END $$;
 
 -- Anchor material for the daily external anchor: per-lane head, keyed with the chain key.
@@ -221,9 +221,9 @@ GRANT EXECUTE ON FUNCTION portal._ctx_sig(text) TO app_core;
 GRANT EXECUTE ON FUNCTION portal.cur_user_id(), portal.cur_role(), portal.cur_center_id(), portal._ctx(), portal._ctx_sig(text) TO app_audit_writer, app_agg;
 GRANT EXECUTE ON FUNCTION audit._payload(smallint,bigint,text,timestamptz,text,text,text,text,text,text,text,text,jsonb) TO app_audit_writer;
 GRANT EXECUTE ON FUNCTION audit.record(text,text,text,text,jsonb,text), audit.record_denial(text,text,text,text,text),
-  audit.read_events(timestamptz,timestamptz,text,int), audit.verify_chain(), audit.anchor() TO app_runtime, app_core;
+  audit.read_events(timestamptz,timestamptz,text,int), audit.verify_chain(boolean), audit.anchor() TO app_runtime, app_core;
 GRANT EXECUTE ON FUNCTION audit.record_internal(text,text,text,text,text,text,text,text,jsonb) TO app_core, app_agg;
-GRANT EXECUTE ON FUNCTION audit.verify_chain(), audit.anchor() TO app_readonly_bg;
+GRANT EXECUTE ON FUNCTION audit.verify_chain(boolean), audit.anchor() TO app_readonly_bg;
 GRANT EXECUTE ON FUNCTION audit.purge_before(timestamptz) TO app_core;
 GRANT EXECUTE ON FUNCTION audit.block_mutation() TO PUBLIC;
 GRANT EXECUTE ON FUNCTION portal.check_sample_ethics_center(), portal.check_donor_consistency(), portal.limit_request_items(), portal.fill_ris_snapshot(), portal.check_k_policy(), portal.enforce_separation_of_duties(), portal.sync_attached_data() TO PUBLIC;

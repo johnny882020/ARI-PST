@@ -128,6 +128,8 @@ export interface SearchRepo {
   total(filters: Filters): Promise<AggregateCount>;
   facet(filters: Filters, facet: string): Promise<Bucket[]>;
   k(): Promise<number>;
+  /** Publishes a new privacy snapshot epoch (agg.refresh_snapshot). Allowed for a national_coordinator session and for background jobs. */
+  refreshSnapshot(): Promise<void>;
   expand(q: string, limit: number): Promise<Array<{ diagnosisCode: string; score: number; matchedVia: 'exact' | 'fts' | 'trgm' }>>;
   diagnoses(): Promise<DiagnosisTermRecord[]>;
   /** Persistent query accounting (budget and cache). */

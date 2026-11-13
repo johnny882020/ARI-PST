@@ -51,7 +51,7 @@ export async function importAll({ url, inDir, log = () => {} }) {
     let chain = 'skipped (no chain key in export)';
     if (manifest.tables.some((t) => t.name === 'audit.chain_key')) {
       await client.query('SET SESSION AUTHORIZATION app_readonly_bg');
-      const broken = (await client.query('SELECT * FROM audit.verify_chain()')).rows;
+      const broken = (await client.query('SELECT * FROM audit.verify_chain(false)')).rows;
       await client.query('RESET SESSION AUTHORIZATION');
       if (broken.length) throw new Error(`audit chain broken after import: ${JSON.stringify(broken)}`);
       chain = 'verified';

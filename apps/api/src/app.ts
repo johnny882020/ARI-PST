@@ -26,6 +26,7 @@ import { adminHandlers } from './modules/admin-governance/http/handlers.js';
 import { PublicService } from './modules/public-site/index.js';
 import { publicHandlers } from './modules/public-site/http/handlers.js';
 import { Counters, Health } from './modules/observability/index.js';
+import { expectedMigration } from './lib/migrations.js';
 import { healthHandlers } from './modules/observability/http/handlers.js';
 
 export interface BuiltApp { app: FastifyInstance; counters: Counters }
@@ -54,7 +55,7 @@ export async function buildApp(deps: Deps, opts: { logger?: boolean } = {}): Pro
   const ingestion = new IngestionService(repo, deps.store, deps.clock);
   const admin = new AdminService(repo, deps.auth, deps.notify, deps.clock, config.publicOrigin);
   const pub = new PublicService(repo, deps.notify, deps.clock, config.contactInbox);
-  const health = new Health(repo, config.appVersion);
+  const health = new Health(repo, config.appVersion, { expectedMigration: expectedMigration(), dataClassification: config.dataClassification, demoMode: config.demoMode });
 
   const handlers: Record<string, Handler> = {
     ...identityHandlers(identity, config), ...sampleHandlers(samples), ...searchHandlers(search), ...requestHandlers(requests),

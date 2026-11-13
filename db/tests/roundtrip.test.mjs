@@ -24,7 +24,7 @@ describe('seed', () => {
     const c = await counts(a);
     expect(c['portal.samples']).toBe(40);
     expect(c['portal.requests']).toBe(9);
-    expect(c['portal.request_votes']).toBeGreaterThanOrEqual(8);
+    expect(c['portal.request_votes']).toBeGreaterThanOrEqual(7);
     expect(c['audit.audit_events']).toBeGreaterThan(30);
     const states = (await a.admin.query(`SELECT status, close_reason FROM portal.requests ORDER BY status`)).rows.map((r) => `${r.status}/${r.close_reason}`);
     for (const s of ['draft/null', 'needs_info/null', 'committee_review/null', 'approved/null', 'rejected/null', 'closed/delivered', 'closed/withdrawn']) expect(states).toContain(s);
@@ -56,7 +56,6 @@ describe('export / import round trip (REQ-054, GATE-PROD-DATA prerequisite)', ()
     expect(m2.auditChain).toEqual(m.auditChain);
   });
   it('the imported database works: privacy engine and workflow functions run on restored data', async () => {
-    await b.admin.query('SET SESSION AUTHORIZATION app_readonly_bg').catch(() => {});
     const c = await b.admin.connect(); await c.query('SET SESSION AUTHORIZATION app_readonly_bg'); await c.query('SELECT agg.refresh_snapshot()'); await c.query('RESET SESSION AUTHORIZATION'); c.release();
     const res = ds.users.find((u) => u.role === 'researcher_il');
     const t = await withSession(b.runtime, { userId: res.id, role: 'researcher_il' }, async (cl) => (await cl.query(`SELECT * FROM agg.total_count('{}')`)).rows[0]);

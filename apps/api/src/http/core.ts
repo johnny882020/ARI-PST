@@ -53,7 +53,18 @@ export async function registerCore(app: FastifyInstance, deps: Deps): Promise<vo
     const retry = limiter.hit(`ip:${req.ipHashValue}:${tight ? 't' : 'g'}`, tight ? config.rate.tightPerMin : config.rate.generalPerMin, 60_000, now);
     if (retry) throw new HttpProblem('RATE_LIMITED', { 'Retry-After': String(retry) });
 
-    const sid = req.cookies[SID_COOKIE];
+    // The ONLY cross-origin rule (amends C-03): the static public site may POST the join/contact forms. Exact origin match,
+    // POST only, no credentials, no cookies set, rate-limited above. Every other route stays same-origin with no CORS headers.
+    const crossForm = isPublicFormPath(path) && !!config.publicSiteOrigin && req.headers.origin === config.publicSiteOrigin;
+    if (crossForm) {
+      reply.header('Access-Control-Allow-Origin', config.publicSiteOrigin!); reply.header('Vary', 'Origin');
+      if (req.method === 'OPTIONS') {
+        reply.header('Access-Control-Allow-Methods', 'POST'); reply.header('Access-Control-Allow-Headers', 'content-type'); reply.header('Access-Control-Max-Age', '600');
+        return reply.code(204).send();
+      }
+    }
+
+    const sid = crossForm ? undefined : req.cookies[SID_COOKIE];
     req.session = null;
     if (sid) {
       const s = await auth.getSession(sid);
@@ -69,13 +80,14 @@ export async function registerCore(app: FastifyInstance, deps: Deps): Promise<vo
     }
     // CSRF cookie for everyone (double submit). Readable by the SPA.
     let csrf = req.cookies[CSRF_COOKIE];
-    if (!csrf || csrf.length < 20) { csrf = randomToken(24); reply.setCookie(CSRF_COOKIE, csrf, cookieOptions(config.secureCookies, false)); }
+    if (crossForm) csrf = csrf ?? '';
+    else if (!csrf || csrf.length < 20) { csrf = randomToken(24); reply.setCookie(CSRF_COOKIE, csrf, cookieOptions(config.secureCookies, false)); }
     (req as unknown as { csrfCookie: string }).csrfCookie = csrf;
 
     if (UNSAFE.has(req.method) && path.startsWith('/api/')) {
       const origin = req.headers.origin;
-      if (origin && origin !== config.publicOrigin) throw new HttpProblem('CSRF_INVALID');
-      if (!origin && req.headers['sec-fetch-site'] && req.headers['sec-fetch-site'] !== 'same-origin' && req.headers['sec-fetch-site'] !== 'none') throw new HttpProblem('CSRF_INVALID');
+      if (origin && origin !== config.publicOrigin && !crossForm) throw new HttpProblem('CSRF_INVALID');
+      if (!origin && !crossForm && req.headers['sec-fetch-site'] && req.headers['sec-fetch-site'] !== 'same-origin' && req.headers['sec-fetch-site'] !== 'none') throw new HttpProblem('CSRF_INVALID');
       const exempt = CSRF_EXEMPT.has(opIdForPath(path));
       if (!exempt) {
         const hdr = req.headers['x-csrf-token'];
@@ -126,6 +138,8 @@ export async function registerCore(app: FastifyInstance, deps: Deps): Promise<vo
   });
 }
 
+const PUBLIC_FORM_RE = /^\/api\/v1\/public\/forms\/[a-z]+$/;
+export const isPublicFormPath = (path: string): boolean => PUBLIC_FORM_RE.test(path);
 function opIdForPath(path: string): string {
   if (path.endsWith('/csp-report')) return 'reportCsp';
   if (path.endsWith('/client-errors')) return 'reportClientError';

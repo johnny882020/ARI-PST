@@ -104,6 +104,9 @@ export class IngestionService {
         } else if (r.verify && r.row.sampleCode) await tx.samples.verify(r.row.sampleCode);
       }
       await tx.imports.saveRows(jobId, rows.map((r) => r.row));
+      // QA-002: imported rows become visible in aggregate search only after a new snapshot epoch. Only a coordinator session may refresh;
+      // a clinician import is picked up by the hourly snapshot job.
+      if (ctx.actor.role === 'national_coordinator' && created.length) await tx.search.refreshSnapshot();
       await tx.imports.finishJob(jobId, { status: 'committed', total: rows.length, accepted: rows.filter((r) => r.row.outcome === 'accepted').length, warnings: rows.filter((r) => r.row.outcome === 'warning').length, rejected: 0 });
       await this.store.put(`imports/${jobId}.result-map.csv`, Buffer.from(resultMapCsv(created)), 'text/csv');
       await tx.audit.record(ctx, { action: 'import.commit', outcome: 'success', objectType: 'import_job', objectId: jobId, details: { created: created.length, rows: rows.length } });

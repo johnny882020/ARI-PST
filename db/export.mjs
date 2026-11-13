@@ -2,7 +2,7 @@
 // Full export: NDJSON per table + manifest.json with sha256 checksums (REQ-054, REQ-070, round trip prerequisite of GATE-PROD-DATA).
 //   DATABASE_URL_EXPORT=postgres://... node db/export.mjs --out ./export-dir [--include-keys]
 // Login: app_break_glass (needs an active two-approver grant, calls portal.breakglass_begin()) or an ops superuser.
-// The export is one REPEATABLE READ snapshot. A manifest signature (detached) is the operator's job (A2 defines the key).
+// The export is one REPEATABLE READ snapshot (read-write only because break-glass use is itself audited). A manifest signature (detached) is the operator's job (A2 defines the key).
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
@@ -15,7 +15,7 @@ export async function exportAll({ url, outDir, includeKeys = false, appVersion =
   const client = new pg.Client({ connectionString: url });
   await client.connect();
   try {
-    await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+    await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
     if ((await client.query('SELECT session_user u')).rows[0].u === 'app_break_glass') await client.query('SELECT portal.breakglass_begin()');
     mkdirSync(path.join(outDir, 'data'), { recursive: true });
     const tables = [];
@@ -29,7 +29,7 @@ export async function exportAll({ url, outDir, includeKeys = false, appVersion =
       writeFileSync(path.join(outDir, file), body);
       tables.push({ name: t, file, rows: rows.length, sha256: sha(Buffer.from(body)) });
     }
-    const version = (await client.query('SELECT max(version) v FROM public.schema_migrations')).rows[0].v;
+    const version = (await client.query('SELECT portal.migration_level() v')).rows[0].v;
     const synthetic = (await client.query('SELECT bool_and(is_synthetic) b FROM portal.samples')).rows[0].b;
     const heads = (await client.query(`SELECT lane, last_seq::text, encode(last_hash,'hex') last_hash FROM audit.chain_head ORDER BY lane`)).rows;
     await client.query('COMMIT');

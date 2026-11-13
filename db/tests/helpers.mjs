@@ -12,7 +12,8 @@ export const url = (user, db = DB) => `postgres://${user}@${HOST}:${PORT}/${db}`
 export const pools = {};
 export function pool(user, db = DB) {
   const key = `${user}@${db}`;
-  return (pools[key] ??= new pg.Pool({ connectionString: url(user, db), max: 8 }));
+  if (!pools[key]) { pools[key] = new pg.Pool({ connectionString: url(user, db), max: 8 }); pools[key].on('error', () => {}); }
+  return pools[key];
 }
 export const admin = () => pool('postgres');
 export const runtime = () => pool('app_runtime');
