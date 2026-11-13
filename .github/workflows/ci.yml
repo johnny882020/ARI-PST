@@ -138,8 +138,9 @@ jobs:
       - run: python3 scripts/gen-staging.py --check
       - name: conftest policy on Blueprints
         run: docker run --rm -v "$PWD:/project" openpolicyagent/conftest:v0.56.0 test render.yaml infra/render.staging.yaml -p infra/policy
-      - uses: aquasecurity/trivy-action@0.28.0
-        with: { scan-type: config, scan-ref: ".", exit-code: "1", severity: "HIGH,CRITICAL" }
+      - name: trivy config scan (IaC misconfigurations)
+        # Pinned image instead of aquasecurity/trivy-action (the action tag 0.28.0 did not resolve). TODO pin by digest.
+        run: docker run --rm -v "$PWD:/src" -w /src aquasec/trivy:0.57.1 config --exit-code 1 --severity HIGH,CRITICAL .
       # No Dockerfile exists in Phase 1 (Render native runtimes). Add hadolint here if one is introduced.
 
   cms-guard:
@@ -157,8 +158,8 @@ jobs:
         run: |
           bad=$(git diff --name-only "$BASE" "$HEAD" | grep -v '^apps/public-site/src/content/' || true)
           if [ -n "$bad" ]; then echo "cms/* branch changed files outside content:"; echo "$bad"; exit 1; fi
-      - name: Workflows must not use pull_request_target
-        run: "! grep -rn 'pull_request_target' .github/workflows/ | grep -v 'semgrep'"
+      - name: Workflows must not use the PR-target trigger
+        run: "! grep -rnE '^\\s*pull_request[_]target\\s*:|on:[^#]*pull_request[_]target' .github/workflows/"
 
   build:
     needs: [lint-types, unit, arch-deps]
