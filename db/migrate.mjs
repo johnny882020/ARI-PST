@@ -38,6 +38,8 @@ export async function migrate({ url, dir, dryRun = false, log = console.log }) {
     await client.query(`CREATE SCHEMA IF NOT EXISTS public AUTHORIZATION CURRENT_USER`).catch(() => {});
     await client.query(`CREATE TABLE IF NOT EXISTS public.schema_migrations (
       version text PRIMARY KEY, name text NOT NULL, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now())`);
+    // portal.migration_level() (SECURITY DEFINER, owned by app_core) backs /readyz. Grant only read access to the ledger.
+    await client.query(`DO $g$ BEGIN IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_core') THEN GRANT SELECT ON public.schema_migrations TO app_core; END IF; END $g$`);
     const done = new Map((await client.query('SELECT version, name, checksum FROM public.schema_migrations')).rows.map((r) => [r.version, r]));
     for (const [v, r] of done) {
       const f = files.find((x) => x.version === v);
