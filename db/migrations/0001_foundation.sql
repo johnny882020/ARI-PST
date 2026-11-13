@@ -47,17 +47,21 @@ END $$;
 -- that creates functions. portal.*, search.* -> app_core / app_agg ; agg.* -> app_agg ; audit.* -> app_audit_writer.
 -- Migration pattern for REPLACING a definer function later: SET LOCAL ROLE <owner>; CREATE OR REPLACE ...; RESET ROLE;
 CREATE FUNCTION portal._assign_owners() RETURNS void LANGUAGE plpgsql AS $$
-DECLARE f record; o text;
+DECLARE f record; o text; sch text;
 BEGIN
-  GRANT CREATE ON SCHEMA portal, search, agg, audit TO app_core, app_agg, app_audit_writer;
+  FOR sch IN SELECT nspname FROM pg_namespace WHERE nspname IN ('portal','search','agg','audit','authn','ops') LOOP
+    EXECUTE format('GRANT CREATE ON SCHEMA %I TO app_core, app_agg, app_audit_writer', sch);
+  END LOOP;
   FOR f IN SELECT p.oid::regprocedure AS sig, n.nspname AS sch
            FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-           WHERE n.nspname IN ('portal','agg','audit','search') AND p.proowner = 'app_migrator'::regrole
+           WHERE n.nspname IN ('portal','agg','audit','search','authn','ops') AND p.proowner = 'app_migrator'::regrole
              AND p.proname <> '_assign_owners' AND p.prokind = 'f' LOOP
-    o := CASE f.sch WHEN 'portal' THEN 'app_core' WHEN 'audit' THEN 'app_audit_writer' ELSE 'app_agg' END;
+    o := CASE f.sch WHEN 'audit' THEN 'app_audit_writer' WHEN 'agg' THEN 'app_agg' WHEN 'search' THEN 'app_agg' ELSE 'app_core' END;
     EXECUTE format('ALTER FUNCTION %s OWNER TO %I', f.sig, o);
   END LOOP;
-  REVOKE CREATE ON SCHEMA portal, search, agg, audit FROM app_core, app_agg, app_audit_writer;
+  FOR sch IN SELECT nspname FROM pg_namespace WHERE nspname IN ('portal','search','agg','audit','authn','ops') LOOP
+    EXECUTE format('REVOKE CREATE ON SCHEMA %I FROM app_core, app_agg, app_audit_writer', sch);
+  END LOOP;
 END $$;
 -- trigger helper, invoker
 CREATE FUNCTION portal.touch_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$

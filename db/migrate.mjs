@@ -16,7 +16,8 @@ const dryRun = args.includes('--dry-run');
 const dirArg = args.indexOf('--dir');
 const dir = dirArg >= 0 ? path.resolve(args[dirArg + 1]) : path.join(here, 'migrations');
 const url = process.env.DATABASE_URL_MIGRATOR;
-if (!url) { console.error('DATABASE_URL_MIGRATOR is required'); process.exit(2); }
+const isMain = import.meta.url === `file://${process.argv[1]}`;
+if (isMain && !url) { console.error('DATABASE_URL_MIGRATOR is required'); process.exit(2); }
 
 export function listMigrations(d) {
   return readdirSync(d).filter((f) => /^\d{4}_[a-z0-9_]+\.sql$/.test(f)).sort().map((f) => {

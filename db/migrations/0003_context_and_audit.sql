@@ -163,12 +163,13 @@ SET search_path = pg_catalog, ext, audit, portal, pg_temp AS $$
 CREATE FUNCTION audit.read_events(p_since timestamptz DEFAULT now() - interval '7 days', p_until timestamptz DEFAULT now(),
   p_action_prefix text DEFAULT NULL, p_limit int DEFAULT 200)
 RETURNS TABLE (id text, occurred_at timestamptz, actor_user_id text, actor_role text, action text, object_type text, object_id text,
-               outcome text, details jsonb) LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, audit, portal, pg_temp AS $$
+               outcome text, details jsonb, lane smallint, lane_seq bigint, entry_hash text) LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, audit, portal, pg_temp AS $$
 DECLARE v_role text := portal.cur_role(); v_user text := portal.cur_user_id();
 BEGIN
   IF v_role IS NULL OR v_role = 'anonymous' THEN RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501'; END IF;
   PERFORM audit.record('audit.read', 'audit_log', NULL, 'allow', jsonb_build_object('prefix', left(coalesce(p_action_prefix,''),30)));
-  RETURN QUERY SELECT e.id::text, e.occurred_at, e.actor_user_id, e.actor_role, e.action, e.object_type, e.object_id, e.outcome, e.details
+  RETURN QUERY SELECT e.id::text, e.occurred_at, e.actor_user_id, e.actor_role, e.action, e.object_type, e.object_id, e.outcome, e.details,
+         e.lane, e.lane_seq, encode(e.entry_hash, 'hex')
     FROM audit.audit_events e
    WHERE e.occurred_at >= p_since AND e.occurred_at <= p_until
      AND (p_action_prefix IS NULL OR e.action LIKE left(p_action_prefix, 40) || '%')

@@ -33,14 +33,12 @@
       "ok": true
     },
     {
-      "name": "request wizard: identifier-like text blocked",
-      "ok": true,
-      "detail": "warned"
+      "name": "request wizard: identifier-like text blocked (must stay on step 1 with an error)",
+      "ok": false
     },
     {
       "name": "request wizard: complete and submit",
-      "ok": false,
-      "detail": "locator.fill: Timeout 30000ms exceeded."
+      "ok": true
     },
     {
       "name": "request detail: 8-step tracker present",
@@ -63,7 +61,8 @@
     },
     {
       "name": "coordinator: CSV import wizard dry-run (valid + invalid file)",
-      "ok": false
+      "ok": true,
+      "detail": "bad file flagged"
     },
     {
       "name": "coordinator: console clean",
@@ -100,7 +99,7 @@
     {
       "name": "login: wrong password shows generic error, no account enumeration",
       "ok": true,
-      "detail": "לא הצלחנו לחבר אתכם\nהדוא״ל או הסיסמה אינם נכונים. נא לבדוק ולנסות שוב. מספר אסמכתה לתמיכה: trace-297dce5d"
+      "detail": "לא הצלחנו לחבר אתכם\nהדוא״ל או הסיסמה אינם נכונים. נא לבדוק ולנסות שוב. מספר אסמכתה לתמיכה: trace-2c78f382"
     },
     {
       "name": "login: empty submit shows validation",
@@ -137,5 +136,9 @@
       "suppressedTiles": 8
     }
   ],
-  "importBadText": "Import records\n\nUpload a CSV or XLSX file with coded fields.\n\nThe first step is a dry run. Nothing is saved until you confirm.\nTemplate\nDownload CSV template\nDownload XLSX template\n\nOpen in a text editor if unsure. The template includes a data dictionary.\n\nFile\n\nCSV or XLSX, up to 10 MB.\n\nUpload and check"
+  "idNotBlocked": {
+    "stayed": false,
+    "errs": []
+  },
+  "importBadText": "Import result\n\nDry run Ready to commit\n\nRows\n1\nCoordinator view: exact counts\nAccepted\n1\nWarnings\n0\nRejected\n0\nRows with problems\nRow\tOutcome\tIssues\nNo rows with problems.\nCommit this import"
 }

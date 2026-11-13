@@ -51,7 +51,8 @@ END $$;
 CREATE TRIGGER trg_requests_guard BEFORE INSERT OR UPDATE ON portal.requests FOR EACH ROW EXECUTE FUNCTION portal.guard_requests();
 CREATE FUNCTION portal.block_delete_except_core() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF current_user <> 'app_core' THEN RAISE EXCEPTION 'append_only' USING ERRCODE = '42501'; END IF;
+  -- cascades from a parent delete (retention purge of a whole request) run as table owner at trigger depth > 1
+  IF current_user <> 'app_core' AND NOT (TG_OP = 'DELETE' AND pg_trigger_depth() > 1) THEN RAISE EXCEPTION 'append_only' USING ERRCODE = '42501'; END IF;
   RETURN OLD;
 END $$;
 CREATE TRIGGER trg_votes_ro BEFORE UPDATE OR DELETE ON portal.request_votes FOR EACH ROW EXECUTE FUNCTION portal.block_delete_except_core();

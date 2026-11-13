@@ -210,6 +210,16 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@22.20.5)(jsdom@25.0.1)(lightningcss@1.33.0)(terser@5.51.2)
 
+  db:
+    dependencies:
+      pg:
+        specifier: ^8.13.0
+        version: 8.23.1
+    devDependencies:
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@24.19.2)(jsdom@25.0.1)(lightningcss@1.33.0)(terser@5.51.2)
+
   packages/api-client:
     dependencies:
       openapi-fetch:
@@ -277,6 +287,15 @@ importers:
       intl-messageformat:
         specifier: ^10.7.18
         version: 10.7.18
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@24.19.2)(jsdom@25.0.1)(lightningcss@1.33.0)(terser@5.51.2)
+
+  packages/synthetic-data:
+    devDependencies:
       typescript:
         specifier: ^5.6.0
         version: 5.9.3

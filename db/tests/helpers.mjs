@@ -87,3 +87,16 @@ export async function asBg(fn) {
   const c = await pool('app_readonly_bg').connect();
   try { return await fn(c); } finally { c.release(); }
 }
+
+/** A throwaway migrated database for destructive tests (retention, runner, export/import). */
+export async function scratchDb(name) {
+  const a = admin();
+  await a.query(`DROP DATABASE IF EXISTS ${name} WITH (FORCE)`);
+  await a.query(`CREATE DATABASE ${name}`);
+  const boot = pool('postgres', name);
+  await boot.query(readFileSync(path.join(here, '..', 'bootstrap.sql'), 'utf8'));
+  const { migrate } = await import('../migrate.mjs');
+  await migrate({ url: url('app_migrator', name), dir: path.join(here, '..', 'migrations'), log: () => {} });
+  return { name, admin: boot, runtime: pool('app_runtime', name), bg: pool('app_readonly_bg', name),
+    drop: async () => { for (const k of Object.keys(pools)) if (k.endsWith(`@${name}`)) { await pools[k].end(); delete pools[k]; } await a.query(`DROP DATABASE IF EXISTS ${name} WITH (FORCE)`); } };
+}

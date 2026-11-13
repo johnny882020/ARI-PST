@@ -130,6 +130,7 @@ BEGIN
   UPDATE portal.users SET email = 'deleted+' || substr(encode(sha256(convert_to(id,'UTF8')),'hex'), 1, 16) || '@users.invalid', display_name = 'Deleted user', external_idp_subject = NULL
    WHERE status = 'closed' AND closed_at < p_now - make_interval(months => portal._cfg_int('retention.user_closed_months', 12)) AND email NOT LIKE 'deleted+%';
   GET DIAGNOSTICS n = ROW_COUNT; res := res || jsonb_build_object('users_anonymised', n);
+  IF to_regclass('ops.query_log') IS NOT NULL THEN DELETE FROM ops.query_log WHERE at < p_now - interval '13 months'; GET DIAGNOSTICS n = ROW_COUNT; res := res || jsonb_build_object('query_log', n); END IF;
   n := audit.purge_before(p_now - make_interval(years => portal._cfg_int('retention.audit_years', 7)));
   res := res || jsonb_build_object('audit_events', n);
   PERFORM audit.record_internal('system:retention', 'system', NULL, 'retention.purge', 'retention', NULL, 'allow', NULL, res);
