@@ -69,7 +69,7 @@ CREATE POLICY samples_clinician_read ON portal.samples FOR SELECT TO portal_clin
 CREATE POLICY samples_coord_all ON portal.samples FOR ALL TO portal_coordinator
   USING (true) WITH CHECK (true);
 CREATE POLICY samples_agg_read ON portal.samples FOR SELECT TO portal_agg
-  USING (deleted_at IS NULL AND is_synthetic IS NOT NULL);
+  USING (deleted_at IS NULL);
 
 CREATE POLICY attached_clinician_read ON portal.sample_attached_data FOR SELECT TO portal_clinician
   USING (EXISTS (SELECT 1 FROM portal.samples s
