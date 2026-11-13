@@ -157,7 +157,7 @@ export function ThemeToggle({ value, onChange, className }: ThemeToggleProps) {
   const [own, setOwn] = useTheme();
   const current = value ?? own;
   const set = (th: Theme) => {
-    if (value === undefined) setOwn(th);
+    setOwn(th);
     onChange?.(th);
   };
   return (
