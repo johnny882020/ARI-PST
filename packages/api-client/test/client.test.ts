@@ -35,4 +35,12 @@ describe("api client", () => {
     await c.GET("/auth/session");
     expect(onUnauthorized).toHaveBeenCalledTimes(1);
   });
+
+  it("accepts a bare 202 without body", async () => {
+    const f = vi.fn(async (_req: Request) => new Response(null, { status: 202 }));
+    const c = createApiClient({ baseUrl: "http://t.test/api/v1", fetch: f as unknown as typeof fetch });
+    const r = await c.POST("/auth/register", { body: { email: "a@example.test", displayName: "x", institution: "y", termsVersion: "1.0" } });
+    expect(r.error).toBeUndefined();
+    expect(r.response.ok).toBe(true);
+  });
 });

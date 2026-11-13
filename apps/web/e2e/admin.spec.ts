@@ -8,12 +8,12 @@ test("admin: k policy cannot go below the floor; change needs a second approver 
   await login(page, "admin@example.test", "en");
   await page.goto("/admin/settings/privacy");
   await expect(page.getByTestId("k-default")).toHaveText("5");
-  const card = page.locator("section", { hasText: "default" }).first();
-  await card.getByLabel("New value").fill("3");
+  const card = page.locator(".ds-card", { has: page.getByTestId("k-default") });
+  await card.getByLabel(/^New value/).fill("3");
   await expect(card.getByText("The value cannot be lower than 5.")).toBeVisible();
   await expect(card.getByRole("button", { name: "Propose change" })).toBeDisabled();
-  await card.getByLabel("New value").fill("8");
-  await card.getByLabel("Reason").fill("Synthetic review");
+  await card.getByLabel(/^New value/).fill("8");
+  await card.getByLabel(/^Reason/).fill("Synthetic review");
   await card.getByRole("button", { name: "Propose change" }).click();
   await expect(page.getByText("Pending change to 8")).toBeVisible();
   // The proposer cannot approve.
@@ -37,8 +37,8 @@ test("admin: role grant needs second approver; admin has no sample menu (he)", a
   await page.goto("/admin/users");
   await page.getByRole("row", { name: /Synthetic Researcher/ }).getByRole("button", { name: "בקשת תפקיד" }).click();
   const dlg = page.getByRole("dialog");
-  await dlg.getByLabel("תפקידים").selectOption("committee_member");
-  await dlg.getByLabel("סיבה").fill("Synthetic need");
+  await dlg.getByLabel(/^תפקידים/).selectOption("committee_member");
+  await dlg.getByLabel(/^סיבה/).fill("Synthetic need");
   await dlg.getByRole("button", { name: "בקשת מתן תפקיד" }).click();
   await expect(page.getByText("ממתין למנהל/ת אחר/ת")).toBeVisible();
   const ctx = await browser.newContext();

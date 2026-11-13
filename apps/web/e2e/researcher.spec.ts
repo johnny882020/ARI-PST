@@ -71,14 +71,30 @@ test("international researcher: aggregate only, no cart", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("You cannot open this page");
 });
 
-test("needs-info: researcher sees the action banner and can reply", async ({ page, browser }) => {
+test("needs-info round trip: coordinator asks, researcher sees banner and replies (en)", async ({ page, browser }) => {
   await setLocale(page, "en");
-  // Coordinator sends the seeded committee request back is not allowed; use precheck on a new submit instead.
-  await login(page, "researcher@example.test", "en");
-  const list = await page.request.get("/api/v1/requests");
-  expect(list.ok()).toBeTruthy();
+  await login(page, "coordinator@example.test", "en");
   await page.goto("/requests");
-  await expect(page.getByRole("table")).toBeVisible();
-  await axe(page);
-  void browser;
+  const row = page.getByRole("row").filter({ hasText: "Pre-check" });
+  await row.getByRole("link").click();
+  await page.getByRole("link", { name: "Start pre-check" }).click();
+  await page.getByLabel("Ask the applicant for information").check();
+  await page.getByLabel(/^Note to the applicant/).fill("Please add the approval number");
+  await page.getByRole("button", { name: "Save decision" }).click();
+  await expect(page).toHaveURL(/\/requests\/req_/);
+
+  const ctx = await browser.newContext();
+  const rp = await ctx.newPage();
+  await setLocale(rp, "en");
+  await login(rp, "researcher@example.test", "en");
+  await rp.goto("/home");
+  await expect(rp.getByText("We need a little more from you.")).toBeVisible();
+  await rp.getByRole("link", { name: "Open the request" }).click();
+  await expect(rp.getByRole("heading", { name: "Your reply is needed" })).toBeVisible();
+  await expect(rp.locator("ol.ds-stepper > li[aria-current='step']")).toContainText("Pre-check");
+  await rp.getByLabel(/^Your reply/).fill("The approval number is HEL-SYN-900");
+  await rp.getByRole("button", { name: "Send reply" }).click();
+  await expect(rp.getByText("A coordinator is checking your request.")).toBeVisible();
+  await axe(rp);
+  await ctx.close();
 });

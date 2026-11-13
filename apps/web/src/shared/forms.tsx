@@ -45,7 +45,7 @@ export function ErrorSummary({ errors, nonce }: { errors: { name: string; label:
   }, [nonce]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!errors.length) return null;
   return (
-    <div ref={ref} tabIndex={-1} role="alert" className="error-summary">
+    <div ref={ref} tabIndex={-1} className="error-summary">
       <Alert tone="danger" title={t("form.error.summary", { count: errors.length })}>
         <ul>
           {errors.map((e) => (

@@ -60,7 +60,7 @@ export function UsersPage() {
     <div className="stack">
       <PageHeading titleKey="admin.users.title" actions={<Button variant="primary" onClick={() => setInvite(true)}>{t("admin.users.invite")}</Button>} />
       <Alert tone="info">{t("admin.users.sod")}</Alert>
-      {decide.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(decide.error))}</Alert></div> : null}
+      {decide.isError ? <Alert tone="danger">{t(problemMessageKey(decide.error))}</Alert> : null}
       <Table caption={t("admin.users.caption")} columns={cols} rows={users.data?.items ?? []} rowKey={(u) => u.id} loading={users.isPending} error={users.isError ? <ErrorPanel error={users.error} /> : undefined} empty={t("table.empty.title")} />
       <Card as="div" heading={t("admin.grants.title")} headingLevel={2}>
         <Table caption={t("admin.grants.caption")} columns={gcols} rows={grants.data?.items ?? []} rowKey={(g) => g.id} loading={grants.isPending} error={grants.isError ? <ErrorPanel error={grants.error} /> : undefined} empty={t("table.empty.title")} />
@@ -72,7 +72,7 @@ export function UsersPage() {
           <Select label={t("admin.users.col.roles")} value={role} onChange={(e) => setRole(e.target.value)} placeholder={t("samples.entry.choose")} options={roleOpts} required />
           {role === "center_clinician" ? <Select label={t("samples.col.center")} value={centerId} onChange={(e) => setCenterId(e.target.value)} placeholder={t("samples.entry.choose")} options={centers.centers.map((c) => ({ value: c.id, label: centers.label(c.id) }))} required /> : null}
           <Textarea label={t("admin.grants.reason")} value={reason} onChange={(e) => setReason(e.target.value)} rows={2} required autoComplete="off" />
-          {propose.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(propose.error))}</Alert></div> : null}
+          {propose.isError ? <Alert tone="danger">{t(problemMessageKey(propose.error))}</Alert> : null}
         </div>
       </Dialog>
       <Dialog open={invite} onClose={() => setInvite(false)} title={t("admin.users.invite")} footer={<><Button variant="primary" disabled={!inv.email || !inv.displayName || !inv.role} loading={inviteMut.isPending} onClick={() => inviteMut.mutate()}>{t("admin.users.invite.send")}</Button><Button onClick={() => setInvite(false)}>{t("common.action.cancel")}</Button></>}>
@@ -80,7 +80,7 @@ export function UsersPage() {
           <Input label={t("admin.users.col.email")} type="email" value={inv.email} onChange={(e) => setInv({ ...inv, email: e.target.value })} required dir="ltr" />
           <Input label={t("admin.users.col.name")} value={inv.displayName} onChange={(e) => setInv({ ...inv, displayName: e.target.value })} required />
           <Select label={t("admin.users.col.roles")} value={inv.role} onChange={(e) => setInv({ ...inv, role: e.target.value })} placeholder={t("samples.entry.choose")} options={roleOpts} required />
-          {inviteMut.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(inviteMut.error))}</Alert></div> : null}
+          {inviteMut.isError ? <Alert tone="danger">{t(problemMessageKey(inviteMut.error))}</Alert> : null}
         </div>
       </Dialog>
     </div>

@@ -32,7 +32,7 @@ export function RegistrationsPage() {
   return (
     <div className="stack">
       <PageHeading titleKey="admin.reg.title" lead={t("admin.reg.lead")} />
-      {decide.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(decide.error))}</Alert></div> : null}
+      {decide.isError ? <Alert tone="danger">{t(problemMessageKey(decide.error))}</Alert> : null}
       <Table caption={t("admin.reg.caption")} columns={cols} rows={q.data?.items ?? []} rowKey={(r) => r.id} loading={q.isPending} error={q.isError ? <ErrorPanel error={q.error} /> : undefined} empty={t("table.empty.title")} />
     </div>
   );

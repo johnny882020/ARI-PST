@@ -116,7 +116,7 @@ function Wizard({ id }: { id: string }) {
       <PageHeading titleKey="requests.form.title" lead={t("requests.form.progress", { current: step + 1, total: STEPS.length })} />
       <Alert tone="info">{t("consent.freetext.warning")}</Alert>
       <ErrorSummary errors={stepErrors} nonce={nonce} />
-      {submit.isError && !stepErrors.length ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(submit.error))}</Alert></div> : null}
+      {submit.isError && !stepErrors.length ? <Alert tone="danger">{t(problemMessageKey(submit.error))}</Alert> : null}
       <form noValidate onSubmit={(e) => { e.preventDefault(); if (step === STEPS.length - 1) void f.handleSubmit(() => submit.mutate(), () => setNonce((n) => n + 1))(); else void next(); }}>
         <Card as="div" heading={t(`requests.form.step.${cur.key}` as never)} headingLevel={2}>
           {cur.key === "question" ? <>{free("researchQuestion")}{idWarn("researchQuestion") ? <Alert tone="warning">{idWarn("researchQuestion")}</Alert> : null}</> : null}

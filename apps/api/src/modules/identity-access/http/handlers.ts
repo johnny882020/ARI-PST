@@ -1,6 +1,6 @@
 import type { Handler } from '../../../http/route.js';
 import { body, params, setSessionCookie, sess } from '../../../http/helpers.js';
-import { CSRF_COOKIE } from '../../../http/core.js';
+import { CSRF_COOKIE, cookieOptions } from '../../../http/core.js';
 import { sessionExpiry } from '../../../http/core.js';
 import type { Config } from '../../../config.js';
 import type { IdentityService } from '../service.js';
@@ -14,7 +14,7 @@ export function identityHandlers(svc: IdentityService, cfg: Config): Record<stri
     webauthnOptions: async (req) => svc.webauthnOptions(body<{ challengeToken: string }>(req).challengeToken),
     verifyMfa: async (req, reply) => {
       const s = await svc.verifyMfa(body(req), req.id, req.ipHashValue);
-      setSessionCookie(reply, cfg, s); void CSRF_COOKIE;
+      setSessionCookie(reply, cfg, s); reply.setCookie(CSRF_COOKIE, s.csrfToken, cookieOptions(cfg.secureCookies, false));   // fresh CSRF token per session
       return svc.view(s);
     },
     logout: async (req, reply) => { await svc.logout(req.ctx, sess(req)); reply.clearCookie('__Host-sid', { path: '/', secure: cfg.secureCookies, httpOnly: true, sameSite: 'strict' }); return reply.code(204).send(); },
@@ -26,7 +26,7 @@ export function identityHandlers(svc: IdentityService, cfg: Config): Record<stri
     changePassword: async (req, reply) => {
       const b = body<{ currentPassword: string; newPassword: string }>(req);
       const fresh = await svc.changePassword(sess(req), b.currentPassword, b.newPassword, req.id, req.ipHashValue);
-      setSessionCookie(reply, cfg, fresh); return reply.code(204).send();
+      setSessionCookie(reply, cfg, fresh); reply.setCookie(CSRF_COOKIE, fresh.csrfToken, cookieOptions(cfg.secureCookies, false)); return reply.code(204).send();
     },
     stepUp: async (req) => svc.view(await svc.stepUp(sess(req), body(req), req.id)),
     enrollTotpStart: async (req) => svc.enrollTotpStart(sess(req)),

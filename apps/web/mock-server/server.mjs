@@ -48,6 +48,7 @@ function reset() {
     return r;
   };
   mkReq("committee_review");
+  mkReq("precheck");
   mkReq("delivered", { deliveredAt: "2026-10-20T08:00:00Z", decidedAt: "2026-10-10T08:00:00Z" });
 }
 reset();
@@ -376,9 +377,8 @@ async function handleApi(req, res, url) {
 
   /* requests */
   if (path === "/requests" && method === "GET") {
-    let list = state.requests.filter((r) => (has(s, "researcher_il") ? r.applicantUserId === s.user.id : canSeeRequest(r, s)));
-    if (has(s, "national_coordinator") && !has(s, "researcher_il")) list = list;
-    if (q.get("status")) list = list.filter((r) => r.status === q.get("status"));
+    const list0 = state.requests.filter((r) => (has(s, "researcher_il") ? r.applicantUserId === s.user.id : canSeeRequest(r, s)));
+    const list = q.get("status") ? list0.filter((r) => r.status === q.get("status")) : list0;
     return send(res, 200, { items: list.map((r) => requestDto(r, s)), nextCursor: null });
   }
   if (path === "/requests" && method === "POST") {

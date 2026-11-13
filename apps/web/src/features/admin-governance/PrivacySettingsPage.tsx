@@ -35,7 +35,7 @@ function Policy({ p, me }: { p: KPolicy; me: string }) {
         <form className="stack" onSubmit={(e) => { e.preventDefault(); if (!invalid && reason) propose.mutate(); }}>
           <Input label={t("admin.k.new")} help={t("admin.k.floor", { min: K_FLOOR })} type="number" min={K_FLOOR} step={1} value={k} onChange={(e) => setK(e.target.value)} dir="ltr" required error={invalid ? t("admin.k.floorError", { min: K_FLOOR }) : undefined} />
           <Textarea label={t("admin.grants.reason")} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} required autoComplete="off" />
-          {propose.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(propose.error))}</Alert></div> : null}
+          {propose.isError ? <Alert tone="danger">{t(problemMessageKey(propose.error))}</Alert> : null}
           <div><Button type="submit" disabled={invalid || !reason || n === p.k} loading={propose.isPending}>{t("admin.k.propose")}</Button></div>
         </form>
       )}

@@ -58,7 +58,7 @@ export function csvTemplate(): string { return IMPORT_COLUMNS.join(',') + '\n'; 
 export async function xlsxTemplate(): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('samples'); ws.addRow([...IMPORT_COLUMNS]);
-  ws.getColumn('collection_month').numFmt = '@';
+  ws.getColumn(IMPORT_COLUMNS.indexOf('collection_month') + 1).numFmt = '@';
   const dict = wb.addWorksheet('dictionary');
   dict.addRow(['column', 'rule']);
   const rules: Record<string, string> = {

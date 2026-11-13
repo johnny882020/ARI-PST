@@ -50,6 +50,10 @@ export function createApiClient(opts: ApiClientOptions = {}) {
       if (response.status === 401 && !new URL(request.url, "http://x").pathname.includes("/auth/")) {
         opts.onUnauthorized?.();
       }
+      // 2xx with no body and no content type (e.g. a bare 202): treat as 204 so the parser does not choke.
+      if (response.ok && response.status !== 204 && !response.headers.get("content-type")) {
+        return new Response(null, { status: 204, headers: response.headers });
+      }
       return response;
     },
   };

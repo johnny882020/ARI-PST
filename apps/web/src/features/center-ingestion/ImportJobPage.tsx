@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, AggregateCountTile, Badge, Button, Checkbox, Skeleton, Table, type TableColumn } from "@ari/design-system";
 import { idempotencyKey, unwrap, type ImportRow } from "@ari/api-client";
@@ -14,6 +14,7 @@ export function ImportJobPage() {
   const t = useT();
   const { jobId = "" } = useParams();
   const qc = useQueryClient();
+  const nav = useNavigate();
   const [acceptWarnings, setAcceptWarnings] = useState(false);
   const job = useQuery({
     queryKey: qk.importJob(jobId),
@@ -27,7 +28,7 @@ export function ImportJobPage() {
   });
   const commit = useMutation({
     mutationFn: () => unwrap(api.POST("/import-jobs/{jobId}/commit", { params: { path: { jobId }, header: { "Idempotency-Key": idempotencyKey() } } as never, body: { fileSha256: job.data!.fileSha256!, acceptWarnings } })),
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: qk.importJob(jobId) }); void qc.invalidateQueries({ queryKey: ["samples"] }); },
+    onSuccess: (child) => { void qc.invalidateQueries({ queryKey: ["samples"] }); void qc.invalidateQueries({ queryKey: qk.importJobs }); nav(`/import/${child.id}`); },
   });
   if (job.isPending) return <Skeleton lines={5} />;
   if (job.isError) return <ErrorPanel error={job.error} />;
@@ -47,7 +48,7 @@ export function ImportJobPage() {
         <AggregateCountTile label={t("ingest.job.warnings")} state="value" value={j.warningRows ?? 0} />
         <AggregateCountTile label={t("ingest.job.rejected")} state="value" value={j.rejectedRows ?? 0} />
       </div>
-      {j.status === "committed" ? <div role="status"><Alert tone="success">{t("ingest.job.committed")}</Alert></div> : null}
+      {j.status === "committed" ? <Alert tone="success">{t("ingest.job.committed")}</Alert> : null}
       {(j.rejectedRows ?? 0) > 0 ? (
         <div className="row">
           <a className="ds-btn ds-btn-secondary" href={`/api/v1/import-jobs/${j.id}/report`} download><span className="ds-btn-label">{t("ingest.job.downloadReport")}</span></a>
@@ -58,7 +59,7 @@ export function ImportJobPage() {
       {j.mode === "dry_run" && j.status === "validated" ? (
         <div className="stack">
           {(j.warningRows ?? 0) > 0 ? <Checkbox label={t("ingest.job.acceptWarnings")} checked={acceptWarnings} onChange={(e) => setAcceptWarnings(e.target.checked)} /> : null}
-          {commit.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(commit.error))}</Alert></div> : null}
+          {commit.isError ? <Alert tone="danger">{t(problemMessageKey(commit.error))}</Alert> : null}
           <div><Button variant="primary" disabled={!canCommit} loading={commit.isPending} onClick={() => commit.mutate()}>{t("ingest.job.commit")}</Button></div>
         </div>
       ) : null}

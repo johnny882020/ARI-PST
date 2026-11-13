@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "module": "ESNext", "moduleResolution": "Bundler", "target": "ES2022", "noEmit": true, "types": ["node"], "rootDir": "../..", "lib": ["ES2023"], "noImplicitOverride": true },
+  "compilerOptions": { "module": "ESNext", "moduleResolution": "Bundler", "target": "ES2022", "noEmit": true, "types": ["node"], "rootDir": "../..", "lib": ["ES2023"], "noImplicitOverride": true, "noUncheckedIndexedAccess": false },
   "include": ["src", "test", "scripts", "tsup.config.ts", "vitest.config.ts"]
 }

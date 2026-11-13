@@ -461,7 +461,7 @@ paths:
     patch:
       tags: [requests]
       operationId: updateRequestStep
-      x-roles: [national_coordinator]
+      x-roles: [national_coordinator, center_clinician]
       summary: Change a step status or add a note. national_coordinator only.
       parameters:
         - $ref: '#/components/parameters/RequestIdPath'
@@ -521,6 +521,7 @@ paths:
               properties:
                 vote: { type: string, enum: [approve, reject, abstain] }
                 comment: { type: string, maxLength: 1000 }
+                rationaleCode: { type: string, pattern: '^[a-z_]{1,40}$', description: Required by the database for a reject vote. }
       responses:
         '200':
           description: Vote stored.
@@ -1310,7 +1311,7 @@ paths:
     get:
       tags: [admin]
       operationId: listApprovals
-      x-roles: [system_admin]
+      x-roles: [system_admin, committee_member, national_coordinator]
       summary: Pending and decided governance changes.
       responses:
         '200': { description: Approvals., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Approval' } } } } } } }
@@ -1318,7 +1319,7 @@ paths:
     post:
       tags: [admin]
       operationId: approveGovernanceChange
-      x-roles: [system_admin]
+      x-roles: [system_admin, committee_member, national_coordinator]
       summary: Approve or reject a pending change. The approver must differ from the proposer. Needs step-up.
       parameters:
         - { name: approvalId, in: path, required: true, schema: { type: string } }
@@ -1619,8 +1620,8 @@ components:
       properties:
         id: { type: string }
         criteria: { $ref: '#/components/schemas/SearchFilters' }
-        requestedCount: { type: integer }
-        shownCountBucket: { type: string }
+        requestedCount: { type: [integer, 'null'] }
+        shownCountBucket: { type: [string, 'null'], enum: [lt10, 10_plus, null], description: 'K-safe bucket shown when the item was added. The exact count is never stored.' }
     Request:
       type: object
       required: [id, status, createdAt, items]
@@ -1670,13 +1671,22 @@ components:
         publicNote: { type: string, maxLength: 1000 }
         internalNote: { type: string, maxLength: 2000 }
         centerId: { $ref: '#/components/schemas/CenterId' }
+        accepted: { type: boolean, description: 'center_coordination step: the holding center accepts or declines.' }
+        agreement:
+          type: object
+          additionalProperties: false
+          required: [kind, docRef]
+          description: 'mta_dta step: coordinator records the agreement reference.'
+          properties:
+            kind: { type: string, enum: [mta, dta] }
+            docRef: { type: string, pattern: '^[A-Za-z0-9._/-]{3,64}$' }
     Vote:
       type: object
       required: [requestId, vote, votedAt]
       properties:
         requestId: { type: string }
         vote: { type: string, enum: [approve, reject, abstain] }
-        comment: { type: string }
+        comment: { type: [string, 'null'] }
         votedAt: { type: string, format: date-time }
     Decision:
       type: object
@@ -1684,7 +1694,7 @@ components:
       properties:
         id: { type: string }
         outcome: { type: string, enum: [approved, rejected, needs_info] }
-        rationale: { type: string }
+        rationale: { type: [string, 'null'] }
         decidedAt: { type: string, format: date-time }
     ImportJob:
       type: object
@@ -1738,9 +1748,9 @@ components:
         nextCursor: { type: [string, 'null'] }
     AuditEvent:
       type: object
-      required: [seq, id, occurredAt, action, outcome, hash]
+      required: [id, occurredAt, action, outcome]
       properties:
-        seq: { type: integer }
+        seq: { type: integer, description: Not provided by the read function. Order by occurredAt. }
         id: { type: string }
         occurredAt: { type: string, format: date-time }
         actorUserId: { type: [string, 'null'] }
@@ -1752,7 +1762,7 @@ components:
         outcome: { type: string, enum: [success, denied, error] }
         traceId: { type: [string, 'null'] }
         details: { type: object, additionalProperties: true }
-        hash: { type: string, description: Hex SHA-256. }
+        hash: { type: string, description: Chain hash. Verified server-side by verifyAuditChain. }
     AuditPage:
       type: object
       required: [items]
@@ -1870,6 +1880,7 @@ components:
       type: object
       required: [challengeToken, factors]
       properties:
+        enrollmentRequired: { type: boolean, description: 'No second factor yet. Complete verifyMfa with only the challenge token to get an enrolment-only session.' }
         challengeToken: { type: string }
         factors:
           type: array
@@ -1881,6 +1892,7 @@ components:
       properties:
         challengeToken: { type: string }
         totpCode: { type: string, pattern: '^[0-9]{6}$' }
+        recoveryCode: { type: string, maxLength: 32 }
         webauthnAssertion: { type: object, additionalProperties: true }
     Session:
       type: object
@@ -2016,8 +2028,14 @@ components:
       additionalProperties: false
       required: [to]
       properties:
-        to: { type: string, enum: [submitted, precheck, needs_info, committee_review, appeal_review, approved, rejected, center_coordination, agreements, delivery, closed] }
-        closeReason: { type: string, enum: [delivered, withdrawn, expired, rejected, policy_cancelled] }
+        to: { type: string, enum: [submitted, precheck, needs_info, committee_review, appeal_review, center_coordination, delivery, closed] }
+        closeReason: { type: string, enum: [withdrawn, rejected, policy_cancelled] }
+        reasonCode: { type: string, pattern: '^[a-z_]{1,40}$' }
+        publicNote: { type: string, maxLength: 1000 }
+        checklist:
+          type: object
+          additionalProperties: { type: boolean }
+          description: 'Pre-check pass: form_complete, irb_ref_plausible, consent_scope_ok, no_identifier_requested, items_exist must all be true.'
     Metrics:
       type: object
       required: [samplesTotal, centersFeeding, registeredResearchers, requestsByStatus]

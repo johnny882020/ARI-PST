@@ -64,7 +64,7 @@ function TotpEnrol({ onClose }: { onClose: () => void }) {
       <div className="qr"><canvas ref={canvas} role="img" aria-label={t("auth.enrol.totp.qr")} /></div>
       <p>{t("auth.enrol.totp.manual")}</p>
       <div className="code-box" data-testid="totp-secret">{spaced}</div>
-      {error ? <div role="alert"><Alert tone="danger">{t(error as never)}</Alert></div> : null}
+      {error ? <Alert tone="danger">{t(error as never)}</Alert> : null}
       <Input id="field-code" label={t("auth.mfa.code.label")} inputMode="numeric" autoComplete="one-time-code" maxLength={7} dir="ltr" value={code} onChange={(e) => setCode(e.target.value)} required />
       <Button type="submit" variant="primary" loading={confirm.isPending}>{t("auth.enrol.confirm")}</Button>
     </form>
@@ -96,7 +96,7 @@ function PasskeyEnrol({ onClose }: { onClose: () => void }) {
   return (
     <div className="stack">
       <p>{t("auth.enrol.passkey.lead")}</p>
-      {error ? <div role="alert"><Alert tone="danger">{t(error as never)}</Alert></div> : null}
+      {error ? <Alert tone="danger">{t(error as never)}</Alert> : null}
       <Input label={t("auth.enrol.passkey.name")} value={name} onChange={(e) => setName(e.target.value)} maxLength={40} />
       <Button variant="primary" loading={busy} onClick={() => void run()}>{t("auth.enrol.passkey.start")}</Button>
     </div>

@@ -96,9 +96,9 @@ test("session timeout warning opens an alert dialog and Stay signed in extends",
 
 test("researcher registration (he) shows approval notice", async ({ page }) => {
   await page.goto("/register");
-  await page.getByLabel("שם מלא").fill("Dr. Synthetic New");
-  await page.getByLabel("מוסד").fill("Synthetic University");
-  await page.getByLabel("דוא״ל מוסדי").fill("new@example.test");
+  await page.getByLabel(/^שם מלא/).fill("Dr. Synthetic New");
+  await page.getByLabel(/^מוסד/).fill("Synthetic University");
+  await page.getByLabel(/^דוא״ל מוסדי/).fill("new@example.test");
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "שליחת הרשמה" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("ההרשמה התקבלה");

@@ -28,7 +28,7 @@ export function AuditPage() {
   return (
     <div className="stack">
       <PageHeading titleKey="audit.title" lead={t("audit.lead")} actions={<Button onClick={() => verify.mutate()} loading={verify.isPending}>{t("audit.verify")}</Button>} />
-      {verify.data ? <div role="status"><Alert tone={verify.data.intact ? "success" : "danger"}>{t(verify.data.intact ? "audit.verify.ok" : "audit.verify.broken")}</Alert></div> : null}
+      {verify.data ? <Alert tone={verify.data.intact ? "success" : "danger"}>{t(verify.data.intact ? "audit.verify.ok" : "audit.verify.broken")}</Alert> : null}
       <Select label={t("audit.col.outcome")} value={outcome} onChange={(e) => { setOutcome(e.target.value); setCursors([undefined]); }} options={[{ value: "", label: t("common.all") }, ...(["success", "denied", "error"] as const).map((o) => ({ value: o, label: t(`audit.outcome.${o}`) }))]} />
       <Table caption={t("audit.caption")} columns={cols} rows={q.data?.items ?? []} rowKey={(e) => e.id} loading={q.isPending} error={q.isError ? <ErrorPanel error={q.error} onRetry={() => void q.refetch()} /> : undefined} empty={t("table.empty.title")} />
       <Pagination hasPrevious={cursors.length > 1} hasNext={!!q.data?.nextCursor} onPrevious={() => setCursors((c) => c.slice(0, -1))} onNext={() => setCursors((c) => [...c, q.data!.nextCursor!])} />

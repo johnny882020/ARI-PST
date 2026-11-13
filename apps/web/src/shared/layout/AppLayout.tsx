@@ -17,7 +17,7 @@ function CartBadge() {
   const q = useQuery({ queryKey: qk.cart, queryFn: () => unwrap(api.GET("/request-cart")) });
   const n = q.data?.items.length ?? 0;
   return (
-    <Link to="/cart" className="ds-btn ds-btn-quiet" aria-label={t("nav.cart.count", { count: n })}>
+    <Link to="/cart" className="ds-btn ds-btn-quiet">
       <span className="ds-btn-label">{t("nav.cart")} {n > 0 ? <Badge tone="primary">{n}</Badge> : null}</span>
     </Link>
   );

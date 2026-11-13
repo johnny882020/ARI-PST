@@ -68,27 +68,30 @@ export class IdentityService {
     const problem = this.auth.checkPasswordPolicy(b.password);
     if (problem) throw new DomainError('VALIDATION_FAILED', [{ field: 'password', rule: problem }]);
     const ctx = this.sys(traceId, null);
-    const id = nid(this.clock, 'user');
     const hash = await this.auth.hashPassword(b.password);     // always hash: same timing for known and unknown email
-    const created = await this.repo.tx(ctx, (tx) => tx.users.registerResearcher({ id, email, displayName: b.displayName.trim(), institution: b.institution.trim(), isIsraeliAcademic: b.isIsraeliAcademic, locale: b.locale ?? 'he' }));
+    const created = await this.repo.tx(ctx, async (tx) => {
+      const r = await tx.users.registerResearcher({ email, displayName: b.displayName.trim(), institution: b.institution.trim(), isIsraeliAcademic: b.isIsraeliAcademic, locale: b.locale ?? 'he' });
+      if (r) await this.notify.enqueue(tx, { template: 'verify_email', toEmail: email, locale: b.locale ?? 'he', params: { link: `${this.origin}/verify-email?token=${r.userId}.${r.verificationToken}` } });
+      return r;
+    });
     if (!created) return;
-    await this.auth.storePasswordHash(id, hash);
-    const token = await this.auth.issueEmailToken(id, 'verify_email');
-    await this.repo.tx(ctx, (tx) => this.notify.enqueue(tx, { template: 'verify_email', toUserId: id, toEmail: email, locale: b.locale ?? 'he', params: { link: `${this.origin}/verify-email?token=${token}` } }));
-    await this.repo.auditStandalone({ ...ctx, actor: { ...ANON_ACTOR, userId: id } }, { action: 'user.invite', outcome: 'success', objectType: 'user', objectId: id, details: { via: 'self_registration' } });
+    await this.auth.storePasswordHash(created.userId, hash);
   }
   async verifyEmail(token: string, password: string | undefined, traceId: string): Promise<void> {
     const ctx = this.sys(traceId, null);
-    let userId = await this.auth.consumeEmailToken(token, 'verify_email');
-    let invite = false;
-    if (!userId) { userId = await this.auth.consumeEmailToken(token, 'invite'); invite = true; }
+    let userId: string | null = null; let invite = false;
+    if (token.startsWith('usr_')) {
+      const [uid, raw] = token.split('.', 2);
+      const ok = uid && raw ? await this.repo.tx(ctx, (tx) => tx.users.verifyEmail(uid, raw)) : false;
+      userId = ok ? uid! : null;
+    } else { userId = await this.auth.consumeEmailToken(token, 'invite'); invite = true; }
     if (!userId) throw new DomainError('VALIDATION_FAILED', [{ field: 'token', rule: 'FORMAT' }]);
     if (invite) {
       if (!password) throw new DomainError('VALIDATION_FAILED', [{ field: 'password', rule: 'REQUIRED' }]);
       const p = this.auth.checkPasswordPolicy(password); if (p) throw new DomainError('VALIDATION_FAILED', [{ field: 'password', rule: p }]);
       await this.auth.setPassword(userId, password);
     }
-    await this.auth.markEmailVerified(userId, invite);
+    if (invite) await this.auth.markEmailVerified(userId, true);
     await this.repo.auditStandalone({ ...ctx, actor: { ...ANON_ACTOR, userId } }, { action: 'auth.password.change', outcome: 'success', details: { via: invite ? 'invite' : 'verify' } });
   }
   async me(ctx: Ctx, s: SessionRecord) {
@@ -165,9 +168,7 @@ export class IdentityService {
       const u = await tx.users.getById(userId); if (!u) throw new DomainError('NOT_FOUND');
       if (!u.emailVerifiedAt || u.status !== 'invited') throw new DomainError('CONFLICT');
       const role = researcherRoleFor(reg.isIsraeliAcademic);
-      await tx.users.grantRole({ id: nid(this.clock, 'role'), userId, role, centerId: null, grantedBy: ctx.actor.userId! });
-      await tx.users.approveRegistration(userId);
-      await tx.audit.record(ctx, { action: 'role.grant', outcome: 'success', objectType: 'user', objectId: userId, details: { role, via: 'registration_approval' } });
+      await tx.users.approveRegistration(userId);      // grants the researcher role, activates the user, audits (database function)
       await this.notify.enqueue(tx, { template: 'registration_approved', toUserId: userId, locale: u.locale });
       return (await tx.users.getById(userId))!;
     });
@@ -176,7 +177,6 @@ export class IdentityService {
     await this.repo.tx(ctx, async (tx) => {
       const u = await tx.users.getById(userId); if (!u || !(await tx.users.registrationFlag(userId))) throw new DomainError('NOT_FOUND');
       await tx.users.rejectRegistration(userId);
-      await tx.audit.record(ctx, { action: 'user.disable', outcome: 'success', objectType: 'user', objectId: userId, details: { via: 'registration_rejected' } });
       await this.notify.enqueue(tx, { template: 'registration_rejected', toUserId: userId, locale: u.locale });
     });
   }

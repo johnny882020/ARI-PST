@@ -1,6 +1,6 @@
 import {
   DomainError, K_FLOOR, isExternalRole, validateCommitteeConfig, validateK, violatesSeparationOfDuties, type AuthPort, type Clock, type Ctx,
-  type NotifyPort, type Repository, type Role, type Tx, type CenterRecord, type ApprovalRecord,
+  type NotifyPort, type Repository, type Role, type CenterRecord, type ApprovalRecord,
 } from '@ari/domain';
 import { nid, notFound } from '../../lib/util.js';
 
@@ -23,22 +23,17 @@ export class AdminService {
   async invite(ctx: Ctx, b: { email: string; displayName: string; locale?: 'he' | 'en'; role: Role; centerId?: string }) {
     if (b.role === 'center_clinician' && !b.centerId) throw new DomainError('VALIDATION_FAILED', [{ field: 'centerId', rule: 'REQUIRED' }]);
     if (b.role !== 'center_clinician' && b.centerId) throw new DomainError('VALIDATION_FAILED', [{ field: 'centerId', rule: 'FORMAT' }]);
-    const email = b.email.trim().toLowerCase(); const id = nid(this.clock, 'user');
+    if (!PRIVILEGED.includes(b.role)) throw new DomainError('VALIDATION_FAILED', [{ field: 'role', rule: 'VOCAB' }]);   // researchers register themselves
+    const email = b.email.trim().toLowerCase();
     const out = await this.repo.tx(ctx, async (tx) => {
       if (await tx.users.getByEmail(email)) throw new DomainError('CONFLICT');
       if (b.centerId && !(await tx.centers.get(b.centerId))) throw new DomainError('VALIDATION_FAILED', [{ field: 'centerId', rule: 'VOCAB' }]);
-      await tx.users.create({ id, email, displayName: b.displayName.trim(), locale: b.locale ?? 'he', status: 'invited' });
-      let pending: ApprovalRecord | null = null;
-      if (PRIVILEGED.includes(b.role)) {
-        pending = await tx.governance.propose({ id: nid(this.clock, 'role'), kind: 'role_grant', payload: { userId: id, role: b.role, centerId: b.centerId ?? null }, proposedBy: ctx.actor.userId! });
-      } else {
-        await tx.users.grantRole({ id: nid(this.clock, 'role'), userId: id, role: b.role, centerId: null, grantedBy: ctx.actor.userId! });
-      }
-      await tx.audit.record(ctx, { action: 'user.invite', outcome: 'success', objectType: 'user', objectId: id, details: { role: b.role, pendingApproval: pending ? 1 : 0 } });
-      return { id, pending };
+      const u = await tx.users.create({ email, displayName: b.displayName.trim(), locale: b.locale ?? 'he', status: 'invited' });
+      const pending = await tx.governance.propose({ id: nid(this.clock, 'role'), kind: 'role_grant', payload: { userId: u.id, role: b.role, centerId: b.centerId ?? null }, proposedBy: ctx.actor.userId! });
+      return { id: u.id, pending };
     });
-    const token = await this.auth.issueEmailToken(id, 'invite');
-    await this.repo.tx(ctx, (tx) => this.notify.enqueue(tx, { template: 'invite', toUserId: id, toEmail: email, locale: b.locale ?? 'he', params: { link: `${this.origin}/verify-email?token=${token}` } }));
+    const token = await this.auth.issueEmailToken(out.id, 'invite');
+    await this.repo.tx(ctx, (tx) => this.notify.enqueue(tx, { template: 'invite', toUserId: out.id, toEmail: email, locale: b.locale ?? 'he', params: { link: `${this.origin}/verify-email?token=${token}` } }));
     return this.repo.tx(ctx, async (tx) => (await tx.users.getById(out.id))!);
   }
   async updateUser(ctx: Ctx, id: string, p: { displayName?: string; status?: 'active' | 'suspended' | 'closed' }) {
@@ -53,21 +48,15 @@ export class AdminService {
     if (p.status === 'suspended' || p.status === 'closed') await this.auth.revokeAllForUser(id);   // suspension ends sessions at once
     return u;
   }
-  async grantRole(ctx: Ctx, userId: string, b: { role: Role; centerId?: string }): Promise<{ assignment?: import('@ari/domain').RoleAssignmentRecord; approval?: ApprovalRecord }> {
-    if (b.role === 'anonymous') throw new DomainError('VALIDATION_FAILED', [{ field: 'role', rule: 'VOCAB' }]);
+  async grantRole(ctx: Ctx, userId: string, b: { role: Role; centerId?: string }): Promise<{ approval: ApprovalRecord }> {
+    if (!PRIVILEGED.includes(b.role)) throw new DomainError('VALIDATION_FAILED', [{ field: 'role', rule: 'VOCAB' }]);   // researcher roles come from registration approval
     if ((b.role === 'center_clinician') !== Boolean(b.centerId)) throw new DomainError('VALIDATION_FAILED', [{ field: 'centerId', rule: b.centerId ? 'FORMAT' : 'REQUIRED' }]);
     return this.repo.tx(ctx, async (tx) => {
       const u = await tx.users.getById(userId); if (!u) throw notFound();
       if (violatesSeparationOfDuties(u.roles.map((r) => r.role), b.role)) throw new DomainError('SOD_VIOLATION');
       if (b.centerId && !(await tx.centers.get(b.centerId))) throw new DomainError('VALIDATION_FAILED', [{ field: 'centerId', rule: 'VOCAB' }]);
-      if (PRIVILEGED.includes(b.role)) {
-        const a = await tx.governance.propose({ id: nid(this.clock, 'role'), kind: 'role_grant', payload: { userId, role: b.role, centerId: b.centerId ?? null }, proposedBy: ctx.actor.userId! });
-        await tx.audit.record(ctx, { action: 'role.grant', outcome: 'success', objectType: 'user', objectId: userId, details: { role: b.role, pending: 1 } });
-        return { approval: a };
-      }
-      const a = await tx.users.grantRole({ id: nid(this.clock, 'role'), userId, role: b.role, centerId: null, grantedBy: ctx.actor.userId! });
-      await tx.audit.record(ctx, { action: 'role.grant', outcome: 'success', objectType: 'user', objectId: userId, details: { role: b.role } });
-      return { assignment: a };
+      const a = await tx.governance.propose({ id: nid(this.clock, 'role'), kind: 'role_grant', payload: { userId, role: b.role, centerId: b.centerId ?? null }, proposedBy: ctx.actor.userId! });
+      return { approval: a };
     });
   }
   async revokeRole(ctx: Ctx, userId: string, assignmentId: string) {
@@ -89,46 +78,29 @@ export class AdminService {
   async proposeK(ctx: Ctx, b: { fieldSet: string; k: number }): Promise<ApprovalRecord> {
     if (!validateK(b.k)) throw new DomainError('VALIDATION_FAILED', [{ field: 'k', rule: `RANGE_MIN_${K_FLOOR}` }]);
     return this.repo.tx(ctx, async (tx) => {
-      const a = await tx.governance.propose({ id: nid(this.clock, 'role'), kind: 'k_change', payload: { fieldSet: b.fieldSet, k: b.k }, proposedBy: ctx.actor.userId! });
-      await tx.audit.record(ctx, { action: 'k.change', outcome: 'success', objectType: 'k_policy', objectId: b.fieldSet, details: { proposed: 1 } });
-      return a;
+      return tx.governance.propose({ id: nid(this.clock, 'role'), kind: 'k_change', payload: { fieldSet: b.fieldSet, k: b.k }, proposedBy: ctx.actor.userId! });
     });
   }
   async proposeCommittee(ctx: Ctx, b: { votesNeeded: number; membersTotal: number }): Promise<ApprovalRecord> {
     if (!validateCommitteeConfig(b)) throw new DomainError('VALIDATION_FAILED', [{ field: 'votesNeeded', rule: 'RANGE' }]);
     return this.repo.tx(ctx, async (tx) => {
-      const a = await tx.governance.propose({ id: nid(this.clock, 'role'), kind: 'committee_config', payload: { ...b }, proposedBy: ctx.actor.userId! });
-      await tx.audit.record(ctx, { action: 'config.change', outcome: 'success', objectType: 'committee_config', details: { proposed: 1 } });
-      return a;
+      return tx.governance.propose({ id: nid(this.clock, 'role'), kind: 'committee_config', payload: { ...b }, proposedBy: ctx.actor.userId! });
     });
   }
   async approvals(ctx: Ctx) { return this.repo.tx(ctx, (tx) => tx.governance.listApprovals()); }
-  async decide(ctx: Ctx, id: string, approve: boolean): Promise<ApprovalRecord> {
+  /** The database applies the change (role grant, k, committee config) and enforces: proposer differs, approver role, step-up age. */
+  async decide(ctx: Ctx, id: string, approve: boolean, stepUpAgeS: number): Promise<ApprovalRecord> {
     let affectedUser: string | null = null;
     const a = await this.repo.tx(ctx, async (tx) => {
       const cur = await tx.governance.getApproval(id); if (!cur) throw notFound();
       if (cur.status !== 'pending') throw new DomainError('CONFLICT');
       if (cur.proposedBy === ctx.actor.userId) throw new DomainError('SECOND_APPROVER_REQUIRED');
-      const done = await tx.governance.decide(id, ctx.actor.userId!, approve); if (!done) throw new DomainError('CONFLICT');
-      if (approve) affectedUser = await this.apply(tx, ctx, done);
-      await tx.audit.record(ctx, { action: cur.kind === 'k_change' ? 'k.change' : cur.kind === 'role_grant' ? 'role.grant' : 'config.change', outcome: 'success', objectType: 'approval', objectId: id, details: { decision: approve ? 'approved' : 'rejected', kind: cur.kind } });
+      if (cur.kind === 'role_grant' && approve) affectedUser = (cur.payload as { userId?: string }).userId ?? null;
+      const done = await tx.governance.decide(id, ctx.actor.userId!, approve, stepUpAgeS); if (!done) throw new DomainError('CONFLICT');
       return done;
     });
     if (affectedUser) await this.auth.revokeAllForUser(affectedUser);
     return a;
-  }
-  private async apply(tx: Tx, ctx: Ctx, a: ApprovalRecord): Promise<string | null> {
-    const p = a.payload as Record<string, unknown>;
-    if (a.kind === 'role_grant') {
-      const role = p.role as Role; const userId = p.userId as string;
-      const u = await tx.users.getById(userId); if (!u) throw notFound();
-      if (violatesSeparationOfDuties(u.roles.map((r) => r.role), role)) throw new DomainError('SOD_VIOLATION');
-      await tx.users.grantRole({ id: nid(this.clock, 'role'), userId, role, centerId: (p.centerId as string | null) ?? null, grantedBy: a.proposedBy, approvedBy: ctx.actor.userId! });
-      return userId;
-    }
-    if (a.kind === 'k_change') { await tx.governance.setK(p.fieldSet as string, p.k as number, ctx.actor.userId!); return null; }
-    await tx.governance.setCommitteeConfig({ votesNeeded: p.votesNeeded as number, membersTotal: p.membersTotal as number });
-    return null;
   }
 
   // ----- centers -----

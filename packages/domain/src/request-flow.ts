@@ -14,6 +14,7 @@ const RULES: Record<string, Rule> = {
   'submitted>precheck': [C],
   'submitted>closed': [A, C],
   'precheck>needs_info': [C],
+  'submitted>committee_review': [],
   'precheck>committee_review': [C],
   'precheck>closed': [A, C],
   'needs_info>precheck': [A],
@@ -52,9 +53,8 @@ export function checkTransition(
   const actors = actorOf(role, isOwner);
   const allowed = actorsFor(from, to);
   if (!actors.some((a) => allowed.includes(a))) return { ok: false, reason: 'actor' };
-  if (to === 'closed' && closeReason === 'delivered' && !(actors.includes('applicant') && from === 'delivery')) {
-    return { ok: false, reason: 'delivered_by_non_applicant' };
-  }
+  // Only the holding centers confirm delivery (database function request_center_delivered). Expiry is the system timer.
+  if (to === 'closed' && (closeReason === 'delivered' || closeReason === 'expired')) return { ok: false, reason: 'delivered_by_non_applicant' };
   if (from === 'submitted' && to === 'precheck' && coordinatorIsApplicant) return { ok: false, reason: 'self_precheck' };
   return { ok: true };
 }

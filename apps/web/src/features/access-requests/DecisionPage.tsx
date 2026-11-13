@@ -55,8 +55,8 @@ export function DecisionPage() {
           <RadioGroup legend={t("requests.decision.vote")} name="vote" value={vote} onChange={(v) => setVote(v as typeof vote)}
             options={(["approve", "reject", "abstain"] as const).map((v) => ({ value: v, label: t(`requests.vote.${v}` as never) }))} />
           <Textarea label={t("requests.decision.comment")} rows={3} value={comment} onChange={(e) => setComment(e.target.value)} autoComplete="off" />
-          {cast.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(cast.error))}</Alert></div> : null}
-          {decide.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(decide.error))}</Alert></div> : null}
+          {cast.isError ? <Alert tone="danger">{t(problemMessageKey(cast.error))}</Alert> : null}
+          {decide.isError ? <Alert tone="danger">{t(problemMessageKey(decide.error))}</Alert> : null}
           <div className="form-actions">
             <Button type="submit" variant="primary" disabled={!vote} loading={cast.isPending}>{t("requests.decision.cast")}</Button>
             <Button onClick={() => decide.mutate("approved")} disabled={ty.approve < ty.required} loading={decide.isPending}>{t("requests.decision.record.approved")}</Button>

@@ -26,6 +26,7 @@ export const STEP_UP_OPS = new Set([
   'createCenter', 'approveRegistration', 'verifyAuditChain',
 ]);
 
+export const ENROLLMENT_OPS = new Set(['enrollTotpStart', 'enrollTotpConfirm', 'webauthnRegisterOptions', 'webauthnRegisterVerify', 'logout', 'getMe', 'getSessionInfo', 'getAuthSession']);
 export function pickRole(held: readonly Role[], allowed: readonly Role[]): Role | null {
   for (const r of PRIORITY) if (held.includes(r) && allowed.includes(r)) return r;
   return null;
@@ -81,6 +82,7 @@ export function registerContractRoutes(app: FastifyInstance, deps: Deps, handler
             throw new HttpProblem('FORBIDDEN');
           }
           req.ctx = { actor: actorFromSession(sess, role), traceId: req.id, ipHash: req.ipHashValue };
+          if (sess.mfaAt === null && !ENROLLMENT_OPS.has(op.operationId)) throw new HttpProblem('STEP_UP_REQUIRED');   // enrolment-only session
           if (STEP_UP_OPS.has(op.operationId) && !stepUpFresh(sess.mfaAt, deps.clock.now().getTime())) throw new HttpProblem('STEP_UP_REQUIRED');
         }
         // ---- query validation ----

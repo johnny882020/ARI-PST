@@ -78,6 +78,7 @@ export class IngestionService {
     return this.repo.tx(ctx, async (tx) => {
       const parent = await tx.imports.getJob(parentId); if (!parent) throw notFound();
       if (parent.mode !== 'dry_run' || parent.status !== 'validated') throw new DomainError('CONFLICT');
+      if (await tx.imports.hasCommitChild(parentId)) throw new DomainError('CONFLICT');
       if (!parent.fileSha256 || parent.fileSha256 !== b.fileSha256) throw new DomainError('IMPORT_HASH_MISMATCH');
       if ((parent.rejectedRows ?? 0) > 0) throw new DomainError('IMPORT_FILE_INVALID');
       if ((parent.warningRows ?? 0) > 0 && !b.acceptWarnings) throw new DomainError('VALIDATION_FAILED', [{ field: 'acceptWarnings', rule: 'REQUIRED' }]);

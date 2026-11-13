@@ -40,7 +40,7 @@ export function LoginPage() {
     <>
       <PageHeading titleKey="auth.login.title" lead={t("auth.login.lead")} />
       {err ? (
-        <div role="alert">
+        <div>
           <Alert tone="danger" title={t("auth.login.error.title")}>
             {t(problemMessageKey(err))}
             {traceIdOf(err) ? <small> {t("error.trace.label")}: <bdi dir="ltr">{traceIdOf(err)}</bdi></small> : null}

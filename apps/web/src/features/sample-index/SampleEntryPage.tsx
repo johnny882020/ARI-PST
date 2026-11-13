@@ -68,10 +68,10 @@ export function SampleEntryPage() {
     <div className="stack narrow" style={{ padding: 0 }}>
       <PageHeading titleKey="samples.entry.title" lead={t("samples.entry.lead")} actions={<Link className="ds-btn ds-btn-secondary" to="/import/new"><span className="ds-btn-label">{t("nav.import")}</span></Link>} />
       <Alert tone="warning">{t("samples.entry.noIdentifiers")}</Alert>
-      {lastCode ? <div role="status"><Alert tone="success">{t("samples.entry.saved", { code: lastCode })}</Alert></div> : null}
+      {lastCode ? <Alert tone="success">{t("samples.entry.saved", { code: lastCode })}</Alert> : null}
       {count > 0 ? <p className="muted">{t("samples.entry.repeatValue", { count })}</p> : null}
       <ErrorSummary errors={summary} nonce={nonce} />
-      {create.isError && !summary.length ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(create.error))}</Alert></div> : null}
+      {create.isError && !summary.length ? <Alert tone="danger">{t(problemMessageKey(create.error))}</Alert> : null}
       <form onSubmit={onSubmit} noValidate className="stack">
         {sel("sourceCenterId", centers.centers.map((c) => ({ value: c.id, label: centers.label(c.id) })), true)}
         {sel("diagnosisCode", dx.terms.filter((d) => d.level === "type").map((d) => ({ value: d.diagnosisCode, label: dx.label(d.diagnosisCode) })))}

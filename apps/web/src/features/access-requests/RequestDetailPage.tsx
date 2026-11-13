@@ -80,7 +80,7 @@ export function RequestDetailPage() {
           <form className="stack" onSubmit={(e) => { e.preventDefault(); if (reply.trim()) respond.mutate(); }}>
             <Textarea label={t("requests.tracker.respond.label")} help={t("consent.freetext.warning")} rows={4} value={reply} onChange={(e) => setReply(e.target.value)} autoComplete="off" required />
             {looksIdentifying(reply) ? <Alert tone="warning">{t("form.error.identifier")}</Alert> : null}
-            {respond.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(respond.error))}</Alert></div> : null}
+            {respond.isError ? <Alert tone="danger">{t(problemMessageKey(respond.error))}</Alert> : null}
             <div><Button type="submit" variant="primary" loading={respond.isPending}>{t("requests.tracker.respond.submit")}</Button></div>
           </form>
         </Card>
@@ -100,7 +100,7 @@ export function RequestDetailPage() {
         <Card as="div" heading={t("requests.coordination.title")} headingLevel={2}>
           <form className="stack" onSubmit={(e) => { e.preventDefault(); stepMut.mutate(activeApiStep); }}>
             <Textarea label={t("requests.coordination.note")} rows={2} value={note} onChange={(e) => setNote(e.target.value)} autoComplete="off" />
-            {stepMut.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(stepMut.error))}</Alert></div> : null}
+            {stepMut.isError ? <Alert tone="danger">{t(problemMessageKey(stepMut.error))}</Alert> : null}
             <div><Button type="submit" variant="primary" loading={stepMut.isPending}>{t(`requests.coordination.done.${activeApiStep}` as never)}</Button></div>
           </form>
         </Card>

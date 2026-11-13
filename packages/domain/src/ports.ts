@@ -98,6 +98,7 @@ export interface UserRepo {
   revokeRole(userId: string, assignmentId: string): Promise<boolean>;
   activeRoles(userId: string): Promise<RoleAssignmentRecord[]>;
   pendingRegistrations(limit: number): Promise<Array<{ id: string; email: string; displayName: string; institution: string | null; isIsraeliAcademic: boolean; createdAt: string }>>;
+  verifyEmail(userId: string, token: string): Promise<boolean>;
   registrationFlag(userId: string): Promise<{ institution: string | null; isIsraeliAcademic: boolean } | null>;
 }
 export interface CenterRepo {
@@ -144,14 +145,14 @@ export interface RequestRepo {
   removeItem(requestId: string, itemId: string): Promise<boolean>;
   findByIdempotency(userId: string, key: string): Promise<{ requestHash: string; requestId: string | null } | null>;
   saveIdempotency(userId: string, key: string, methodPath: string, requestHash: string, status: number, requestId: string | null): Promise<void>;
-  transition(id: string, to: RequestState, closeReason: CloseReason | null): Promise<RequestRecord | null>;
+  transition(id: string, to: RequestState, closeReason: CloseReason | null, extra?: { reasonCode?: string; note?: string; checklist?: Record<string, boolean>; idempotencyKey?: string }): Promise<RequestRecord | null>;
   steps(id: string, includeInternal: boolean): Promise<RequestStepRecord[]>;
-  upsertStep(id: string, key: StepKey, centerId: string | null, p: { status?: RequestStepRecord['status']; publicNote?: string; internalNote?: string }, actorUserId: string): Promise<RequestStepRecord>;
-  resolveSamples(requestId: string, itemId: string, sampleIds: string[], by: string): Promise<boolean>;
+  updateStep(id: string, key: StepKey, centerId: string, p: { accepted?: boolean; agreement?: { kind: 'mta' | 'dta'; docRef: string }; publicNote?: string; internalNote?: string }): Promise<RequestStepRecord>;
+  resolveSamples(requestId: string, itemId: string, sampleIds: string[]): Promise<boolean>;
   castVote(requestId: string, voterUserId: string, vote: VoteValue, comment: string | null, rationaleCode: string | null): Promise<VoteRecord>;
   votes(requestId: string): Promise<VoteRecord[]>;
   committeeConfig(): Promise<CommitteeConfig>;
-  recordDecision(requestId: string, outcome: DecisionOutcome, rationale: string | null, decidedBy: string): Promise<DecisionRecord>;
+  latestDecision(requestId: string): Promise<DecisionRecord | null>;
   decisions(requestId: string, applicantView: boolean): Promise<DecisionRecord[]>;
   countsByStatus(): Promise<Record<string, number>>;
 }
@@ -163,17 +164,15 @@ export interface ImportRepo {
   saveRows(jobId: string, rows: ImportRowRecord[]): Promise<void>;
   listRows(jobId: string, q: { outcome?: string; cursor?: string; limit: number }): Promise<Page<ImportRowRecord>>;
   allRows(jobId: string): Promise<ImportRowRecord[]>;
+  hasCommitChild(parentId: string): Promise<boolean>;
 }
 export interface GovernanceRepo {
   propose(a: { id: string; kind: ApprovalRecord['kind']; payload: Record<string, unknown>; proposedBy: string }): Promise<ApprovalRecord>;
   getApproval(id: string): Promise<ApprovalRecord | null>;
   listApprovals(status?: string): Promise<ApprovalRecord[]>;
-  decide(id: string, by: string, approve: boolean): Promise<ApprovalRecord | null>;
-  setK(fieldSet: string, k: number, by: string): Promise<void>;
+  decide(id: string, by: string, approve: boolean, stepUpAgeS: number): Promise<ApprovalRecord | null>;
   getKPolicies(): Promise<Array<{ fieldSet: string; k: number }>>;
-  setCommitteeConfig(c: CommitteeConfig): Promise<void>;
   metrics(): Promise<{ samplesTotal: number; centersFeeding: number; registeredResearchers: number; searchesLast30d: number; coordinatorEnteredShare: number }>;
-  config(): Promise<Record<string, unknown>>;
 }
 export interface OutboxRepo {
   enqueue(o: { id: string; template: string; toRole?: Role | null; toUserId: string | null; toEmail: string | null; locale: 'he' | 'en'; params: Record<string, string> }): Promise<void>;
@@ -211,7 +210,7 @@ export interface AuthPort {
   /** Constant-time. Returns null for unknown user and wrong password alike. Applies lockout. */
   verifyPassword(email: string, password: string): Promise<{ userId: string; mfaFactors: MfaFactor[]; locked: boolean } | { locked: true } | null>;
   setPassword(userId: string, pw: string): Promise<void>;
-  checkPasswordPolicy(pw: string): string | null;
+  checkPasswordPolicy(pw: string, email?: string): string | null;
   // TOTP
   totpBegin(userId: string, accountLabel: string): Promise<{ secretBase32: string; otpauthUri: string }>;
   totpConfirm(userId: string, code: string): Promise<boolean>;

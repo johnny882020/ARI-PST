@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import {
-  DomainError, STEP_KEYS, allowedOutcomes, applicantMayEdit, canonicalizeFilters, cartMayChange, checkTransition, scanObjectDeep, stableStringify,
-  stepForState, tally, validateEthicsRef, validateFilterShape, type CloseReason, type Clock, type Ctx, type DecisionOutcome, type Filters,
+  DomainError, STEP_KEYS, applicantMayEdit, canonicalizeFilters, cartMayChange, checkTransition, scanObjectDeep, stableStringify,
+  stepForState, validateEthicsRef, validateFilterShape, type CloseReason, type Clock, type Ctx, type DecisionOutcome, type Filters,
   type NotifyPort, type Repository, type RequestRecord, type RequestState, type RequestStepRecord, type StepKey, type Tx,
 } from '@ari/domain';
 import { countBucket, type SearchService } from '../search-discovery/index.js';
@@ -118,7 +118,7 @@ export class RequestService {
       return this.load(tx, ctx, id);
     });
   }
-  async transition(ctx: Ctx, id: string, to: RequestState, closeReason?: CloseReason) {
+  async transition(ctx: Ctx, id: string, to: RequestState, closeReason?: CloseReason, extra?: { reasonCode?: string; note?: string; checklist?: Record<string, boolean> }) {
     return this.repo.tx(ctx, async (tx) => {
       const cur = await tx.requests.get(id); if (!cur) throw notFound();
       const isOwner = cur.applicantUserId === ctx.actor.userId;
@@ -131,7 +131,7 @@ export class RequestService {
         if (chk.reason === 'illegal') throw new DomainError('REQUEST_STATE_INVALID');
         throw new DomainError('FORBIDDEN');
       }
-      const next = await tx.requests.transition(id, to, closeReason ?? null);
+      const next = await tx.requests.transition(id, to, closeReason ?? null, extra);
       if (!next) throw new DomainError('REQUEST_STATE_INVALID');
       await tx.audit.record(ctx, { action: 'request.state_changed', outcome: 'success', objectType: 'request', objectId: id, details: { from: cur.status, to, actorRole: ctx.actor.role } });
       if (to === 'precheck') await tx.audit.record(ctx, { action: 'request.precheck', outcome: 'success', objectType: 'request', objectId: id });
@@ -145,18 +145,18 @@ export class RequestService {
   async steps(ctx: Ctx, id: string) {
     return this.repo.tx(ctx, async (tx) => { const r = await this.load(tx, ctx, id); return r.steps ?? []; });
   }
-  async updateStep(ctx: Ctx, id: string, key: StepKey, p: { status?: RequestStepRecord['status']; publicNote?: string; internalNote?: string; centerId?: string }) {
-    if (key !== 'center_coordination' && key !== 'delivery') throw new DomainError('VALIDATION_FAILED', [{ field: 'stepKey', rule: 'VOCAB' }]);
-    if (!p.centerId) throw new DomainError('VALIDATION_FAILED', [{ field: 'centerId', rule: 'REQUIRED' }]);
-    const note = scanObjectDeep({ a: p.publicNote, b: p.internalNote }, { maxLength: null });
+  async updateStep(ctx: Ctx, id: string, key: StepKey, p: { accepted?: boolean; agreement?: { kind: 'mta' | 'dta'; docRef: string }; publicNote?: string; internalNote?: string; centerId?: string }) {
+    if (key !== 'center_coordination' && key !== 'delivery' && key !== 'mta_dta') throw new DomainError('VALIDATION_FAILED', [{ field: 'stepKey', rule: 'VOCAB' }]);
+    const centerId = ctx.actor.role === 'center_clinician' ? ctx.actor.centerId : p.centerId;
+    if (!centerId) throw new DomainError('VALIDATION_FAILED', [{ field: 'centerId', rule: 'REQUIRED' }]);
+    const note = scanObjectDeep({ a: p.publicNote, b: p.internalNote, c: p.agreement?.docRef }, { maxLength: null });
     if (note.length) throw new DomainError('VALIDATION_FAILED', [{ field: 'publicNote', rule: 'IDENTIFIER_SUSPECTED' }]);
     return this.repo.tx(ctx, async (tx) => {
       const cur = await tx.requests.get(id); if (!cur) throw notFound();
-      if (!['center_coordination', 'agreements', 'delivery'].includes(cur.status)) throw new DomainError('REQUEST_STATE_INVALID');
-      const { centerId, ...rest } = p;
-      const s = await tx.requests.upsertStep(id, key, centerId!, rest, ctx.actor.userId!);
-      await tx.audit.record(ctx, { action: 'request.mta_status', outcome: 'success', objectType: 'request', objectId: id, centerId: centerId!, details: { step: key, status: s.status } });
-      return s;
+      const { centerId: _c, ...rest } = p;
+      const s = await tx.requests.updateStep(id, key, centerId, rest);
+      await this.notify.enqueue(tx, { template: 'request_status', toUserId: cur.applicantUserId });
+      return ctx.actor.role === 'national_coordinator' ? s : { ...s, internalNote: undefined };
     });
   }
   async resolveSamples(ctx: Ctx, id: string, itemId: string, sampleIds: string[]) {
@@ -164,7 +164,7 @@ export class RequestService {
       const cur = await tx.requests.get(id); if (!cur) throw notFound();
       if (!['approved', 'center_coordination', 'agreements', 'delivery'].includes(cur.status)) throw new DomainError('REQUEST_STATE_INVALID');
       if (!cur.items.some((i) => i.id === itemId)) throw notFound();
-      if (!(await tx.requests.resolveSamples(id, itemId, sampleIds, ctx.actor.userId!))) throw new DomainError('VALIDATION_FAILED', [{ field: 'sampleIds', rule: 'VOCAB' }]);
+      if (!(await tx.requests.resolveSamples(id, itemId, sampleIds))) throw new DomainError('VALIDATION_FAILED', [{ field: 'sampleIds', rule: 'VOCAB' }]);
       await tx.audit.record(ctx, { action: 'request.view', outcome: 'success', objectType: 'request', objectId: id, details: { resolvedSamples: sampleIds.length } });
     });
   }
@@ -174,6 +174,7 @@ export class RequestService {
       const cur = await tx.requests.get(id); if (!cur) throw notFound();
       if (cur.status !== 'committee_review' && cur.status !== 'appeal_review') throw new DomainError('REQUEST_STATE_INVALID');
       const v = await tx.requests.castVote(id, ctx.actor.userId!, b.vote, b.comment ?? null, b.vote === 'reject' ? (b.rationaleCode ?? 'unspecified') : null);
+      if ((await tx.requests.get(id))?.status !== cur.status) await this.notify.enqueue(tx, { template: 'request_status', toUserId: cur.applicantUserId });
       await tx.audit.record(ctx, { action: 'request.vote', outcome: 'success', objectType: 'request', objectId: id, details: { vote: b.vote } });
       return v;
     });
@@ -181,27 +182,21 @@ export class RequestService {
   async listVotes(ctx: Ctx, id: string) {
     return this.repo.tx(ctx, async (tx) => { if (!(await tx.requests.get(id))) throw notFound(); return tx.requests.votes(id); });
   }
+  /** The decision is made by the database the moment the N-th matching vote arrives (quorum under a row lock). This call returns it,
+   *  or moves the request to needs_info for the committee. It never creates an outcome that the votes do not support. */
   async recordDecision(ctx: Ctx, id: string, b: { outcome: DecisionOutcome; rationale?: string }) {
     if (b.rationale && scanObjectDeep({ r: b.rationale }, { maxLength: null }).length) throw new DomainError('VALIDATION_FAILED', [{ field: 'rationale', rule: 'IDENTIFIER_SUSPECTED' }]);
     return this.repo.tx(ctx, async (tx) => {
       const cur = await tx.requests.get(id); if (!cur) throw notFound();
-      if (cur.status !== 'committee_review' && cur.status !== 'appeal_review') throw new DomainError('REQUEST_STATE_INVALID');
       if (b.outcome === 'needs_info') {
         if (cur.status !== 'committee_review') throw new DomainError('REQUEST_STATE_INVALID');
-        const votes = await tx.requests.votes(id);
-        if (!allowedOutcomes(tally(votes), await tx.requests.committeeConfig()).includes('needs_info')) throw new DomainError('QUORUM_NOT_REACHED');
-        await tx.requests.transition(id, 'needs_info', null);
-        const d = { id: nid(this.clock, 'decision'), requestId: id, outcome: 'needs_info' as const, rationale: b.rationale ?? null, decidedAt: this.clock.now().toISOString() };
+        await tx.requests.transition(id, 'needs_info', null, { reasonCode: 'committee_info', ...(b.rationale ? { note: b.rationale } : {}) });
         await tx.audit.record(ctx, { action: 'request.decide', outcome: 'success', objectType: 'request', objectId: id, details: { outcome: 'needs_info' } });
         await this.notify.enqueue(tx, { template: 'request_status', toUserId: cur.applicantUserId });
-        return d;
+        return { id: `dec_${'0'.repeat(26)}`, requestId: id, outcome: 'needs_info' as const, rationale: b.rationale ?? null, decidedAt: this.clock.now().toISOString() };
       }
-      const votes = await tx.requests.votes(id);
-      const cfg = await tx.requests.committeeConfig();
-      if (!allowedOutcomes(tally(votes), cfg).includes(b.outcome)) throw new DomainError('QUORUM_NOT_REACHED');
-      const d = await tx.requests.recordDecision(id, b.outcome, b.rationale ?? null, ctx.actor.userId!);
-      await tx.audit.record(ctx, { action: 'request.decide', outcome: 'success', objectType: 'request', objectId: id, details: { outcome: b.outcome } });
-      await this.notify.enqueue(tx, { template: 'request_status', toUserId: cur.applicantUserId });
+      const d = await tx.requests.latestDecision(id);
+      if (!d || d.outcome !== b.outcome) throw new DomainError('QUORUM_NOT_REACHED');
       return d;
     });
   }

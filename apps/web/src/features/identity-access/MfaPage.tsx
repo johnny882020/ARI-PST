@@ -57,7 +57,7 @@ export function MfaPage() {
   return (
     <>
       <PageHeading titleKey="auth.mfa.title" lead={t(recovery ? "auth.mfa.recovery.lead" : "auth.mfa.lead")} />
-      {msg ? <div role="alert"><Alert tone="danger">{t(msg as never)}</Alert></div> : null}
+      {msg ? <Alert tone="danger">{t(msg as never)}</Alert> : null}
       {passkeysSupported() && !recovery ? (
         <div className="stack">
           <Button variant="primary" onClick={() => void passkey()} loading={busy}>{t("auth.mfa.passkey")}</Button>

@@ -1,0 +1,617 @@
+{
+  "matrix": [
+    {
+      "locale": "he",
+      "theme": "light",
+      "vp": "desktop",
+      "dirOk": "rtl/he",
+      "contrast": [],
+      "targets": [],
+      "targets24": [],
+      "hscroll": null,
+      "axe": [],
+      "console": [],
+      "failed": [],
+      "shot": "docs/qa/screenshots/gallery/he-light-desktop.png"
+    },
+    {
+      "locale": "he",
+      "theme": "light",
+      "vp": "mobile",
+      "dirOk": "rtl/he",
+      "contrast": [],
+      "targets": [
+        {
+          "sel": "button.ds-segment",
+          "text": "עברית",
+          "w": 64,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "English",
+          "w": 72,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "בהירה",
+          "w": 81,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "כהה",
+          "w": 69,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "לפי המערכת",
+          "w": 122,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-link-button",
+          "text": "ניסיון חוזר",
+          "w": 66,
+          "h": 26
+        },
+        {
+          "sel": "button.ds-link-button",
+          "text": "העתקה",
+          "w": 40,
+          "h": 24
+        }
+      ],
+      "targets24": [],
+      "hscroll": {
+        "sw": 443,
+        "cw": 390
+      },
+      "axe": [],
+      "console": [],
+      "failed": [],
+      "shot": "docs/qa/screenshots/gallery/he-light-mobile.png"
+    },
+    {
+      "locale": "he",
+      "theme": "dark",
+      "vp": "desktop",
+      "dirOk": "rtl/he",
+      "contrast": [],
+      "targets": [],
+      "targets24": [],
+      "hscroll": null,
+      "axe": [],
+      "console": [],
+      "failed": [],
+      "shot": "docs/qa/screenshots/gallery/he-dark-desktop.png"
+    },
+    {
+      "locale": "he",
+      "theme": "dark",
+      "vp": "mobile",
+      "dirOk": "rtl/he",
+      "contrast": [],
+      "targets": [
+        {
+          "sel": "button.ds-segment",
+          "text": "עברית",
+          "w": 64,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "English",
+          "w": 72,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "בהירה",
+          "w": 81,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "כהה",
+          "w": 69,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "לפי המערכת",
+          "w": 122,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-link-button",
+          "text": "ניסיון חוזר",
+          "w": 66,
+          "h": 26
+        },
+        {
+          "sel": "button.ds-link-button",
+          "text": "העתקה",
+          "w": 40,
+          "h": 24
+        }
+      ],
+      "targets24": [],
+      "hscroll": {
+        "sw": 443,
+        "cw": 390
+      },
+      "axe": [],
+      "console": [],
+      "failed": [],
+      "shot": "docs/qa/screenshots/gallery/he-dark-mobile.png"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "vp": "desktop",
+      "dirOk": "ltr/en",
+      "contrast": [],
+      "targets": [],
+      "targets24": [],
+      "hscroll": null,
+      "axe": [],
+      "console": [],
+      "failed": [],
+      "shot": "docs/qa/screenshots/gallery/en-light-desktop.png"
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "vp": "mobile",
+      "dirOk": "ltr/en",
+      "contrast": [],
+      "targets": [
+        {
+          "sel": "button.ds-segment",
+          "text": "עברית",
+          "w": 61,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "English",
+          "w": 73,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "Light",
+          "w": 77,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "Dark",
+          "w": 75,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "System",
+          "w": 95,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-link-button",
+          "text": "Try again",
+          "w": 70,
+          "h": 26
+        },
+        {
+          "sel": "button.ds-link-button",
+          "text": "Copy",
+          "w": 32,
+          "h": 24
+        }
+      ],
+      "targets24": [],
+      "hscroll": {
+        "sw": 457,
+        "cw": 390
+      },
+      "axe": [],
+      "console": [],
+      "failed": [],
+      "shot": "docs/qa/screenshots/gallery/en-light-mobile.png"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "vp": "desktop",
+      "dirOk": "ltr/en",
+      "contrast": [],
+      "targets": [],
+      "targets24": [],
+      "hscroll": null,
+      "axe": [],
+      "console": [],
+      "failed": [],
+      "shot": "docs/qa/screenshots/gallery/en-dark-desktop.png"
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "vp": "mobile",
+      "dirOk": "ltr/en",
+      "contrast": [],
+      "targets": [
+        {
+          "sel": "button.ds-segment",
+          "text": "עברית",
+          "w": 61,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "English",
+          "w": 73,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "Light",
+          "w": 77,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "Dark",
+          "w": 75,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-segment",
+          "text": "System",
+          "w": 95,
+          "h": 36
+        },
+        {
+          "sel": "button.ds-link-button",
+          "text": "Try again",
+          "w": 70,
+          "h": 26
+        },
+        {
+          "sel": "button.ds-link-button",
+          "text": "Copy",
+          "w": 32,
+          "h": 24
+        }
+      ],
+      "targets24": [],
+      "hscroll": {
+        "sw": 457,
+        "cw": 390
+      },
+      "axe": [],
+      "console": [],
+      "failed": [],
+      "shot": "docs/qa/screenshots/gallery/en-dark-mobile.png"
+    }
+  ],
+  "keyboard": [
+    {
+      "locale": "en",
+      "notes": [],
+      "tabOrder": [
+        "button:Light",
+        "button:Dark",
+        "button:System",
+        "a:Gallery",
+        "a:Search",
+        "button:Primary",
+        "button:Secondary",
+        "button:Quiet",
+        "button:Danger",
+        "button:LoadingLoading",
+        "button:Search",
+        "button:Remove filter Medullob",
+        "button:Show toast",
+        "button:Hover or focus",
+        "input:f:r3:",
+        "input:f:r4:",
+        "input:f:r5:",
+        "textarea:f:r6:",
+        "select:ChooseSynthetic Center",
+        "input:f:r8:",
+        "input:c:r9:",
+        "input:c:ra:",
+        "input:s:rb:",
+        "input:r",
+        "input::rf:",
+        "button:Search",
+        "input:c:rh:",
+        "input:c:ri:",
+        "button:Try again",
+        "summary:Why are some numbers h",
+        "button:Dismiss",
+        "button:Action",
+        "button:Clear filters",
+        "button:Try again",
+        "button:Copy",
+        "button:Overview",
+        "div:Overview panel",
+        "div:Samples (synthetic)Cod",
+        "button:Code",
+        "button:Type",
+        "button:Count",
+        "button:Next",
+        "button:Open dialog",
+        "button:Session timeout",
+        "button:Show consent banner"
+      ],
+      "focusRing": {
+        "outline": "none 3px rgb(11, 92, 115)",
+        "shadow": "rgb(251, 250, 248) 0px 0px 0px 2px, rgb(11, 92, 115) 0px 0px 0px 4px"
+      },
+      "consoleBefore": 0,
+      "consentButtons": [
+        "Decline",
+        "Accept"
+      ],
+      "dialogOpen": 1,
+      "dialogFocusInside": true,
+      "focusTrapped": true,
+      "shiftTabInside": true,
+      "dialogAria": {
+        "modal": "true",
+        "labelledby": true
+      },
+      "dialogClosedByEsc": true,
+      "focusRestored": "Open dialog",
+      "sessionDialog": {
+        "role": "alertdialog",
+        "text": "Your session is about to endFor your safety, you will be signed out soon. Stay signed in to continue.Time left: 1:35Time"
+      },
+      "sessionEscCloses": false,
+      "checkboxSpace": true,
+      "switchSpace": true,
+      "tabsArrow": "tab:Details",
+      "tabsSelected": [
+        "false",
+        "true"
+      ],
+      "radioArrow": "radio:true",
+      "toast": "polite",
+      "tooltipOnFocus": 1,
+      "tooltipEsc": 0,
+      "tableSortAria": [
+        "descending",
+        "none",
+        "none"
+      ],
+      "hoverBg": "rgb(10, 88, 111)",
+      "restBg": "rgb(9, 82, 103)",
+      "disabledBtn": {
+        "disabled": true,
+        "aria": null,
+        "cursor": "not-allowed"
+      },
+      "loadingBtn": {
+        "disabled": false,
+        "ariaBusy": "true",
+        "ariaDisabled": "true"
+      },
+      "tiles": [
+        "Samples128samples",
+        "Samples",
+        "128samples",
+        "128",
+        "Samples —Too few to showCount not shown, to protect privacy",
+        "Samples",
+        "—Too few to showCount not shown, to protect privacy",
+        "—",
+        "Too few to show",
+        "Samples40Includes related categoriesCount includes related categories",
+        "Samples",
+        "40Includes related categoriesCount includes related categories",
+        "40",
+        "SamplesLoading count",
+        "Samples",
+        "Loading count",
+        "SamplesCould not load Try again",
+        "Samples",
+        "Could not load Try again",
+        "Could not load Try again",
+        "Samples1,280Coordinator view: exact counts",
+        "Samples",
+        "1,280",
+        "1,280",
+        "Coordinator view: exact counts"
+      ],
+      "pagIcons": [
+        "none",
+        "none",
+        "none",
+        "none"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "locale": "he",
+      "notes": [],
+      "tabOrder": [
+        "a:דילוג לתוכן הראשי",
+        "button:עברית",
+        "button:English",
+        "button:בהירה",
+        "button:כהה",
+        "button:לפי המערכת",
+        "a:גלריה",
+        "a:חיפוש",
+        "button:Primary",
+        "button:Secondary",
+        "button:Quiet",
+        "button:Danger",
+        "button:Loadingטוען",
+        "button:Search",
+        "button:הסרת הסינון Medullobla",
+        "button:Show toast",
+        "button:Hover or focus",
+        "input:f:r3:",
+        "input:f:r4:",
+        "input:f:r5:",
+        "textarea:f:r6:",
+        "select:ChooseSynthetic Center",
+        "input:f:r8:",
+        "input:c:r9:",
+        "input:c:ra:",
+        "input:s:rb:",
+        "input:r",
+        "input::rf:",
+        "button:חיפוש",
+        "input:c:rh:",
+        "input:c:ri:",
+        "button:ניסיון חוזר",
+        "summary:למה חלק מהמספרים מוסתר",
+        "button:הסרה",
+        "button:Action",
+        "button:Clear filters",
+        "button:ניסיון חוזר",
+        "button:העתקה",
+        "button:Overview",
+        "div:Overview panel",
+        "div:Samples (synthetic)Cod",
+        "button:Code",
+        "button:Type",
+        "button:Count",
+        "button:הבא"
+      ],
+      "focusRing": {
+        "outline": "none 3px rgb(11, 92, 115)",
+        "shadow": "rgb(251, 250, 248) 0px 0px 0px 2px, rgb(11, 92, 115) 0px 0px 0px 4px"
+      },
+      "consoleBefore": 0,
+      "consentButtons": [
+        "דחייה",
+        "אישור"
+      ],
+      "dialogOpen": 1,
+      "dialogFocusInside": true,
+      "focusTrapped": true,
+      "shiftTabInside": true,
+      "dialogAria": {
+        "modal": "true",
+        "labelledby": true
+      },
+      "dialogClosedByEsc": true,
+      "focusRestored": "Open dialog",
+      "sessionDialog": {
+        "role": "alertdialog",
+        "text": "ההתחברות עומדת להסתייםמטעמי אבטחה תנותקו בקרוב. אפשר להישאר מחוברים כדי להמשיך.הזמן שנותר: 1:35הזמן שנותר: 2:00להישאר מח"
+      },
+      "sessionEscCloses": false,
+      "checkboxSpace": true,
+      "switchSpace": true,
+      "tabsArrow": "tab:Details",
+      "tabsSelected": [
+        "false",
+        "true"
+      ],
+      "radioArrow": "radio:true",
+      "toast": "polite",
+      "tooltipOnFocus": 1,
+      "tooltipEsc": 0,
+      "tableSortAria": [
+        "descending",
+        "none",
+        "none"
+      ],
+      "hoverBg": "rgb(11, 92, 115)",
+      "restBg": "rgb(9, 82, 103)",
+      "disabledBtn": {
+        "disabled": true,
+        "aria": null,
+        "cursor": "not-allowed"
+      },
+      "loadingBtn": {
+        "disabled": false,
+        "ariaBusy": "true",
+        "ariaDisabled": "true"
+      },
+      "tiles": [
+        "Samples128samples",
+        "Samples",
+        "128samples",
+        "128",
+        "Samples —מעט מדי להצגההמספר אינו מוצג, כדי להגן על הפרטיות",
+        "Samples",
+        "—מעט מדי להצגההמספר אינו מוצג, כדי להגן על הפרטיות",
+        "—",
+        "מעט מדי להצגה",
+        "Samples40כולל קטגוריות קרובותהמספר כולל קטגוריות קרובות",
+        "Samples",
+        "40כולל קטגוריות קרובותהמספר כולל קטגוריות קרובות",
+        "40",
+        "Samplesטוען מספר",
+        "Samples",
+        "טוען מספר",
+        "Samplesלא הצלחנו לטעון ניסיון חוזר",
+        "Samples",
+        "לא הצלחנו לטעון ניסיון חוזר",
+        "לא הצלחנו לטעון ניסיון חוזר",
+        "Samples1,280תצוגת רכז/ת: מספרים מדויקים",
+        "Samples",
+        "1,280",
+        "1,280",
+        "תצוגת רכז/ת: מספרים מדויקים"
+      ],
+      "pagIcons": [
+        "none",
+        "none",
+        "matrix(-1, 0, 0, 1, 0, 0)",
+        "matrix(-1, 0, 0, 1, 0, 0)"
+      ],
+      "consoleErrors": []
+    }
+  ],
+  "overflow": [
+    {
+      "hscroll": null,
+      "sw": 1280,
+      "cw": 1280,
+      "clipped": [
+        "ds-vh:948>1"
+      ],
+      "spill": [
+        "ds-tab ds-selected",
+        "ds-tab"
+      ],
+      "vp": "desktop"
+    },
+    {
+      "hscroll": null,
+      "sw": 651,
+      "cw": 390,
+      "clipped": [
+        "ds-vh:948>1"
+      ],
+      "spill": [
+        "ds-field",
+        "ds-label",
+        "ds-field ds-field-error",
+        "ds-label",
+        "ds-field",
+        "ds-label",
+        "ds-field",
+        "ds-label",
+        "ds-field",
+        "ds-label"
+      ],
+      "vp": "mobile"
+    }
+  ],
+  "motion": {
+    "infiniteAnimationsUnderReduce": [],
+    "scrollBehavior": "auto"
+  },
+  "focus": []
+}

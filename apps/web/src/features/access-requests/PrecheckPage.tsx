@@ -52,7 +52,7 @@ export function PrecheckPage() {
           options={[{ value: "forward", label: t("requests.precheck.forward") }, { value: "ask_info", label: t("requests.precheck.askInfo") }, { value: "reject", label: t("requests.precheck.reject") }]} />
         {needsReason ? <Select label={t("requests.precheck.reason")} required value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("requests.precheck.reason.placeholder")} options={REASONS.map((r) => ({ value: r, label: t(`requests.reason.${r}` as never) }))} /> : null}
         <Textarea label={t("requests.precheck.note")} help={t("requests.precheck.note.help")} rows={3} value={note} onChange={(e) => setNote(e.target.value)} autoComplete="off" />
-        {m.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(m.error))}</Alert></div> : null}
+        {m.isError ? <Alert tone="danger">{t(problemMessageKey(m.error))}</Alert> : null}
         <div className="form-actions"><Button type="submit" variant="primary" loading={m.isPending} disabled={needsReason && !reason}>{t("requests.precheck.submit")}</Button></div>
       </form>
     </div>

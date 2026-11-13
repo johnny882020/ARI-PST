@@ -58,7 +58,7 @@ export function RegisterPage() {
     <>
       <PageHeading titleKey="auth.register.title" lead={t("auth.register.lead")} />
       <ErrorSummary errors={summary} nonce={nonce} />
-      {problem ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(problem))}</Alert></div> : null}
+      {problem ? <Alert tone="danger">{t(problemMessageKey(problem))}</Alert> : null}
       <form onSubmit={onSubmit} noValidate className="stack">
         <Input id="field-displayName" label={t("auth.register.displayName")} autoComplete="name" required {...f.register("displayName")} error={errText(errors.displayName?.message)} />
         <Input id="field-institution" label={t("auth.register.institution")} autoComplete="organization" required {...f.register("institution")} error={errText(errors.institution?.message)} />

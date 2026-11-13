@@ -9,10 +9,13 @@ export interface Config {
   objectStore: { kind: 'memory' | 'localfs' | 's3'; localDir: string; s3?: { bucket: string; region: string; endpoint?: string; forcePathStyle: boolean } };
   mail: { kind: 'console' | 'smtp'; smtpUrl?: string; from: string };
   ipHashSalt: string;
+  secretsKey: string;                   // encrypts TOTP secrets at rest (AES-256-GCM)
+  contactInbox: string;
   validateResponses: boolean;
   webDistDir: string | null;
   setLocalRole: boolean;                // adapter option: also SET LOCAL ROLE per transaction (baseline DB model)
   outboxIntervalMs: number;             // 0 disables the in-process outbox worker
+  rate: { tightPerMin: number; generalPerMin: number };
   argon: { memoryCost: number; timeCost: number; parallelism: number };
   appVersion: string;
 }
@@ -40,10 +43,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     mail: { kind: (env.MAIL_TRANSPORT ?? (prod ? 'smtp' : 'console')) as 'console' | 'smtp', ...(env.SMTP_URL ? { smtpUrl: env.SMTP_URL } : {}), from: env.MAIL_FROM ?? 'ARI-PST Portal <no-reply@portal.invalid>' },
     ipHashSalt: need('IP_HASH_SALT', 'dev-only-salt-change-me'),
+    secretsKey: need('SECRETS_KEY', 'dev-only-secrets-key-change-me'),
+    contactInbox: env.CONTACT_INBOX ?? 'contact@portal.invalid',
     validateResponses: bool(env.VALIDATE_RESPONSES, !prod),
     webDistDir: env.WEB_DIST_DIR ?? null,
     setLocalRole: bool(env.DB_SET_LOCAL_ROLE, false),
     outboxIntervalMs: Number(env.OUTBOX_INTERVAL_MS ?? (nodeEnv === 'test' ? 0 : 15_000)),
+    rate: { tightPerMin: Number(env.RATE_TIGHT_PER_MIN ?? 20), generalPerMin: Number(env.RATE_GENERAL_PER_MIN ?? 600) },
     argon: { memoryCost: Number(env.ARGON_MEMORY_KIB ?? 19456), timeCost: Number(env.ARGON_TIME_COST ?? 2), parallelism: Number(env.ARGON_PARALLELISM ?? 1) },
     appVersion: env.APP_VERSION ?? env.RENDER_GIT_COMMIT ?? '0.1.0',
   };

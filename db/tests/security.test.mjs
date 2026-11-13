@@ -90,10 +90,10 @@ describe('samples: external roles have NO access, staff are scoped', () => {
       await c.query(`INSERT INTO portal.samples (id, source_center_id, diagnosis_code, age_band_at_diagnosis, sex, sample_type, availability, clinical_timepoint, collection_month, contact_ref)
         VALUES ('${sid(1)}','${C.A}','dmg_h3k27','3_lt6','female','ffpe','available','diagnosis','2024-05','x')`);
       await c.query(`INSERT INTO portal.sample_attached_data (sample_id, data_type) VALUES ('${sid(1)}','wes'),('${sid(1)}','mri')`);
-      const [r] = await q(c, `SELECT attached_data FROM portal.v_samples WHERE id='${sid(1)}'`);
+      const [r] = await q(c, `SELECT attached_data::text[] attached_data FROM portal.v_samples WHERE id='${sid(1)}'`);
       expect(r.attached_data).toEqual(['wes', 'mri']);
       await c.query(`UPDATE portal.sample_attached_data SET is_available=false WHERE sample_id='${sid(1)}' AND data_type='mri'`);
-      expect((await q(c, `SELECT attached_data FROM portal.v_samples WHERE id='${sid(1)}'`))[0].attached_data).toEqual(['wes']);
+      expect((await q(c, `SELECT attached_data::text[] attached_data FROM portal.v_samples WHERE id='${sid(1)}'`))[0].attached_data).toEqual(['wes']);
     });
   });
   it('donor consistency: samples of one donor must agree on diagnosis, sex, age and center', async () => {

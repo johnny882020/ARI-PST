@@ -150,17 +150,18 @@ CREATE TRIGGER trg_samples_ethics BEFORE INSERT OR UPDATE OF ethics_approval_id,
   FOR EACH ROW EXECUTE FUNCTION portal.check_sample_ethics_center();
 
 -- All samples of one donor must agree on diagnosis, sex, age band and center. This makes donor counts additive (privacy engine).
-CREATE FUNCTION portal.check_donor_consistency() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION portal.check_donor_consistency() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, portal, pg_temp AS $$
 BEGIN
-  IF current_user = 'app_core' THEN RETURN NEW; END IF;   -- portal.donor_correct updates all rows of a donor at once
   IF EXISTS (SELECT 1 FROM portal.samples s WHERE s.donor_ref = NEW.donor_ref AND s.id <> NEW.id AND
        (s.diagnosis_code, s.sex, s.age_band_at_diagnosis, s.source_center_id) IS DISTINCT FROM
        (NEW.diagnosis_code, NEW.sex, NEW.age_band_at_diagnosis, NEW.source_center_id)) THEN
     RAISE EXCEPTION 'donor_inconsistent' USING ERRCODE = '23514'; END IF;
-  RETURN NEW;
+  RETURN NULL;
 END $$;
-CREATE TRIGGER trg_samples_donor BEFORE INSERT OR UPDATE OF donor_ref, diagnosis_code, sex, age_band_at_diagnosis, source_center_id
-  ON portal.samples FOR EACH ROW EXECUTE FUNCTION portal.check_donor_consistency();
+-- AFTER ROW, checked at statement end: portal.donor_correct updates all samples of a donor in ONE statement.
+CREATE CONSTRAINT TRIGGER trg_samples_donor AFTER INSERT OR UPDATE OF donor_ref, diagnosis_code, sex, age_band_at_diagnosis, source_center_id
+  ON portal.samples DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION portal.check_donor_consistency();
 
 CREATE TABLE portal.sample_attached_data (
   sample_id portal.ulid_text NOT NULL REFERENCES portal.samples(id) ON DELETE CASCADE,

@@ -60,8 +60,8 @@ export function SampleDetailPage() {
     <div className="stack">
       <PageHeading titleKey="samples.detail.title" lead={<bdi dir="ltr">{s.sampleCode}</bdi>} actions={canVerify ? <Button variant="primary" loading={verify.isPending} onClick={() => verify.mutate()}>{t("samples.verify")}</Button> : <Link to="/samples">{t("common.action.back")}</Link>} />
       <Alert tone="info">{t("samples.noIdentifiers")}</Alert>
-      {verify.isSuccess ? <div role="status"><Alert tone="success">{t("samples.verified")}</Alert></div> : null}
-      {verify.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(verify.error))}</Alert></div> : null}
+      {verify.isSuccess ? <Alert tone="success">{t("samples.verified")}</Alert> : null}
+      {verify.isError ? <Alert tone="danger">{t(problemMessageKey(verify.error))}</Alert> : null}
       <Card as="div" heading={t("samples.detail.fields")} headingLevel={2}>
         <dl style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "0.5rem 1.5rem" }}>
           {rows.map(([k, v]) => (<><dt key={`k${k}`} className="muted">{k}</dt><dd key={`v${k}`} style={{ margin: 0 }}>{v}</dd></>))}
@@ -70,7 +70,7 @@ export function SampleDetailPage() {
       <Card as="div" heading={t("samples.local.title")} headingLevel={2}><p>{t("samples.local.body")}</p></Card>
       {canVerify ? (
         <Card as="div" heading={t("samples.flag.title")} headingLevel={2}>
-          {flagged ? <div role="status"><Alert tone="success">{t("samples.flag.done")}</Alert></div> : (
+          {flagged ? <Alert tone="success">{t("samples.flag.done")}</Alert> : (
             <form className="row" onSubmit={(e) => { e.preventDefault(); if (flag) flagMut.mutate(); }}>
               <Select label={t("samples.flag.reason")} value={flag} onChange={(e) => setFlag(e.target.value)} placeholder={t("samples.flag.placeholder")} options={FLAGS.map((f) => ({ value: f, label: t(`samples.flag.reason.${f}` as never) }))} />
               <Button type="submit" disabled={!flag} loading={flagMut.isPending}>{t("samples.flag.submit")}</Button>

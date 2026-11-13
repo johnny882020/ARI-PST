@@ -62,6 +62,7 @@ export function makeUserRepo(q: Q, ctx: Ctx): UserRepo {
     async updateSelf(id, p) {
       void id; await q.query('SELECT portal.user_update_self($1,$2)', [p.displayName ?? null, p.locale ?? null]);
     },
+    async verifyEmail(userId, token) { return (await q.query('SELECT portal.user_verify_email($1,$2) AS ok', [userId, token])).rows[0].ok === true; },
     async approveRegistration(userId) { await q.query('SELECT portal.researcher_approve($1)', [userId]); },
     async rejectRegistration(userId) { await q.query('SELECT portal.researcher_reject($1)', [userId]); },
     async pendingRegistrations(limit) {

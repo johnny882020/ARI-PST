@@ -54,8 +54,8 @@ export function ImportWizardPage() {
           <p className="ds-help">{t("ingest.upload.help")}</p>
           <input id="field-file" ref={input} type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(e) => pick(e.target.files?.[0])} />
         </div>
-        {localError ? <div role="alert"><Alert tone="danger">{t(localError as never)}</Alert></div> : null}
-        {upload.isError ? <div role="alert"><Alert tone="danger">{t(problemMessageKey(upload.error))}</Alert></div> : null}
+        {localError ? <Alert tone="danger">{t(localError as never)}</Alert> : null}
+        {upload.isError ? <Alert tone="danger">{t(problemMessageKey(upload.error))}</Alert> : null}
         <div className="form-actions"><Button type="submit" variant="primary" disabled={!file} loading={upload.isPending}>{t("ingest.upload.submit")}</Button></div>
       </form>
     </div>

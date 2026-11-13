@@ -50,6 +50,7 @@ export function homeFor(roles: readonly Role[]): string {
   if (has("national_coordinator")) return "/home";
   if (has("system_admin")) return "/home";
   if (has("committee_member")) return "/committee";
+  if (has("researcher_il")) return "/home";
   if (has("center_clinician")) return "/samples";
   return "/search";
 }

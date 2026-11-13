@@ -23,6 +23,8 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm  SCHEMA ext;
 CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA ext;
 CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA ext;
 
+-- Functions created from here on are NOT executable by PUBLIC (explicit GRANTs only). Placed after the extensions on purpose.
+ALTER DEFAULT PRIVILEGES FOR ROLE app_migrator REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 GRANT USAGE ON SCHEMA ext, portal, search, agg TO app_runtime, app_core, app_agg, app_readonly_bg, app_break_glass;
 GRANT USAGE ON SCHEMA audit TO app_runtime, app_core, app_audit_writer, app_readonly_bg, app_break_glass, app_agg;
 GRANT USAGE ON SCHEMA ext, portal, search, agg TO app_audit_writer;

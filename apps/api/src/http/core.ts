@@ -50,7 +50,7 @@ export async function registerCore(app: FastifyInstance, deps: Deps): Promise<vo
     const path = req.url.split('?')[0] ?? '';
     // Coarse per-address rate limit. Login and registration are tighter.
     const tight = path.endsWith('/auth/login') || path.endsWith('/auth/register') || path.endsWith('/auth/mfa/verify') || path.includes('/public/forms/');
-    const retry = limiter.hit(`ip:${req.ipHashValue}:${tight ? 't' : 'g'}`, tight ? 20 : 600, 60_000, now);
+    const retry = limiter.hit(`ip:${req.ipHashValue}:${tight ? 't' : 'g'}`, tight ? config.rate.tightPerMin : config.rate.generalPerMin, 60_000, now);
     if (retry) throw new HttpProblem('RATE_LIMITED', { 'Retry-After': String(retry) });
 
     const sid = req.cookies[SID_COOKIE];
@@ -85,7 +85,7 @@ export async function registerCore(app: FastifyInstance, deps: Deps): Promise<vo
     }
   });
 
-  app.setErrorHandler(async (err, req, reply) => {
+  app.setErrorHandler(async (err: any, req, reply) => {
     const traceId = req.id;
     let status: number; let body: unknown; const headers: Record<string, string> = {};
     if (err instanceof HttpProblem || err instanceof DomainError) {
@@ -100,6 +100,7 @@ export async function registerCore(app: FastifyInstance, deps: Deps): Promise<vo
       // Log class only. Never the message (could carry values) and never the body.
       req.log.error({ traceId, errName: err.name, errCode: code }, 'unhandled error');
       const p = problemFor('INTERNAL', traceId); status = 500; body = p;
+      if (config.env === 'test') reply.header('X-Debug-Error', `${err.name}: ${String(err.message).slice(0, 300)}`);
     }
     for (const [k, v] of Object.entries(headers)) reply.header(k, v);
     if (status === 401 || status === 403 || status === 429 || status === 409 || status === 422) {
@@ -107,11 +108,14 @@ export async function registerCore(app: FastifyInstance, deps: Deps): Promise<vo
     }
     return reply.code(status).type('application/problem+json').send(body);
   });
-  app.setNotFoundHandler(async (req, reply) => reply.code(404).type('application/problem+json').send(problemFor('NOT_FOUND', req.id)));
+  app.setNotFoundHandler(async (req, reply) => {
+    if (req.method === 'GET' && !req.url.startsWith('/api/') && app.hasDecorator('spaFallback')) return (reply as unknown as { sendFile(f: string): unknown }).sendFile('index.html');
+    return reply.code(404).type('application/problem+json').send(problemFor('NOT_FOUND', req.id));
+  });
 
   if (config.validateResponses) {
     app.addHook('preSerialization', async (req, reply, payload) => {
-      if (!req.opId || reply.statusCode >= 400 || payload === undefined || payload === null || typeof payload === 'string') return payload;
+      if (!req.opId || reply.statusCode >= 400 || payload === undefined || payload === null || typeof payload === 'string' || Buffer.isBuffer(payload)) return payload;
       const bad = deps.contract.validateResponse(req.opId, reply.statusCode, JSON.parse(JSON.stringify(payload)));
       if (bad && bad.length) { req.log.error({ op: req.opId, bad }, 'response contract violation'); throw new Error('response contract violation: ' + req.opId + ' ' + bad.join(';')); }
       return payload;

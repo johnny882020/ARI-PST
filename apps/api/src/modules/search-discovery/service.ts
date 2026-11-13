@@ -38,7 +38,7 @@ export class SearchService {
     if (!q) return { filters: f, emptyText: false };
     const codes = await this.repo.tx(ctx, (tx) => tx.search.expand(q, 10));
     if (codes.length === 0) return { filters: f, emptyText: true };
-    const merged = [...new Set([...(f.diagnosis ?? []), ...codes.map((c) => c.diagnosisCode)])].slice(0, 50);
+    const merged = [...new Set([...(f.diagnosis ?? []), ...codes.map((c) => c.diagnosisCode)])].slice(0, QUERY_LIMITS.maxOrValues);
     return { filters: canonicalizeFilters({ ...f, diagnosis: merged }), emptyText: false };
   }
   /** Rate limit and budget. Cache hit in the same epoch costs 0. Denials are audited in their own transaction. */
@@ -69,7 +69,7 @@ export class SearchService {
     const k = await this.repo.tx(ctx, (tx) => tx.search.k());
     const res = emptyText ? { count: null, suppressed: true, k } : await this.repo.tx(ctx, (tx) => tx.search.total(filters));
     await this.repo.tx(ctx, (tx) => tx.audit.record(ctx, { action: 'search.aggregate', outcome: 'success', details: { hash: key.slice(0, 32), masked: res.suppressed ? 1 : 0, predicates: predicateCount(filters), role: this.roleClass(ctx) } }));
-    return { count: res.suppressed ? null : res.count, suppressed: res.suppressed, label: res.suppressed ? 'too_few' : String(res.count), ...(ctx.actor.role === 'national_coordinator' ? { k: res.k } : {}), resolvedFilters: filters };
+    return { count: res.suppressed ? null : res.count, suppressed: res.suppressed, label: res.suppressed ? 'too_few' : res.count === null ? (res.band ?? 'lt10') : String(res.count), ...(ctx.actor.role === 'national_coordinator' ? { k: res.k } : {}), resolvedFilters: filters };
   }
   async facets(ctx: Ctx, input: SearchInput & { facets: string[] }) {
     const { filters, emptyText } = await this.resolve(ctx, input);
@@ -88,5 +88,5 @@ export class SearchService {
 /** Used by access-requests through the module index: k-safe bucket for a cart item. Charges the same budget as a search. */
 export async function countBucket(svc: SearchService, ctx: Ctx, filters: Filters): Promise<'lt10' | '10_plus'> {
   const r = await svc.aggregate(ctx, { filters });
-  return r.suppressed || (r.count ?? 0) < 10 ? 'lt10' : '10_plus';
+  return r.suppressed || r.count === null || r.count < 10 ? 'lt10' : '10_plus';
 }
