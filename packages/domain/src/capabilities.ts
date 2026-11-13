@@ -3,17 +3,16 @@
 import { AUTHENTICATED_ROLES, type Role } from './roles.js';
 export type Access = 'public' | 'auth' | readonly Role[];
 const R = (...r: Role[]): readonly Role[] => r;
-const EXT = R('researcher_il', 'researcher_intl');
 const COORD = R('national_coordinator');
 const ALL_AUTH: Access = 'auth';
 
 export const OPERATION_ACCESS: Record<string, Access> = {
   // health and meta
   livez: 'public', readyz: 'public', reportClientError: 'public', reportCsp: 'public', csrfBootstrap: 'public',
-  submitPublicForm: 'public', listPublicCenters: 'public',
+  submitPublicForm: 'public',
   // auth
   login: 'public', verifyMfa: 'public', webauthnOptions: 'public', register: 'public', verifyEmail: 'public',
-  logout: ALL_AUTH, getSession: ALL_AUTH, extendSession: ALL_AUTH, getMe: ALL_AUTH, updateMe: ALL_AUTH, changePassword: ALL_AUTH,
+  logout: ALL_AUTH, getAuthSession: ALL_AUTH, getSessionInfo: ALL_AUTH, extendSession: ALL_AUTH, getMe: ALL_AUTH, updateMe: ALL_AUTH, changePassword: ALL_AUTH,
   stepUp: ALL_AUTH, enrollTotpStart: ALL_AUTH, enrollTotpConfirm: ALL_AUTH, webauthnRegisterOptions: ALL_AUTH,
   webauthnRegisterVerify: ALL_AUTH, regenerateRecoveryCodes: ALL_AUTH,
   // samples
@@ -37,11 +36,7 @@ export const OPERATION_ACCESS: Record<string, Access> = {
   addRequestItem: R('researcher_il'),
   removeRequestItem: R('researcher_il'),
   submitRequest: R('researcher_il'),
-  withdrawRequest: R('researcher_il'),
-  respondToInfoRequest: R('researcher_il'),
-  fileAppeal: R('researcher_il'),
-  confirmDelivery: R('researcher_il'),
-  transitionRequest: COORD,
+  transitionRequest: R('researcher_il', 'national_coordinator', 'committee_member'),
   listRequestSteps: R('researcher_il', 'center_clinician', 'national_coordinator', 'committee_member'),
   updateRequestStep: COORD,
   resolveRequestSamples: COORD,
@@ -51,7 +46,6 @@ export const OPERATION_ACCESS: Record<string, Access> = {
   recordDecision: R('committee_member'),
   getRequestCart: R('researcher_il'),
   putRequestCart: R('researcher_il'),
-  getCommitteeDashboard: R('committee_member', 'national_coordinator'),
   // import
   listImportJobs: COORD, createImportJob: COORD, getImportJob: COORD, listImportRows: COORD,
   downloadImportReport: COORD, downloadImportResultMap: COORD, commitImportJob: COORD, downloadImportTemplate: COORD,
@@ -93,4 +87,3 @@ export function roleMayCall(operationId: string, role: Role): boolean {
   const a = rolesFor(operationId);
   return a === 'public' || a.includes(role);
 }
-void EXT;

@@ -1,0 +1,39 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Crumbs from "../../components/Crumbs.astro";
+import { LOCALES, LEGAL_SLUGS, type Locale } from "../../content/schemas";
+import { t, fmtDate } from "../../i18n/ui";
+import { path } from "../../lib/paths";
+import { list, hasTranslation } from "../../lib/content";
+// URL slug 'analytics-notice' maps to legal entry 'analytics'.
+const URL_SLUG: Record<string, string> = { privacy: 'privacy', terms: 'terms', accessibility: 'accessibility', analytics: 'analytics-notice' };
+export async function getStaticPaths() {
+  const out = [];
+  for (const locale of LOCALES) for (const e of await list('legal', locale)) out.push({ params: { locale, legal: URL_SLUG[e.data.slug] }, props: { entry: e } });
+  return out;
+}
+const locale = Astro.params.locale as Locale;
+const { entry } = Astro.props;
+const d = entry.data;
+const { Content } = await render(entry);
+const hasOther = await hasTranslation('legal', locale === 'he' ? 'en' : 'he', d.slug);
+const slug = URL_SLUG[d.slug]!;
+const crumbs = [{ name: t(locale, 'home'), path: path(locale) }, { name: d.title, path: path(locale, slug) }];
+void LEGAL_SLUGS;
+---
+<BaseLayout locale={locale} title={d.title} description={d.description} slug={slug} hasOther={hasOther} crumbs={crumbs}>
+  <Crumbs locale={locale} crumbs={crumbs} />
+  <h1>{d.title}</h1>
+  {d.needs_legal_review && <p class="notice" role="note"><strong>{t(locale, 'draftNotice')}</strong></p>}
+  <dl class="meta">
+    <dt>{t(locale, 'version')}</dt><dd><bdi>{d.version}</bdi></dd>
+    <dt>{t(locale, 'effective')}</dt><dd><time datetime={d.effective_date.toISOString().slice(0, 10)}>{fmtDate(locale, d.effective_date)}</time></dd>
+    {d.standard && <><dt>{t(locale, 'standard')}</dt><dd>{d.standard}</dd></>}
+    {d.conformance && <><dt>{t(locale, 'conformance')}</dt><dd>{d.conformance}</dd></>}
+    {d.last_review && <><dt>{t(locale, 'lastReview')}</dt><dd><time datetime={d.last_review.toISOString().slice(0, 10)}>{fmtDate(locale, d.last_review)}</time></dd></>}
+    {d.contact && <><dt>{t(locale, 'contactLabel')}</dt><dd>{d.contact}</dd></>}
+  </dl>
+  <div class="prose"><Content /></div>
+  {d.known_issues && d.known_issues.length > 0 && <><h2>{t(locale, 'knownIssues')}</h2><ul>{d.known_issues.map((k) => <li>{k}</li>)}</ul></>}
+</BaseLayout>

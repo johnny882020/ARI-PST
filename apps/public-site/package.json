@@ -12,7 +12,11 @@
     "test:unit": "vitest run tests/unit",
     "test:build": "vitest run tests/build",
     "test:a11y": "node tests/a11y/axe.mjs",
-    "lhci": "lhci autorun --config=./lighthouserc.json"
+    "lhci": "lhci autorun --config=./lighthouserc.json",
+    "predev": "node scripts/vendor-decap.mjs",
+    "prebuild": "node scripts/vendor-decap.mjs",
+    "gen:cms-config": "node scripts/gen-cms-config.mjs",
+    "check:content-only": "node scripts/check-content-only.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",

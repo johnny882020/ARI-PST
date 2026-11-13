@@ -1,0 +1,13 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { LOCALES, type Locale } from "../../content/schemas";
+import { t } from "../../i18n/ui";
+import { path } from "../../lib/paths";
+export function getStaticPaths() { return LOCALES.map((locale) => ({ params: { locale } })); }
+const locale = Astro.params.locale as Locale;
+---
+<BaseLayout locale={locale} title={t(locale, 'notFoundTitle')} description={t(locale, 'notFoundBody')} slug="404" hasOther={false} noindex>
+  <h1>{t(locale, 'notFoundTitle')}</h1>
+  <p class="lead">{t(locale, 'notFoundBody')}</p>
+  <p><a class="btn btn-primary" href={path(locale)}>{t(locale, 'toHome')}</a></p>
+</BaseLayout>

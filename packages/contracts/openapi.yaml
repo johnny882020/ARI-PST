@@ -25,6 +25,9 @@ tags:
   - name: import
   - name: audit
   - name: admin
+  - name: observability
+  - name: public
+  - name: center-ingestion
 security:
   - sessionCookie: []
 paths:
@@ -100,8 +103,8 @@ paths:
   /auth/session:
     get:
       tags: [auth]
-      operationId: getSession
-      summary: Read the current session, role set and active center.
+      operationId: getAuthSession
+      summary: Read the current session, role set and active center (alias of GET /session).
       responses:
         '200':
           description: Current session.
@@ -946,13 +949,330 @@ paths:
       responses:
         '204': { description: Revoked. }
 
+  /auth/csrf:
+    get:
+      tags: [auth]
+      operationId: csrfBootstrap
+      summary: Returns the CSRF token for this browser and sets the __Host-csrf cookie. Call before login.
+      security: []
+      responses:
+        '200': { description: Token., content: { application/json: { schema: { $ref: '#/components/schemas/CsrfToken' } } } }
+  /auth/register:
+    post:
+      tags: [auth]
+      operationId: register
+      summary: Researcher self-registration. Account stays pending until a national_coordinator approves it and the email is verified.
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RegisterRequest' } } } }
+      responses:
+        '202': { description: Accepted. The answer is the same whether or not the email is known., content: { application/json: { schema: { $ref: '#/components/schemas/Accepted' } } } }
+        '422': { $ref: '#/components/responses/Problem422' }
+        '429': { $ref: '#/components/responses/Problem429' }
+  /auth/verify-email:
+    post:
+      tags: [auth]
+      operationId: verifyEmail
+      summary: Confirm the email address with the emailed token. Also sets the first password for invited users.
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/VerifyEmailRequest' } } } }
+      responses:
+        '204': { description: Verified. }
+        '422': { $ref: '#/components/responses/Problem422' }
+  /auth/password:
+    post:
+      tags: [auth]
+      operationId: changePassword
+      summary: Change own password. Ends all other sessions.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ChangePasswordRequest' } } } }
+      responses:
+        '204': { description: Changed. }
+        '422': { $ref: '#/components/responses/Problem422' }
+  /auth/step-up:
+    post:
+      tags: [auth]
+      operationId: stepUp
+      summary: Re-confirm the second factor. Needed for sensitive actions (age 5 minutes or less).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StepUpRequest' } } } }
+      responses:
+        '200': { description: Step-up done., content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '401': { $ref: '#/components/responses/Problem401' }
+  /auth/totp/enroll:
+    post:
+      tags: [auth]
+      operationId: enrollTotpStart
+      summary: Start TOTP enrolment. Returns the secret once.
+      responses:
+        '200': { description: Secret., content: { application/json: { schema: { $ref: '#/components/schemas/TotpEnrollment' } } } }
+  /auth/totp/confirm:
+    post:
+      tags: [auth]
+      operationId: enrollTotpConfirm
+      summary: Confirm TOTP with a code. First confirmation also returns recovery codes once.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TotpConfirmRequest' } } } }
+      responses:
+        '200': { description: Enrolled., content: { application/json: { schema: { $ref: '#/components/schemas/RecoveryCodes' } } } }
+        '401': { $ref: '#/components/responses/Problem401' }
+  /auth/webauthn/register/options:
+    post:
+      tags: [auth]
+      operationId: webauthnRegisterOptions
+      summary: Passkey registration options (WebAuthn).
+      responses:
+        '200': { description: Options., content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+  /auth/webauthn/register/verify:
+    post:
+      tags: [auth]
+      operationId: webauthnRegisterVerify
+      summary: Verify the passkey registration response.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+      responses:
+        '200': { description: Registered., content: { application/json: { schema: { $ref: '#/components/schemas/RecoveryCodes' } } } }
+        '401': { $ref: '#/components/responses/Problem401' }
+  /auth/recovery-codes:
+    post:
+      tags: [auth]
+      operationId: regenerateRecoveryCodes
+      summary: Replace the recovery codes. Shown once. Needs a fresh step-up.
+      responses:
+        '200': { description: New codes., content: { application/json: { schema: { $ref: '#/components/schemas/RecoveryCodes' } } } }
+        '401': { $ref: '#/components/responses/Problem401' }
+  /me:
+    get:
+      tags: [auth]
+      operationId: getMe
+      summary: Own profile, roles and enrolled factors.
+      responses:
+        '200': { description: Profile., content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
+        '401': { $ref: '#/components/responses/Problem401' }
+    patch:
+      tags: [auth]
+      operationId: updateMe
+      summary: Change own display name or locale.
+      requestBody: { required: true, content: { application/merge-patch+json: { schema: { $ref: '#/components/schemas/MeUpdate' } } } }
+      responses:
+        '200': { description: Updated., content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
+        '422': { $ref: '#/components/responses/Problem422' }
+  /session:
+    get:
+      tags: [auth]
+      operationId: getSessionInfo
+      summary: Current session, expiry and step-up state.
+      responses:
+        '200': { description: Session., content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '401': { $ref: '#/components/responses/Problem401' }
+  /session/extend:
+    post:
+      tags: [auth]
+      operationId: extendSession
+      summary: Keep the session alive (resets the idle timer, never the absolute limit).
+      responses:
+        '200': { description: Extended., content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '401': { $ref: '#/components/responses/Problem401' }
+  /client-errors:
+    post:
+      tags: [observability]
+      operationId: reportClientError
+      summary: Browser error beacon. Class and route only. No messages, no user text.
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ClientError' } } } }
+      responses:
+        '204': { description: Recorded. }
+        '429': { $ref: '#/components/responses/Problem429' }
+  /csp-report:
+    post:
+      tags: [observability]
+      operationId: reportCsp
+      summary: CSP violation report endpoint.
+      security: []
+      requestBody:
+        content:
+          application/csp-report: { schema: { type: object, additionalProperties: true } }
+          application/reports+json: { schema: { type: [object, array], additionalProperties: true } }
+          application/json: { schema: { type: object, additionalProperties: true } }
+      responses:
+        '204': { description: Recorded. }
+  /public/forms/{form}:
+    post:
+      tags: [public]
+      operationId: submitPublicForm
+      summary: Join or contact form from the public site. Delivered by email to the operator. Not stored.
+      security: []
+      parameters:
+        - { name: form, in: path, required: true, schema: { type: string, enum: [join, contact] } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PublicForm' } } } }
+      responses:
+        '202': { description: Accepted., content: { application/json: { schema: { $ref: '#/components/schemas/Accepted' } } } }
+        '422': { $ref: '#/components/responses/Problem422' }
+        '429': { $ref: '#/components/responses/Problem429' }
+  /request-cart:
+    get:
+      tags: [requests]
+      operationId: getRequestCart
+      summary: The applicant's current cart (the open draft request).
+      responses:
+        '200': { description: Cart., content: { application/json: { schema: { $ref: '#/components/schemas/RequestCart' } } } }
+    put:
+      tags: [requests]
+      operationId: putRequestCart
+      summary: Replace the cart items. Creates the draft request when none exists.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RequestCartPut' } } } }
+      responses:
+        '200': { description: Cart., content: { application/json: { schema: { $ref: '#/components/schemas/RequestCart' } } } }
+        '422': { $ref: '#/components/responses/Problem422' }
+        '429': { $ref: '#/components/responses/Problem429' }
+  /samples/{sampleId}/flag:
+    post:
+      tags: [samples]
+      operationId: flagSample
+      summary: Flag a record for review (reason code only). Clinician of own center or coordinator.
+      parameters:
+        - $ref: '#/components/parameters/SampleIdPath'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/FlagRequest' } } } }
+      responses:
+        '204': { description: Flagged. }
+        '404': { $ref: '#/components/responses/Problem404' }
+  /requests/{requestId}/transition:
+    post:
+      tags: [requests]
+      operationId: transitionRequest
+      summary: Move the request to another state. Allowed actor per transition is fixed by the state machine and the database.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TransitionRequest' } } } }
+      responses:
+        '200': { description: New state., content: { application/json: { schema: { $ref: '#/components/schemas/Request' } } } }
+        '404': { $ref: '#/components/responses/Problem404' }
+        '409': { $ref: '#/components/responses/Problem409' }
+  /requests/{requestId}/votes/all:
+    get:
+      tags: [requests]
+      operationId: listVotes
+      summary: Votes on a request. Committee and coordinator.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200': { description: Votes., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Vote' } } } } } } }
+        '404': { $ref: '#/components/responses/Problem404' }
+  /staleness:
+    get:
+      tags: [center-ingestion]
+      operationId: listStaleness
+      summary: Freshness summary for every center. Coordinator.
+      responses:
+        '200': { description: Summaries., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/CenterSummary' } } } } } } }
+  /metrics:
+    get:
+      tags: [admin]
+      operationId: getMetrics
+      summary: Success metrics (REQ-066). Counts only.
+      responses:
+        '200': { description: Metrics., content: { application/json: { schema: { $ref: '#/components/schemas/Metrics' } } } }
+  /registrations:
+    get:
+      tags: [admin]
+      operationId: listPendingRegistrations
+      summary: Researcher registrations waiting for approval. national_coordinator.
+      responses:
+        '200': { description: Pending., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Registration' } } } } } } }
+  /registrations/{userId}/approve:
+    post:
+      tags: [admin]
+      operationId: approveRegistration
+      summary: Approve a registration. Grants researcher_il or researcher_intl. Needs step-up.
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string, pattern: '^usr_[0-9A-HJKMNP-TV-Z]{26}$' } }
+      responses:
+        '200': { description: Approved., content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '404': { $ref: '#/components/responses/Problem404' }
+        '409': { $ref: '#/components/responses/Problem409' }
+  /registrations/{userId}/reject:
+    post:
+      tags: [admin]
+      operationId: rejectRegistration
+      summary: Reject a registration. The account is closed.
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string, pattern: '^usr_[0-9A-HJKMNP-TV-Z]{26}$' } }
+      responses:
+        '204': { description: Rejected. }
+        '404': { $ref: '#/components/responses/Problem404' }
+  /governance/config:
+    get:
+      tags: [admin]
+      operationId: getGovernanceConfig
+      summary: k policies and committee N-of-M. The k value is shown to admins only.
+      responses:
+        '200': { description: Config., content: { application/json: { schema: { $ref: '#/components/schemas/GovernanceConfig' } } } }
+  /governance/k:
+    post:
+      tags: [admin]
+      operationId: proposeKChange
+      summary: Propose a k change (k 5 or more). A different system_admin must approve. Needs step-up.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/KChange' } } } }
+      responses:
+        '202': { description: Pending second approval., content: { application/json: { schema: { $ref: '#/components/schemas/Approval' } } } }
+        '422': { $ref: '#/components/responses/Problem422' }
+  /governance/committee-config:
+    post:
+      tags: [admin]
+      operationId: proposeCommitteeConfigChange
+      summary: Propose a change of N-of-M. A different system_admin must approve.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CommitteeConfigChange' } } } }
+      responses:
+        '202': { description: Pending second approval., content: { application/json: { schema: { $ref: '#/components/schemas/Approval' } } } }
+        '422': { $ref: '#/components/responses/Problem422' }
+  /governance/approvals:
+    get:
+      tags: [admin]
+      operationId: listApprovals
+      summary: Pending and decided governance changes.
+      responses:
+        '200': { description: Approvals., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Approval' } } } } } } }
+  /governance/approvals/{approvalId}/decision:
+    post:
+      tags: [admin]
+      operationId: approveGovernanceChange
+      summary: Approve or reject a pending change. The approver must differ from the proposer. Needs step-up.
+      parameters:
+        - { name: approvalId, in: path, required: true, schema: { type: string } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ApprovalDecision' } } } }
+      responses:
+        '200': { description: Decided., content: { application/json: { schema: { $ref: '#/components/schemas/Approval' } } } }
+        '404': { $ref: '#/components/responses/Problem404' }
+        '409': { $ref: '#/components/responses/Problem409' }
+  /outbox:
+    get:
+      tags: [admin]
+      operationId: listOutbox
+      summary: Notification outbox status (no recipients, no content). system_admin.
+      responses:
+        '200': { description: Outbox., content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/OutboxItem' } } } } } } }
+  /livez:
+    servers: [{ url: /api }]
+    get:
+      tags: [observability]
+      operationId: livez
+      summary: Process is alive.
+      security: []
+      responses:
+        '200': { description: Alive., content: { application/json: { schema: { $ref: '#/components/schemas/Health' } } } }
+  /readyz:
+    servers: [{ url: /api }]
+    get:
+      tags: [observability]
+      operationId: readyz
+      summary: Database reachable and migrations at the expected level.
+      security: []
+      responses:
+        '200': { description: Ready., content: { application/json: { schema: { $ref: '#/components/schemas/Health' } } } }
+        '503': { description: Not ready., content: { application/json: { schema: { $ref: '#/components/schemas/Health' } } } }
+
 components:
   securitySchemes:
     sessionCookie:
       type: apiKey
       in: cookie
-      name: ari_session
-      description: Server-side session. Unsafe methods also need the X-CSRF-Token header.
+      name: __Host-sid
+      description: Server-side session cookie (HttpOnly, Secure, SameSite=Strict). Unsafe methods also need the X-CSRF-Token header equal to the __Host-csrf cookie.
   parameters:
     Cursor:
       name: cursor
@@ -1185,7 +1505,7 @@ components:
         labelEn: { type: string }
     RequestStatus:
       type: string
-      enum: [draft, submitted, precheck, needs_info, committee_review, approved, rejected, center_coordination, agreements, delivery, delivered, withdrawn, closed]
+      enum: [draft, submitted, precheck, needs_info, committee_review, appeal_review, approved, rejected, center_coordination, agreements, delivery, closed]
     StepKey:
       type: string
       enum: [submitted, precheck, committee_review, decision, center_coordination, mta_dta, delivery, closed]
@@ -1216,6 +1536,7 @@ components:
       properties:
         id: { type: string }
         status: { $ref: '#/components/schemas/RequestStatus' }
+        closeReason: { type: [string, 'null'], enum: [delivered, withdrawn, expired, rejected, policy_cancelled, null] }
         applicantUserId: { type: string }
         researchQuestion: { type: string }
         applicantEthicsRef: { type: string }
@@ -1483,3 +1804,193 @@ components:
         activeCenterId: { type: [string, 'null'] }
         expiresAt: { type: string, format: date-time }
         csrfToken: { type: string }
+    Accepted: { type: object, required: [accepted], properties: { accepted: { type: boolean } } }
+    CsrfToken: { type: object, required: [csrfToken], properties: { csrfToken: { type: string } } }
+    Health:
+      type: object
+      required: [status, version]
+      properties:
+        status: { type: string, enum: [ok, degraded, down] }
+        version: { type: string }
+        checks: { type: object, additionalProperties: { type: string } }
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password, displayName, institution, isIsraeliAcademic]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+        displayName: { type: string, minLength: 2, maxLength: 100 }
+        institution: { type: string, minLength: 2, maxLength: 120 }
+        isIsraeliAcademic: { type: boolean }
+        locale: { type: string, enum: [he, en] }
+    VerifyEmailRequest:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token: { type: string, minLength: 20, maxLength: 200 }
+        password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+    ChangePasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string, writeOnly: true, maxLength: 128 }
+        newPassword: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+    StepUpRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        totpCode: { type: string, pattern: '^[0-9]{6}$' }
+        recoveryCode: { type: string, maxLength: 32 }
+        webauthnAssertion: { type: object, additionalProperties: true }
+    TotpEnrollment:
+      type: object
+      required: [secretBase32, otpauthUri]
+      properties:
+        secretBase32: { type: string }
+        otpauthUri: { type: string }
+    TotpConfirmRequest:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code: { type: string, pattern: '^[0-9]{6}$' }
+    RecoveryCodes:
+      type: object
+      required: [recoveryCodes]
+      properties:
+        recoveryCodes: { type: array, items: { type: string } }
+    Me:
+      type: object
+      required: [id, email, displayName, locale, roles, factors]
+      properties:
+        id: { type: string }
+        email: { type: string }
+        displayName: { type: string }
+        locale: { type: string, enum: [he, en] }
+        roles: { type: array, items: { $ref: '#/components/schemas/RoleAssignment' } }
+        factors: { type: array, items: { type: string, enum: [totp, webauthn] } }
+        mfaRequiredSetup: { type: boolean }
+    MeUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        displayName: { type: string, minLength: 2, maxLength: 100 }
+        locale: { type: string, enum: [he, en] }
+    ClientError:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [js_error, unhandled_rejection, network, render] }
+        route: { type: string, maxLength: 100, pattern: '^[A-Za-z0-9/_:.-]*$' }
+        status: { type: integer }
+        build: { type: string, maxLength: 40, pattern: '^[A-Za-z0-9._-]*$' }
+    PublicForm:
+      type: object
+      additionalProperties: false
+      required: [name, email, message]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        organization: { type: string, maxLength: 120 }
+        message: { type: string, minLength: 3, maxLength: 2000 }
+        locale: { type: string, enum: [he, en] }
+        website: { type: string, maxLength: 200, description: Honeypot. Must stay empty. }
+    RequestCart:
+      type: object
+      required: [requestId, items]
+      properties:
+        requestId: { type: [string, 'null'] }
+        items: { type: array, items: { $ref: '#/components/schemas/RequestItem' } }
+    RequestCartPut:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/RequestItemCreate' }
+    FlagRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason: { type: string, enum: [incorrect_data, duplicate, consent_issue, stale, other] }
+    TransitionRequest:
+      type: object
+      additionalProperties: false
+      required: [to]
+      properties:
+        to: { type: string, enum: [submitted, precheck, needs_info, committee_review, appeal_review, approved, rejected, center_coordination, agreements, delivery, closed] }
+        closeReason: { type: string, enum: [delivered, withdrawn, expired, rejected, policy_cancelled] }
+    Metrics:
+      type: object
+      required: [samplesTotal, centersFeeding, registeredResearchers, requestsByStatus]
+      properties:
+        samplesTotal: { type: integer }
+        centersFeeding: { type: integer }
+        registeredResearchers: { type: integer }
+        searchesLast30d: { type: integer }
+        requestsByStatus: { type: object, additionalProperties: { type: integer } }
+        coordinatorEnteredShare: { type: number }
+    Registration:
+      type: object
+      required: [id, email, displayName, isIsraeliAcademic, createdAt]
+      properties:
+        id: { type: string }
+        email: { type: string }
+        displayName: { type: string }
+        institution: { type: [string, 'null'] }
+        isIsraeliAcademic: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    KChange:
+      type: object
+      additionalProperties: false
+      required: [fieldSet, k]
+      properties:
+        fieldSet: { type: string, pattern: '^[a-z_]{2,32}$' }
+        k: { type: integer, minimum: 5, maximum: 100 }
+    CommitteeConfigChange:
+      type: object
+      additionalProperties: false
+      required: [votesNeeded, membersTotal]
+      properties:
+        votesNeeded: { type: integer, minimum: 1, maximum: 50 }
+        membersTotal: { type: integer, minimum: 1, maximum: 50 }
+    Approval:
+      type: object
+      required: [id, kind, status, proposedBy, createdAt]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [role_grant, k_change, committee_config] }
+        payload: { type: object, additionalProperties: true }
+        proposedBy: { type: string }
+        status: { type: string, enum: [pending, approved, rejected] }
+        approvedBy: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+    ApprovalDecision:
+      type: object
+      additionalProperties: false
+      required: [approve]
+      properties:
+        approve: { type: boolean }
+    GovernanceConfig:
+      type: object
+      required: [kPolicies, committee]
+      properties:
+        kPolicies: { type: array, items: { type: object, required: [fieldSet, k], properties: { fieldSet: { type: string }, k: { type: integer } } } }
+        committee: { type: object, required: [votesNeeded, membersTotal], properties: { votesNeeded: { type: integer }, membersTotal: { type: integer } } }
+    OutboxItem:
+      type: object
+      required: [id, template, status, attempts, createdAt]
+      properties:
+        id: { type: string }
+        template: { type: string }
+        status: { type: string, enum: [pending, sent, failed] }
+        attempts: { type: integer }
+        createdAt: { type: string, format: date-time }
+        sentAt: { type: [string, 'null'], format: date-time }

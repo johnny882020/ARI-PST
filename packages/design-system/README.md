@@ -51,7 +51,7 @@ Components carry built-in he/en default strings (close, next, "Too few to show",
 `Card` · `Badge` (`tone`) · `StatusPill` (`status`: `done|current|waiting-you|waiting-others|returned|rejected|upcoming`) · `Alert` (`tone`, `onDismiss`) · `Skeleton` · `EmptyState` · `ErrorState` (`traceId`, `onRetry`) · `AggregateCountTile` · `SuppressionNotice` · `SuppressedCell`.
 
 ### Structure and navigation
-`AppShell` (skip link, header, inline-start nav, main, footer; phone nav toggle) · `Nav` · `Tabs` · `Table` (sortable; loading, empty, error) · `Pagination` (cursor: previous/next only) · `Stepper` + `REQUEST_STEP_IDS` + `buildRequestSteps()` (8 steps, REQ-034 / canonical-decisions §2).
+`AppShell` (skip link, header, inline-start nav, main, footer; phone nav toggle) · `Nav` (prop `renderLink={(item, props) => <Link to={item.href} {...props} />}` plugs in a router link; `AppShell` takes the same prop) · `Tabs` · `Table` (sortable; loading, empty, error) · `Pagination` (cursor: previous/next only) · `Stepper` + `REQUEST_STEP_IDS` + `buildRequestSteps()` + `useRequestSteps()` (8 steps, REQ-034 / canonical-decisions §2).
 
 ### Overlays and consent
 `Dialog` · `SessionTimeoutDialog` · `ToastProvider` + `useToast()` · `Tooltip` · `ConsentBanner`.
@@ -66,7 +66,7 @@ Components carry built-in he/en default strings (close, next, "Too few to show",
 ## Stepper mapping
 
 `REQUEST_STEP_IDS = ["cart","submission","precheck","committee","coordination","agreements","delivery","closed"]`.
-`buildRequestSteps({ labels, current, status?, dates? })` returns `Stepper` steps: earlier steps `done`, the current one `current` (or `status` override such as `waiting-you`, `returned`, `rejected`), later ones `upcoming`. B6 maps the API state enum to a `current` id.
+`useRequestSteps({ current, status?, dates?, descriptions?, labels? })` uses the built-in he/en step labels. `buildRequestSteps({ labels, current, ... })` is the non-hook form. Both return `Stepper` steps: earlier steps `done`, the current one `current` (or `status` override such as `waiting-you`, `returned`, `rejected`), later ones `upcoming`. B6 maps the API state enum to a `current` id.
 
 ## Fonts
 
@@ -77,3 +77,9 @@ Stacks fall back to system fonts, so nothing loads from a CDN. To self-host Heeb
 `pnpm --filter @ari/design-system test | typecheck | gallery:dev | gallery:build`
 
 The gallery (`gallery/`) shows every component in he and en, light and dark (toolbar toggles).
+
+## Types exported
+`Locale`, `MessageKey`, `Theme`, `IconName`, `ButtonProps`, `InputProps`, `TableColumn<T>`, `TableProps<T>`, `StepperStep`, `StatusKind`, `RequestStepId`, `NavItem`, `FacetOption`, `AggregateCountState`, and a `*Props` type per component.
+
+## Known gaps
+No combobox/type-ahead (SearchBox has no suggestion list yet), no table row selection, no Breadcrumb/Progress/Sheet/DropZone. Native `<select>` is used for Select. Fonts are not bundled. Color contrast is verified from the token table in plan/05 (04-accessibility.md), not by jsdom axe.

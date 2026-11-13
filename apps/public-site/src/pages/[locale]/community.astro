@@ -1,0 +1,38 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Crumbs from "../../components/Crumbs.astro";
+import Form from "../../components/Form.astro";
+import { LOCALES, type Locale } from "../../content/schemas";
+import { t, fmtDate } from "../../i18n/ui";
+import { path } from "../../lib/paths";
+import { page, list, hasTranslation, settings } from "../../lib/content";
+import { eventLd, faqLd } from "../../lib/seo";
+export function getStaticPaths() { return LOCALES.map((locale) => ({ params: { locale } })); }
+const locale = Astro.params.locale as Locale;
+
+const p = await page(locale, 'community');
+const d = p.data;
+const { Content } = await render(p);
+const hasOther = await hasTranslation('pages', locale === 'he' ? 'en' : 'he', 'community');
+const crumbs = [{ name: t(locale, 'home'), path: path(locale) }, { name: d.title, path: path(locale, 'community') }];
+const centers = (await list("centers", locale)).sort((a, b) => a.data.order - b.data.order);
+const people = (await list("people", locale)).sort((a, b) => a.data.order - b.data.order);
+const notice = d.needs_review ? t(locale, 'reviewNotice') : '';
+---
+<BaseLayout locale={locale} title={d.title} description={d.description} slug="community" hasOther={hasOther} crumbs={crumbs} ld={d.events?.map((e) => eventLd({ name: e.title, date: e.date, place: e.place, url: e.url })) ?? []}>
+  <Crumbs locale={locale} crumbs={crumbs} />
+  <h1>{d.title}</h1>
+  {d.intro && <p class="lead">{d.intro}</p>}
+  {notice && <p class="notice" role="note">{notice}</p>}
+  <div class="prose"><Content /></div>
+  {d.groups && <><h2>{t(locale, 'groups')}</h2><ul class="grid">{d.groups.map((g) => <li class="card"><h3>{g.name}</h3><p class="muted small">{g.role}</p><p>{g.bio}</p></li>)}</ul></>}
+  <h2>{t(locale, 'centersTitle')}</h2>
+  <ul class="grid">{centers.map((c) => <li class="card"><h3><bdi>{c.data.name}</bdi></h3><p class="muted small">{c.data.city ?? ''} <span class="badge">{c.data.status === 'participating' ? t(locale, 'statusParticipating') : t(locale, 'statusPlanned')}</span></p><p>{c.data.summary}</p></li>)}</ul>
+  <p class="muted small">{t(locale, 'partnersNameOnly')}</p>
+  <h2>{t(locale, 'researchersTitle')}</h2>
+  <ul class="grid">{people.map((x) => <li class="card"><h3><bdi>{x.data.name}</bdi></h3><p class="muted small">{x.data.role}{x.data.affiliation ? ` - ${x.data.affiliation}` : ''}</p><p>{x.data.bio}</p>{x.data.placeholder && <p><span class="badge badge-warn">{t(locale, 'placeholderNotice')}</span></p>}</li>)}</ul>
+  {d.events && <><h2>{t(locale, 'events')}</h2><ul>{d.events.map((e) => <li><strong>{e.title}</strong>, <time datetime={e.date.toISOString().slice(0, 10)}>{fmtDate(locale, e.date)}</time>, {e.place}</li>)}</ul></>}
+  <h2>{d.join_cta}</h2>
+  <p><a class="btn btn-primary" href={path(locale, 'join')}>{t(locale, 'formJoin')}</a></p>
+</BaseLayout>
