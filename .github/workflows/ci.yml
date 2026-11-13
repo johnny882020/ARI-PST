@@ -163,13 +163,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - name: Content-editor branches may only change apps/public-site/content/**
+      - name: Content-editor branches may only change apps/public-site/src/content/**
         if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'cms/')
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          bad=$(git diff --name-only "$BASE" "$HEAD" | grep -v '^apps/public-site/content/' || true)
+          bad=$(git diff --name-only "$BASE" "$HEAD" | grep -v '^apps/public-site/src/content/' || true)
           if [ -n "$bad" ]; then echo "cms/* branch changed files outside content:"; echo "$bad"; exit 1; fi
       - name: Workflows must not use pull_request_target
         run: "! grep -rn 'pull_request_target' .github/workflows/ | grep -v 'semgrep'"

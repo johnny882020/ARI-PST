@@ -14,8 +14,8 @@ import { defaultMessages, type Locale, type MessageKey } from "./messages";
 export type { Locale, MessageKey } from "./messages";
 export { defaultMessages } from "./messages";
 
-export function cx(...parts: Array<string | false | null | undefined>): string {
-  return parts.filter(Boolean).join(" ");
+export function cx(...parts: unknown[]): string {
+  return parts.filter((p): p is string => typeof p === "string" && p !== "").join(" ");
 }
 
 /* ---------- Provider ---------- */

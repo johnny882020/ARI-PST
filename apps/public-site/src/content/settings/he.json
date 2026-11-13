@@ -1,0 +1,41 @@
+{
+  "site_name": "ARI-PST × Tech4Cancer",
+  "tagline": "מדע שהולך לצד המשפחות",
+  "nav": [
+    {
+      "slug": "about",
+      "label": "אודות"
+    },
+    {
+      "slug": "research",
+      "label": "תחומי מחקר"
+    },
+    {
+      "slug": "community",
+      "label": "קהילה"
+    },
+    {
+      "slug": "infrastructure",
+      "label": "תשתית"
+    },
+    {
+      "slug": "partners",
+      "label": "שותפים בעולם"
+    },
+    {
+      "slug": "news",
+      "label": "חדשות"
+    },
+    {
+      "slug": "patients",
+      "label": "ילדים ומשפחות"
+    },
+    {
+      "slug": "join",
+      "label": "הצטרפות ויצירת קשר"
+    }
+  ],
+  "footer_text": "בפורטל אין זהות של מטופלים. אתר זה מכיל מידע ציבורי בלבד.",
+  "social": [],
+  "analytics_enabled": false
+}

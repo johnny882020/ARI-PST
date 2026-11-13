@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "module": "ESNext", "moduleResolution": "Bundler", "target": "ES2022", "noEmit": true, "types": ["node"], "rootDir": "../..", "lib": ["ES2023"], "noImplicitOverride": true },
+  "include": ["src", "test", "scripts", "tsup.config.ts", "vitest.config.ts"]
+}

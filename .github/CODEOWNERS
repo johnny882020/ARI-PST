@@ -15,4 +15,4 @@
 /.gitleaks.toml                     @ARI-ORG/security
 /docs/runbooks/                     @ARI-ORG/platform
 # RT-10: content editors may only touch content. Workflow, infra and code stay with engineering.
-/apps/public-site/content/          @ARI-ORG/content-editors
+/apps/public-site/src/content/          @ARI-ORG/content-editors
