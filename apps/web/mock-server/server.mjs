@@ -51,6 +51,8 @@ function reset() {
   mkReq("committee_review");
   mkReq("precheck");
   mkReq("closed", { closeReason: "delivered", deliveredAt: "2026-10-20T08:00:00Z", decidedAt: "2026-10-10T08:00:00Z" });
+  // Approved and waiting for the coordinator: sample links, center answers, MTA/DTA and delivery (coordination screen).
+  mkReq("approved", { decidedAt: "2026-11-05T08:00:00Z", items: [{ id: ulid("itm"), criteria: { sampleType: ["ffpe"] }, shownCountBucket: "10_plus" }] });
 }
 reset();
 
@@ -189,7 +191,7 @@ const bucket = (b, c) => (c >= K ? { bucket: b, level: "value", count: c, suppre
 
 /* ------------------------------ requests ------------------------------ */
 const STEPS = ["submitted", "precheck", "committee_review", "decision", "center_coordination", "mta_dta", "delivery", "closed"];
-function stepsFor(r, forApplicant) {
+function stepsFor(r, forApplicant, viewerCenter = null) {
   const order = { submitted: 1, precheck: 2, needs_info: 2, committee_review: 3, appeal_review: 3, approved: 4, rejected: 4, center_coordination: 5, agreements: 6, delivery: 7, closed: 8 };
   const cur = r.status === "draft" ? 0 : order[r.status] ?? 0;
   return STEPS.map((k, i) => {
@@ -201,16 +203,29 @@ function stepsFor(r, forApplicant) {
     if (r.status === "rejected" && n > 4) status = "skipped";
     const step = { stepKey: k, centerId: null, status, publicNote: r.publicNotes?.[k] ?? null, startedAt: status !== "pending" ? r.submittedAt : null, completedAt: status === "done" ? r.decidedAt ?? r.submittedAt : null };
     if (!forApplicant) step.internalNote = r.internal?.[k] ?? null;
-    return step;
-  });
+    // Center-level rows replace the generic step for staff and the holding clinician (like apps/api buildSteps + RLS).
+    const rows = !forApplicant && viewerCenter !== undefined ? Object.entries(r.centerSteps?.[k] ?? {}).filter(([c]) => viewerCenter === null || c === viewerCenter) : [];
+    if (rows.length) return rows.map(([c, x]) => ({ stepKey: k, centerId: c, status: x.status, accepted: x.accepted ?? null, publicNote: x.publicNote ?? null, startedAt: x.startedAt, completedAt: x.completedAt ?? null, internalNote: null }));
+    return [step];
+  }).flat();
 }
+/** Center scope of a viewer: null = all centers (coordinator, committee), a center id = clinician, undefined = applicant. */
+function centerScope(s) {
+  if (has(s, "national_coordinator", "committee_member")) return null;
+  if (has(s, "center_clinician")) return clinicianCenter(s);
+  return undefined;
+}
+const clinicianCenter = (s) => s.user.roles.find((x) => x.role === "center_clinician")?.centerId ?? null;
+const involves = (r, centerId) => !!r.centerSteps?.center_coordination?.[centerId];
 function requestDto(r, s) {
   const applicant = has(s, "researcher_il", "researcher_intl");
   const { internal: _i, publicNotes: _p, ...rest } = r;
-  return { ...rest, steps: stepsFor(r, applicant) };
+  const { links: _l, agreements: _a, centerSteps: _c, ...pub } = rest;
+  return { ...pub, steps: stepsFor(r, applicant, applicant ? undefined : centerScope(s)) };
 }
 function canSeeRequest(r, s) {
   if (has(s, "national_coordinator", "committee_member")) return r.status !== "draft";
+  if (has(s, "center_clinician")) return involves(r, clinicianCenter(s));
   return has(s, "researcher_il") && r.applicantUserId === s.user.id;
 }
 const reqById = (id) => state.requests.find((r) => r.id === id);
@@ -441,18 +456,91 @@ async function handleApi(req, res, url) {
       if (r.status === "draft") { r.status = "precheck"; r.submittedAt = now(); audit(s.user, "request.submit", "request", r.id); }
       return send(res, 200, requestDto(r, s));
     }
-    if (sub === "/steps" && method === "GET") return send(res, 200, { items: stepsFor(r, has(s, "researcher_il")) });
+    if (sub === "/steps" && method === "GET") return send(res, 200, { items: stepsFor(r, has(s, "researcher_il"), has(s, "researcher_il") ? undefined : centerScope(s)) });
     if ((m = sub.match(/^\/steps\/(\w+)$/)) && method === "PATCH") {
+      // Same rules as the API + database: coordinator answers on behalf (needs centerId), records MTA/DTA; only the holding clinician delivers.
+      if (!has(s, "national_coordinator", "center_clinician")) return problem(res, 403, "FORBIDDEN", "Role not allowed");
+      const key = m[1];
+      const b = await readJson(req);
+      if (looksIdentifying(b.publicNote) || looksIdentifying(b.internalNote) || looksIdentifying(b.agreement?.docRef)) return identifierProblem(res, ["publicNote"]);
+      const centerId = has(s, "center_clinician") ? clinicianCenter(s) : b.centerId;
+      if (!centerId) return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "centerId", rule: "REQUIRED" }] });
+      const invalid = () => problem(res, 409, "REQUEST_STATE_INVALID", "Not allowed in this state");
+      const rows = (r.centerSteps ??= { center_coordination: {}, delivery: {} });
+      if (key === "center_coordination") {
+        if (r.status !== "center_coordination") return invalid();
+        const row = rows.center_coordination[centerId];
+        if (!row || row.status === "done") return problem(res, 404, "NOT_FOUND", "Not found");
+        if (typeof b.accepted !== "boolean") return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "accepted", rule: "REQUIRED" }] });
+        Object.assign(row, { status: "done", accepted: b.accepted, publicNote: b.publicNote ?? null, completedAt: now() });
+        const all = Object.values(rows.center_coordination);
+        if (all.every((x) => x.status === "done")) {
+          if (all.some((x) => x.accepted)) r.status = "agreements";
+          else { r.status = "closed"; r.closeReason = "rejected"; }
+        }
+        return send(res, 200, { stepKey: key, centerId, status: "done", accepted: b.accepted, publicNote: row.publicNote, startedAt: row.startedAt, completedAt: row.completedAt });
+      }
+      if (key === "mta_dta") {
+        if (!has(s, "national_coordinator")) return problem(res, 403, "FORBIDDEN", "Role not allowed");
+        if (r.status !== "agreements") return invalid();
+        if (!rows.center_coordination[centerId]?.accepted) return invalid();
+        const a = b.agreement ?? {};
+        const status = a.status ?? "signed";
+        const month = a.signedMonth ?? (status === "signed" ? now().slice(0, 7) : null);
+        if (!/^[A-Za-z0-9._/-]{3,64}$/.test(a.docRef ?? "") || !["mta", "dta"].includes(a.kind) || (month && month > now().slice(0, 7))) return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "agreement", rule: "FORMAT" }] });
+        r.agreements = (r.agreements ?? []).filter((x) => !(x.centerId === centerId && x.kind === a.kind));
+        r.agreements.push({ centerId, kind: a.kind, docRef: a.docRef, status, signedMonth: month });
+        return send(res, 200, { stepKey: key, centerId, status: status === "signed" ? "done" : "in_progress", publicNote: null, startedAt: null, completedAt: null });
+      }
+      if (key === "delivery") {
+        if (!has(s, "center_clinician")) return problem(res, 403, "FORBIDDEN", "Only the holding center confirms delivery");
+        if (r.status !== "delivery") return invalid();
+        const row = rows.delivery[centerId];
+        if (!row || row.status === "done") return problem(res, 404, "NOT_FOUND", "Not found");
+        Object.assign(row, { status: "done", completedAt: now() });
+        if (Object.values(rows.delivery).every((x) => x.status === "done")) { r.status = "closed"; r.closeReason = "delivered"; r.deliveredAt = now(); audit(s.user, "request.deliver", "request", r.id); }
+        return send(res, 200, { stepKey: key, centerId, status: "done", publicNote: null, startedAt: row.startedAt, completedAt: row.completedAt });
+      }
+      return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "stepKey", rule: "VOCAB" }] });
+    }
+    if (sub === "/resolved-samples" && method === "GET") {
+      if (!has(s, "national_coordinator", "center_clinician")) return problem(res, 403, "FORBIDDEN", "Role not allowed");
+      const scope = centerScope(s);
+      return send(res, 200, { items: (r.links ?? []).filter((l) => scope === null || l.centerId === scope) });
+    }
+    if (sub === "/resolved-samples" && method === "PUT") {
+      if (!has(s, "national_coordinator")) return problem(res, 403, "FORBIDDEN", "Role not allowed");
+      if (!["approved", "center_coordination"].includes(r.status)) return problem(res, 409, "REQUEST_STATE_INVALID", "Not allowed in this state");
+      const b = await readJson(req);
+      if (!r.items.some((i) => i.id === b.itemId)) return problem(res, 404, "NOT_FOUND", "Not found");
+      const found = (b.sampleIds ?? []).map((id) => state.samples.find((x) => x.sampleCode === id));
+      if (found.some((x) => !x)) return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "sampleIds", rule: "VOCAB" }] });
+      r.links = [...(r.links ?? []).filter((l) => l.itemId !== b.itemId), ...found.map((x) => ({ itemId: b.itemId, sampleId: x.sampleCode, centerId: x.sourceCenterId }))];
+      res.writeHead(204); return res.end();
+    }
+    if (sub === "/agreements" && method === "GET") {
+      if (!has(s, "national_coordinator", "committee_member", "center_clinician")) return problem(res, 403, "FORBIDDEN", "Role not allowed");
+      const scope = centerScope(s);
+      return send(res, 200, { items: (r.agreements ?? []).filter((a) => scope === null || a.centerId === scope) });
+    }
+    if (sub === "/transition" && method === "POST") {
       if (!has(s, "national_coordinator")) return problem(res, 403, "FORBIDDEN", "Role not allowed");
       const b = await readJson(req);
-      if (looksIdentifying(b.publicNote) || looksIdentifying(b.internalNote)) return identifierProblem(res, ["publicNote"]);
-      r.publicNotes = { ...(r.publicNotes ?? {}), ...(b.publicNote ? { [m[1]]: b.publicNote } : {}) };
-      if (b.status === "done") {
-        const next = { center_coordination: "agreements", mta_dta: "delivery", delivery: "closed" }[m[1]];
-        if (next) r.status = next;
-        if (m[1] === "delivery" && next) { r.closeReason = "delivered"; r.deliveredAt = now(); }
+      const rows = (r.centerSteps ??= { center_coordination: {}, delivery: {} });
+      if (b.to === "center_coordination" && r.status === "approved") {
+        if (!(r.links ?? []).length) return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "$", rule: "FORMAT" }] });
+        for (const c of new Set(r.links.map((l) => l.centerId))) rows.center_coordination[c] = { status: "pending", accepted: null, startedAt: now() };
+        r.status = "center_coordination";
+        return send(res, 200, requestDto(r, s));
       }
-      return send(res, 200, stepsFor(r, false).find((x) => x.stepKey === m[1]));
+      if (b.to === "delivery" && r.status === "agreements") {
+        const acc = Object.entries(rows.center_coordination).filter(([, x]) => x.accepted).map(([c]) => c);
+        if (acc.some((c) => !(r.agreements ?? []).some((a) => a.centerId === c && a.status === "signed"))) return problem(res, 409, "REQUEST_STATE_INVALID", "Agreements missing");
+        for (const c of acc) rows.delivery[c] = { status: "pending", startedAt: now() };
+        r.status = "delivery";
+        return send(res, 200, requestDto(r, s));
+      }
+      return problem(res, 409, "REQUEST_STATE_INVALID", "Not allowed in this state");
     }
     if (sub === "/precheck" && method === "POST") {
       if (!has(s, "national_coordinator")) return problem(res, 403, "FORBIDDEN", "Role not allowed");
@@ -490,7 +578,7 @@ async function handleApi(req, res, url) {
       const b = await readJson(req);
       const t = tally(r.id, s.user.id);
       if (b.outcome === "approved" && t.approve < REQUIRED_APPROVALS) return problem(res, 409, "QUORUM_NOT_MET", "Not enough approving votes");
-      r.status = { approved: "center_coordination", rejected: "rejected", needs_info: "needs_info" }[b.outcome];
+      r.status = { approved: "approved", rejected: "rejected", needs_info: "needs_info" }[b.outcome];
       r.decidedAt = now();
       const d = { id: ulid("dec"), outcome: b.outcome, rationale: b.rationale, decidedAt: now() };
       state.decisions.set(r.id, [...(state.decisions.get(r.id) ?? []), d]);
