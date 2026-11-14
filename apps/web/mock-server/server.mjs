@@ -335,6 +335,7 @@ async function handleApi(req, res, url) {
     if (!has(s, "center_clinician", "national_coordinator")) { audit(s.user, "sample.list", "sample", null, "denied"); return problem(res, 403, "FORBIDDEN", "Role not allowed"); }
     const own = rolesOf(s).includes("national_coordinator") ? null : s.user.roles.find((r) => r.centerId)?.centerId;
     let items = state.samples.filter((x) => !own || x.sourceCenterId === own);
+    if (q.get("diagnosisCode")) items = items.filter((x) => x.diagnosisCode === q.get("diagnosisCode"));
     if (q.get("sampleType")) items = items.filter((x) => x.sampleType === q.get("sampleType"));
     if (q.get("availability")) items = items.filter((x) => x.availability === q.get("availability"));
     if (q.get("staleness")) items = items.filter((x) => staleness(x) === q.get("staleness"));
