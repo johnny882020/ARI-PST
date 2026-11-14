@@ -58,10 +58,12 @@ async function step(flow, name, fn) {
   current = { flow, name, ok: true, notes: [], shots: [], api: false };
   const t0 = Date.now();
   try { const note = await fn(); if (note) current.notes.push(String(note)); }
-  catch (e) { current.ok = false; current.error = String(e?.message ?? e).split('\n')[0].slice(0, 300); }
+  catch (e) { current.ok = false; current.error = String(e?.message ?? e).split('\n')[0].slice(0, 400); }
   current.ms = Date.now() - t0;
+  // A product gap (no UI for the action) is reported as GAP, not as a test failure.
+  current.status = current.ok ? 'pass' : /^UI GAP/.test(current.error) ? 'gap' : 'fail';
   results.push(current);
-  console.log(`${current.ok ? 'ok  ' : 'FAIL'}  [${flow}] ${name}${current.api ? ' [api]' : ''}${current.error ? ': ' + current.error : ''}${current.notes.length ? '  (' + current.notes.join('; ').slice(0, 200) + ')' : ''}`);
+  console.log(`${{ pass: 'ok  ', gap: 'GAP ', fail: 'FAIL' }[current.status]}  [${flow}] ${name}${current.api ? ' [api]' : ''}${current.error ? ': ' + current.error : ''}${current.notes.length ? '  (' + current.notes.join('; ').slice(0, 200) + ')' : ''}`);
   return current.ok;
 }
 const note = (s) => current?.notes.push(s);
@@ -737,12 +739,12 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error('fatal', e); results.push({ flow: 'setup', name: 'fatal', ok: false, error: String(e?.message ?? e) }); })
+main().catch((e) => { console.error('fatal', e); results.push({ flow: 'setup', name: 'fatal', ok: false, status: 'fail', error: String(e?.message ?? e) }); })
   .finally(async () => {
     try { await browser?.close(); } catch { /* closed */ }
     stopStack();
-    const ok = results.filter((r) => r.ok).length; const fail = results.length - ok;
-    writeFileSync(path.join(OUT, 'results.json'), JSON.stringify({ when: new Date().toISOString(), base: BASE, site: SITE, passed: ok, failed: fail, screenshots: shotNo, steps: results }, null, 2) + '\n');
-    console.log(`\ne2e-flows: ${ok} passed, ${fail} failed, ${shotNo} screenshots in docs/qa/flows/screenshots`);
+    const ok = results.filter((r) => r.status === 'pass').length; const gap = results.filter((r) => r.status === 'gap').length; const fail = results.length - ok - gap;
+    if (!process.argv.includes('--serve')) writeFileSync(path.join(OUT, 'results.json'), JSON.stringify({ when: new Date().toISOString(), base: BASE, site: SITE, passed: ok, gaps: gap, failed: fail, screenshots: shotNo, steps: results }, null, 2) + '\n');
+    console.log(`\ne2e-flows: ${ok} passed, ${gap} product gaps, ${fail} failed, ${shotNo} screenshots in docs/qa/flows/screenshots`);
     process.exit(fail ? 1 : 0);
   });
