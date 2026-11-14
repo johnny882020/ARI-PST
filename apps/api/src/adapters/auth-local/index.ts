@@ -22,8 +22,8 @@ export class PgAuth implements AuthPort {
     this.dummy = this.hasher.hash(DUMMY_HASH_PW);
   }
   private q = (text: string, params: unknown[] = []) => this.pool.query<Record<string, any>>(text, params);
-  private enc(v: string): string { const iv = randomBytes(12); const c = createCipheriv('aes-256-gcm', this.key, iv); const b = Buffer.concat([c.update(v, 'utf8'), c.final()]); return [iv, c.getAuthTag(), b].map((x) => x.toString('base64url')).join('.'); }
-  private dec(v: string): string { const [iv, tag, b] = v.split('.').map((x) => Buffer.from(x, 'base64url')); const d = createDecipheriv('aes-256-gcm', this.key, iv!); d.setAuthTag(tag!); return Buffer.concat([d.update(b!), d.final()]).toString('utf8'); }
+  private enc(v: string): string { const iv = randomBytes(12); const c = createCipheriv('aes-256-gcm', this.key, iv, { authTagLength: 16 }); const b = Buffer.concat([c.update(v, 'utf8'), c.final()]); return [iv, c.getAuthTag(), b].map((x) => x.toString('base64url')).join('.'); }
+  private dec(v: string): string { const [iv, tag, b] = v.split('.').map((x) => Buffer.from(x, 'base64url')); if (!iv || iv.length !== 12 || !tag || tag.length !== 16 || !b) throw new Error('bad ciphertext'); const d = createDecipheriv('aes-256-gcm', this.key, iv, { authTagLength: 16 }); d.setAuthTag(tag); return Buffer.concat([d.update(b), d.final()]).toString('utf8'); }
   private now(): number { return this.clock.now().getTime(); }
 
   // ----- passwords -----
