@@ -1,9 +1,475 @@
 {
-  "when": "2026-11-14T09:44:18.000Z",
+  "when": "2026-11-14T09:46:31.894Z",
   "base": "http://localhost:18100",
   "site": "http://localhost:18101",
-  "passed": 0,
-  "failed": 0,
-  "screenshots": 0,
-  "steps": []
+  "passed": 34,
+  "failed": 5,
+  "screenshots": 49,
+  "steps": [
+    {
+      "flow": "setup",
+      "name": "build apps/web and apps/public-site",
+      "ok": true,
+      "notes": [
+        "apps/web and apps/public-site rebuilt"
+      ],
+      "shots": [],
+      "api": false,
+      "ms": 14345
+    },
+    {
+      "flow": "setup",
+      "name": "start Render-like DB, predeploy with synthetic seed, API (production build), public site",
+      "ok": true,
+      "notes": [
+        "readyz ok, version flows-local-sha, migration 0010; seed: {\"job\":\"predeploy\",\"step\":\"seed\",\"msg\":\"ok\"}"
+      ],
+      "shots": [],
+      "api": false,
+      "ms": 2935
+    },
+    {
+      "flow": "a-signin",
+      "name": "researcher_il signs in with password + TOTP (he), lands on role home",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "01-a-signin-login-he.png",
+        "02-a-signin-mfa-he.png",
+        "03-a-signin-home-he.png"
+      ],
+      "api": false,
+      "ms": 2274
+    },
+    {
+      "flow": "a-signin",
+      "name": "researcher_il signs out (he)",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "04-a-signin-signed-out-he.png"
+      ],
+      "api": false,
+      "ms": 1008
+    },
+    {
+      "flow": "a-signin",
+      "name": "researcher_il (second user) signs in and out in English",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "05-a-signin-login-en.png",
+        "06-a-signin-mfa-en.png",
+        "07-a-signin-home-en.png"
+      ],
+      "api": false,
+      "ms": 2285
+    },
+    {
+      "flow": "a-signin",
+      "name": "mobile 390x844: sign-in and MFA screens (he)",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "08-a-signin-mobile-login-he.png",
+        "09-a-signin-mobile-mfa-he.png",
+        "10-a-signin-mobile-home-he.png"
+      ],
+      "api": false,
+      "ms": 2003
+    },
+    {
+      "flow": "b-search",
+      "name": "researcher_il signs in again and opens Search from the navigation",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "11-b-search-start-he.png"
+      ],
+      "api": false,
+      "ms": 4036
+    },
+    {
+      "flow": "b-search",
+      "name": "plan: pick a diagnosis, sample type and age band that exist in the synthetic seed",
+      "ok": true,
+      "notes": [
+        "diagnosis mb_shh + FFPE = 26; adding age band 0_lt1 is suppressed"
+      ],
+      "shots": [],
+      "api": false,
+      "ms": 54
+    },
+    {
+      "flow": "b-search",
+      "name": "filter diagnosis + sample type FFPE: count tile shows a number",
+      "ok": true,
+      "notes": [
+        "tile 26"
+      ],
+      "shots": [
+        "12-b-search-filtered-count-he.png"
+      ],
+      "api": false,
+      "ms": 1876
+    },
+    {
+      "flow": "b-search",
+      "name": "add an age band: tile shows \"Too few to show\", no number, add-to-cart disabled",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "13-b-search-suppressed-too-few-he.png"
+      ],
+      "api": false,
+      "ms": 1414
+    },
+    {
+      "flow": "b-search",
+      "name": "clear the age band again, add the search to the request cart",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "14-b-search-added-to-cart-he.png"
+      ],
+      "api": false,
+      "ms": 1511
+    },
+    {
+      "flow": "b-search",
+      "name": "English: same search shows the count and the suppressed tile",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "15-b-search-filtered-count-en.png",
+        "16-b-search-suppressed-too-few-en.png"
+      ],
+      "api": false,
+      "ms": 2914
+    },
+    {
+      "flow": "b-search",
+      "name": "mobile 390x844: search with filters (he)",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "17-b-search-mobile-filtered-count-he.png"
+      ],
+      "api": false,
+      "ms": 1980
+    },
+    {
+      "flow": "c-request",
+      "name": "open the cart and start a request",
+      "ok": true,
+      "notes": [
+        "req_01M7CQ3YPFM5W20HM9P89FKQY0"
+      ],
+      "shots": [
+        "18-c-request-cart-he.png"
+      ],
+      "api": false,
+      "ms": 1165
+    },
+    {
+      "flow": "c-request",
+      "name": "identifier guard: an ID-number-like string is refused and nothing is sent",
+      "ok": true,
+      "notes": [
+        "שדה אחד דורש תשומת לב\nשאלת המחקר"
+      ],
+      "shots": [
+        "19-c-request-identifier-refused-he.png"
+      ],
+      "api": false,
+      "ms": 542
+    },
+    {
+      "flow": "c-request",
+      "name": "fill research question, IRB/Helsinki reference (bad format refused, then valid), planned use, funding",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "20-c-request-ethics-ref-format-he.png",
+        "21-c-request-review-he.png"
+      ],
+      "api": false,
+      "ms": 1170
+    },
+    {
+      "flow": "c-request",
+      "name": "submit; confirmation; the tracker shows 8 steps",
+      "ok": true,
+      "notes": [
+        "status precheck, current step \"3\""
+      ],
+      "shots": [
+        "22-c-request-sent-he.png",
+        "23-c-request-tracker-submitted-he.png"
+      ],
+      "api": false,
+      "ms": 1105
+    },
+    {
+      "flow": "d-precheck",
+      "name": "national_coordinator signs in; home shows the pre-check queue",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "24-d-precheck-home-he.png"
+      ],
+      "api": false,
+      "ms": 1322
+    },
+    {
+      "flow": "d-precheck",
+      "name": "open the request from the requests list and the pre-check page",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "25-d-precheck-request-detail-he.png"
+      ],
+      "api": false,
+      "ms": 730
+    },
+    {
+      "flow": "d-precheck",
+      "name": "tick the checklist, choose \"Send to the committee\", save",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "26-d-precheck-precheck-form-he.png",
+        "27-d-precheck-forwarded-he.png"
+      ],
+      "api": false,
+      "ms": 1119
+    },
+    {
+      "flow": "e-committee",
+      "name": "committee member A (he) opens the queue and votes approve",
+      "ok": true,
+      "notes": [
+        "tally \"0 מתוך 2 אישורים נדרשים (3 חברים) דחייה: 0. נמנעים: 0.\" -> \"1 מתוך 2 אישורים נדרשים (3 חברים) דחייה: 0. נמנעים: 0.\""
+      ],
+      "shots": [
+        "28-e-committee-vote1-before-he.png",
+        "29-e-committee-vote1-after-he.png"
+      ],
+      "api": false,
+      "ms": 2110
+    },
+    {
+      "flow": "e-committee",
+      "name": "committee member B (en) votes approve; quorum reached; records approval",
+      "ok": true,
+      "notes": [
+        "2 of 2 approvals needed (3 members) Reject: 0. Abstain: 0."
+      ],
+      "shots": [
+        "30-e-committee-vote2-before-en.png",
+        "31-e-committee-vote2-after-en.png",
+        "32-e-committee-queue-after-en.png"
+      ],
+      "api": false,
+      "ms": 2672
+    },
+    {
+      "flow": "e-committee",
+      "name": "researcher tracker shows \"Approved\", committee step done",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "33-e-committee-tracker-approved-he.png"
+      ],
+      "api": false,
+      "ms": 1103
+    },
+    {
+      "flow": "f-delivery",
+      "name": "coordinator: \"Center coordination\" card on the approved request (UI button)",
+      "ok": false,
+      "notes": [],
+      "shots": [
+        "34-f-delivery-coordination-button-he.png"
+      ],
+      "api": false,
+      "error": "UI GAP: the button does not move the request (status still \"approved\"; alert: חלק מהשדות דורשים תשומת לב). No UI exists to resolve samples, start center coordination, record an MTA/DTA or mark delivery; the clinician cannot open /requests",
+      "ms": 2742
+    },
+    {
+      "flow": "f-delivery",
+      "name": "[api] coordinator resolves samples and starts center coordination (no screen for this)",
+      "ok": false,
+      "notes": [],
+      "shots": [],
+      "api": true,
+      "error": "tracker not at coordination",
+      "ms": 1650
+    },
+    {
+      "flow": "f-delivery",
+      "name": "[api] clinician accepts for the center; coordinator records the MTA (no screen for this)",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "35-f-delivery-tracker-agreements-he.png",
+        "36-f-delivery-tracker-delivery-he.png"
+      ],
+      "api": true,
+      "ms": 2248
+    },
+    {
+      "flow": "f-delivery",
+      "name": "[api] clinician confirms delivery; researcher tracker shows \"Closed\" (delivered)",
+      "ok": false,
+      "notes": [],
+      "shots": [],
+      "api": true,
+      "error": "current step is \"null\", not Closed",
+      "ms": 30633
+    },
+    {
+      "flow": "f-delivery",
+      "name": "mobile 390x844: researcher tracker at \"Closed\" (he)",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "37-f-delivery-mobile-tracker-closed-he.png"
+      ],
+      "api": false,
+      "ms": 1157
+    },
+    {
+      "flow": "g-clinician",
+      "name": "clinician lands on samples: own center only, coded records",
+      "ok": true,
+      "notes": [
+        "10 rows, all \"מרכז סינתטי א\""
+      ],
+      "shots": [
+        "38-g-clinician-samples-own-center-he.png"
+      ],
+      "api": false,
+      "ms": 1282
+    },
+    {
+      "flow": "g-clinician",
+      "name": "clinician opens a record: coded id, month-only date, no identity, pointer to the center system",
+      "ok": true,
+      "notes": [
+        "Link-out to the center system is a text pointer, not a hyperlink (no URL per center in the index)"
+      ],
+      "shots": [
+        "39-g-clinician-sample-detail-he.png"
+      ],
+      "api": false,
+      "ms": 571
+    },
+    {
+      "flow": "g-clinician",
+      "name": "another center's record is not visible to the clinician (404)",
+      "ok": true,
+      "notes": [
+        "משהו השתבש / "
+      ],
+      "shots": [
+        "40-g-clinician-other-center-hidden-he.png"
+      ],
+      "api": false,
+      "ms": 2237
+    },
+    {
+      "flow": "h-ingest",
+      "name": "coordinator adds one coded record through the form",
+      "ok": true,
+      "notes": [
+        "smp_01M7CQ6CEJR5YEERYW17VAE0X0"
+      ],
+      "shots": [
+        "41-h-ingest-sample-entry-he.png",
+        "42-h-ingest-sample-created-he.png"
+      ],
+      "api": false,
+      "ms": 1828
+    },
+    {
+      "flow": "h-ingest",
+      "name": "CSV import dry-run: good and bad rows, rejection report",
+      "ok": false,
+      "notes": [],
+      "shots": [
+        "43-h-ingest-import-upload-he.png"
+      ],
+      "api": false,
+      "error": "page.waitForURL: Timeout 15000ms exceeded.",
+      "ms": 16112
+    },
+    {
+      "flow": "i-admin",
+      "name": "system_admin signs in; home says the role sees no sample data",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "44-i-admin-home-he.png"
+      ],
+      "api": false,
+      "ms": 1347
+    },
+    {
+      "flow": "i-admin",
+      "name": "audit log lists the events of this flow; chain verification says intact",
+      "ok": false,
+      "notes": [],
+      "shots": [
+        "45-i-admin-audit-verified-he.png"
+      ],
+      "api": false,
+      "error": "missing on page 1: request.vote (seen: auth.login.success, sample.create, sample.view, request.view, request.state_changed, request.deliver, request.mta_status, request.center_response)",
+      "ms": 757
+    },
+    {
+      "flow": "i-admin",
+      "name": "admin cannot open sample data (UI 403 page, and API 403)",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "46-i-admin-samples-forbidden-he.png"
+      ],
+      "api": true,
+      "ms": 1001
+    },
+    {
+      "flow": "j-public",
+      "name": "public site home (he)",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "47-j-public-home-he.png"
+      ],
+      "api": false,
+      "ms": 1500
+    },
+    {
+      "flow": "j-public",
+      "name": "public site home (en)",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "48-j-public-home-en.png"
+      ],
+      "api": false,
+      "ms": 1360
+    },
+    {
+      "flow": "j-public",
+      "name": "public site home (he, mobile)",
+      "ok": true,
+      "notes": [],
+      "shots": [
+        "49-j-public-mobile-home-he.png"
+      ],
+      "api": false,
+      "ms": 1149
+    }
+  ]
 }
