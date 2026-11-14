@@ -13,6 +13,10 @@ export type Permission =
   | "requests.queue.committee"
   | "requests.vote"
   | "requests.coordinate"
+  /** Coordinator: link samples, start coordination, record MTA/DTA, move to delivery. */
+  | "requests.manage"
+  /** Holding-center clinician: confirm delivery for the own center (the coordinator cannot). */
+  | "requests.deliver"
   | "samples.read"
   | "samples.write"
   | "samples.verify"
@@ -29,10 +33,10 @@ export type Permission =
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   researcher_il: ["search.aggregate", "cart.use", "requests.own"],
   researcher_intl: ["search.aggregate"],
-  center_clinician: ["search.aggregate", "search.records", "samples.read", "samples.verify", "freshness.view", "requests.coordinate"],
+  center_clinician: ["search.aggregate", "search.records", "samples.read", "samples.verify", "freshness.view", "requests.coordinate", "requests.deliver"],
   national_coordinator: [
     "search.aggregate", "search.records", "samples.read", "samples.write", "samples.verify", "import.run", "freshness.view",
-    "requests.queue.precheck", "requests.coordinate", "registrations.approve", "centers.admin",
+    "requests.queue.precheck", "requests.coordinate", "requests.manage", "registrations.approve", "centers.admin",
   ],
   committee_member: ["search.aggregate", "requests.queue.committee", "requests.vote", "committee.dashboard"],
   system_admin: ["audit.read", "users.admin", "centers.admin", "settings.privacy", "health.view"],

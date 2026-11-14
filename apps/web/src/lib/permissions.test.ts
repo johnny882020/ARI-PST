@@ -22,6 +22,13 @@ describe("separation of duties in the client capability table", () => {
     expect(p.has("cart.use")).toBe(false);
     expect(p.has("requests.own")).toBe(false);
   });
+  it("only the holding-center clinician confirms delivery; only the coordinator manages links and agreements", () => {
+    for (const r of ROLES) {
+      const p = permissionsFor([r]);
+      expect(p.has("requests.deliver"), r).toBe(r === "center_clinician");
+      expect(p.has("requests.manage"), r).toBe(r === "national_coordinator");
+    }
+  });
 });
 
 describe("route table", () => {
@@ -38,6 +45,8 @@ describe("route table", () => {
       committee: ["committee_member"],
       decision: ["committee_member"],
       precheck: ["national_coordinator"],
+      coordination: ["center_clinician", "national_coordinator"],
+      request: ["researcher_il", "center_clinician", "national_coordinator", "committee_member"],
       users: ["system_admin"],
       "privacy-settings": ["system_admin"],
     };
