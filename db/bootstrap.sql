@@ -26,5 +26,9 @@ DO $$ BEGIN
   EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC', current_database());
 END $$;
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
+-- Managed hosts (e.g. Render) make their database user the owner of schema public, so the database
+-- owner (app_migrator) does not get CREATE through pg_database_owner. Grant it explicitly. Idempotent.
+GRANT USAGE, CREATE ON SCHEMA public TO app_migrator;
+GRANT USAGE ON SCHEMA public TO app_core;   -- read-only use: portal.migration_level() reads public.schema_migrations
 ALTER ROLE app_runtime SET statement_timeout = '15s';
 ALTER ROLE app_runtime SET idle_in_transaction_session_timeout = '30s';

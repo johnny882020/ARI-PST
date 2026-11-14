@@ -2,6 +2,8 @@
 
 Run date 2026-11-13. Real Chromium through Playwright, deviceScaleFactor 2. No app code was edited. Bugs: `docs/qa/BUGS.md` (16 items). Re-run: `node docs/qa/scripts/run-all.mjs` (see `docs/qa/scripts/README.md`). Raw data: `docs/qa/results/*.json`. About 260 screenshots in `docs/qa/screenshots/`.
 
+Later status: `BUGS.md`, sections "Fix verification" (UI fixes) and "Status of the INT-1 items" (2026-11-14). This report is the state of 2026-11-13.
+
 ## Summary
 
 | Area | Result |

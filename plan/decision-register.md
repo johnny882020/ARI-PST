@@ -3,6 +3,7 @@
 Generated from `10-review/register-draft.csv` (R2) on 2026-11-13. Canonical resolutions: `11-integration/canonical-decisions.md`.
 Status values: open, default-in-use, closed. All legal items need legal review.
 Status note (2026-11-13): plan complete, Phase 1 built and in verification. Gates are unchanged: GATE-PROD-DATA stays open. Items closed by canonical decisions: OPEN-A6-03 (same origin, one `ari-api`, C-03/C-04), OPEN-A6-05 and OPEN-A5-03 (never show k, C-09), ASSUMPTION-A6-02 and A6-03 (C-02). New open items: see `../docs/KNOWN-ISSUES.md`.
+Build note (2026-11-14): the defaults of OPEN-A6-01 (server-side cart at `/api/v1/request-cart`, a draft request) and OPEN-A6-02 (`POST /api/v1/public/forms/{form}`, CORS only for `PUBLIC_SITE_ORIGIN`) are implemented in `packages/contracts/openapi.yaml` and `apps/api`. Their status stays open until the owner confirms. GATE-REGION: the free demo runs in Frankfurt with synthetic data; this does not close the gate.
 
 | id | type | text | owner | source_file | status | default_or_recommendation |
 |---|---|---|---|---|---|---|

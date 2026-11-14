@@ -4,11 +4,13 @@ National index of **de-identified** pediatric solid-tumor samples, plus a public
 Initiative: ARI-PST × Tech4Cancer.
 
 > **Status: Phase 1 built and in verification, synthetic data only.** Known gaps: `docs/KNOWN-ISSUES.md`. No real patient data may enter any environment until the `GATE-PROD-DATA` conditions are met (DPA, region control, export round trip, migration path, legal review, pen-test). See `plan/decision-register.md`.
+>
+> Demo: a free-plan Render demo with synthetic data runs from `infra/render.free.yaml` (service `ari-demo-api-7teo`, `docs/deployment.md` section 13).
 
 The portal holds an index. Tissue and identifying data stay in the medical centers.
 
 ## Quick start
-Needs Node ≥ 22, pnpm 10, and PostgreSQL 16 for database tests.
+Needs Node ≥ 22.18, pnpm 10, and PostgreSQL 16 for database and API tests.
 ```bash
 pnpm install
 pnpm test            # all package tests
@@ -33,7 +35,7 @@ pnpm --filter @ari/db test                    # database tests: starts a throwaw
 | `packages/contracts` | OpenAPI 3.1 (the API contract) |
 | `packages/design-system`, `i18n`, `api-client`, `synthetic-data` | Shared packages |
 | `db/` | Forward-only SQL migrations, runner, seed, tests |
-| `render.yaml`, `infra/`, `scripts/`, `.github/` | Render Blueprint (repo root), staging Blueprint and policy, smoke/backup scripts, CI |
+| `render.yaml`, `infra/`, `scripts/`, `.github/` | Render Blueprint (repo root), staging and free-demo Blueprints (`infra/render.staging.yaml`, `infra/render.free.yaml`) and policy, pre-deploy, smoke and backup scripts, CI |
 | `plan/` | Plan, decisions, reviews. Start at `plan/README.md` |
 | `docs/` | Architecture, deployment, runbooks, QA, changelog, known issues |
 
@@ -42,7 +44,7 @@ pnpm --filter @ari/db test                    # database tests: starts a throwaw
 - Deploy to Render: `docs/deployment.md`
 - Runbooks: `docs/runbooks/`
 - QA reports and screenshots: `docs/qa/`
-- What was built: `docs/CHANGELOG.md`. What is missing or unverified: `docs/KNOWN-ISSUES.md`. Documentation audit: `docs/DOCS-AUDIT.md`
+- What was built: `docs/CHANGELOG.md`. What is missing or unverified: `docs/KNOWN-ISSUES.md`. Documentation audit: `docs/DOCS-AUDIT.md`. Code review findings: `docs/REVIEW-2026-11.md`
 - Operating model: `docs/ops-model.md`
 - Rules for contributors and agents: `CLAUDE.md`
 

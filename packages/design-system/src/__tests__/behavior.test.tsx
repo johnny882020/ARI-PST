@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   AggregateCountTile, Button, Checkbox, ConsentBanner, Dialog, FacetFilter, IconButton, Icon, Input, LanguageSwitch,
   Pagination, SessionTimeoutDialog, Stepper, Table, Tabs, ThemeToggle, ToastProvider, useToast, buildRequestSteps,
-  REQUEST_STEP_IDS, DesignSystemProvider, Tooltip, Chip, Bdi, StatusPill, Select,
+  REQUEST_STEP_IDS, DesignSystemProvider, Tooltip, Chip, Bdi, StatusPill, Select, AppShell,
 } from "../index";
 import { renderIn } from "./helpers";
 
@@ -285,3 +285,47 @@ describe("LanguageSwitch / ThemeToggle / bidi", () => {
   });
 });
 void fireEvent; void render;
+
+describe("QA fixes: shell, language switch, facet heading, target sizes", () => {
+  it("AppShell: the menu button opens nav and header actions together; pinned content stays in the bar", async () => {
+    renderIn(
+      <AppShell brand="ARI-PST" nav={[{ id: "a", label: "Home", href: "/" }]} headerPinned={<a href="/cart">Cart</a>} headerActions={<button type="button">Sign out</button>}>
+        <h1>Page</h1>
+      </AppShell>,
+    );
+    const actions = screen.getByRole("button", { name: "Sign out" }).parentElement!;
+    const menu = document.querySelector(".ds-shell-menu")!;
+    expect(actions).toHaveAttribute("data-open", "false");
+    expect(menu).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("link", { name: "Cart" }).parentElement).toHaveClass("ds-shell-pinned");
+    await userEvent.click(menu);
+    expect(actions).toHaveAttribute("data-open", "true");
+    expect(document.querySelector(".ds-shell-nav")).toHaveAttribute("data-open", "true");
+    expect(menu).toHaveAttribute("aria-expanded", "true");
+  });
+  it("LanguageSwitch: buttons form a labelled group, links form a navigation landmark", () => {
+    const { unmount } = renderIn(<LanguageSwitch value="he" />);
+    expect(screen.queryByRole("navigation")).toBeNull();
+    expect(screen.getByRole("group")).toHaveAccessibleName();
+    unmount();
+    renderIn(<LanguageSwitch value="he" options={[{ locale: "he", label: "עברית", href: "/he/" }, { locale: "en", label: "English", href: "/en/" }]} />);
+    expect(screen.getByRole("navigation")).toHaveAccessibleName();
+  });
+  it("FacetFilter: collapsible heading level follows the prop (default 3)", () => {
+    const opts = [{ value: "a", label: "A", count: 3 }];
+    const { unmount } = renderIn(<FacetFilter legend="Center" collapsible selected={[]} onChange={() => {}} options={opts} />);
+    expect(screen.getByRole("heading", { level: 3, name: "Center" })).toBeInTheDocument();
+    unmount();
+    renderIn(<FacetFilter legend="Center" collapsible headingLevel={2} selected={[]} onChange={() => {}} options={opts} />);
+    expect(screen.getByRole("heading", { level: 2, name: "Center" })).toBeInTheDocument();
+  });
+  it("CSS: segments, link buttons and table links reach 44 px on small or touch screens", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const css = ["components.css", "base.css"].map((f) => readFileSync(join(__dirname, "..", "styles", f), "utf8")).join("\n");
+    const touch = [...css.matchAll(/@media \(max-width: 47\.99em\), \(pointer: coarse\) \{([\s\S]*?)\n\}/g)].map((m) => m[1]).join("\n");
+    for (const sel of [".ds-segment", ".ds-link-button", ".ds-table td > a:not(.ds-btn)"]) {
+      expect(touch, sel).toContain(`${sel} { min-block-size: var(--target-min)`);
+    }
+  });
+});

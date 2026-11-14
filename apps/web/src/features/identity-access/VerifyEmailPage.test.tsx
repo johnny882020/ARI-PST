@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { renderWithApp } from "../../test/render";
 
 const verify = vi.fn();
-vi.mock("../../lib/api", () => ({ api: {}, postVerifyEmail: (...a: unknown[]) => verify(...a), setCsrfFallback: vi.fn(), onUnauthorized: vi.fn() }));
+vi.mock("../../lib/api", () => ({ api: { POST: (_path: string, init: { body: unknown }) => verify(init.body) }, setCsrfFallback: vi.fn(), onUnauthorized: vi.fn() }));
 import { VerifyEmailPage } from "./VerifyEmailPage";
 
 const TOKEN = "synthetic-verify-token-0001";

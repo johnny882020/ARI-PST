@@ -121,25 +121,26 @@ Each has measurable criteria in the plan: user friendly (`04`, `05`), reliable (
 2. **Clinical leads:** review schema v1, age bands, diagnosis list, usability targets.
 3. **Legal counsel:** review the compliance map. First question: is coded or aggregated data "personal information"?
 4. **Orchestrator:** R1 and R2 findings are patched into `canonical-decisions.md`. Phase 1 is built (see Build status).
-5. **Owner:** connect the repo to Render (New → Blueprint, `main`). `render.yaml` exists. Read `docs/deployment.md` section 12 first (known gaps).
+5. **Owner:** the free demo runs (Blueprint `ari-pst-demo` from `infra/render.free.yaml`, service `ari-demo-api-7teo`). Delete the broken hand-made service `ARI-PST`. For the paid production Blueprint (New → Blueprint, `main`, `render.yaml`) read `docs/deployment.md` sections 12 and 13 first.
 6. **Orchestrator:** close the items in `docs/KNOWN-ISSUES.md`, then run UAT (`plan/08-vnv/04-validation-uat.md`).
 
-## Build status (Phase 1, 2026-11-13)
+## Build status (Phase 1, updated 2026-11-14)
 Plan is complete (waves 1 to 3). The Phase 1 build is done and in verification, on synthetic data only. Authority if anything differs: canonical-decisions, then the code.
 
 **What exists in the repo**
 | Area | Where | State |
 |---|---|---|
-| Monorepo, CI, architecture rule | `package.json`, `.dependency-cruiser.cjs`, `.github/workflows/*` | Built. Several root scripts that `ci.yml` calls are not defined yet |
+| Monorepo, CI, architecture rule | `package.json`, `.dependency-cruiser.cjs`, `.github/workflows/*` | Built. CI runs on GitHub pull requests; jobs were being fixed on 2026-11-14 |
 | Domain core and ports | `packages/domain` | Built (request state, k-anonymity, roles, voting, staleness) |
 | Contract | `packages/contracts/openapi.yaml`, `packages/api-client` (generated) | Built, with `x-roles` |
-| Database | `db/` (bootstrap, 9 forward-only migrations, runner, seed, tests) | Built. Tests need local PostgreSQL 16 |
-| API | `apps/api` (ten modules, adapters, four cron jobs) | Built. Some Blueprint and code settings do not match yet |
+| Database | `db/` (bootstrap, 10 forward-only migrations, runner, seed, 134 tests) | Built. Tests need local PostgreSQL 16 |
+| API | `apps/api` (ten modules, adapters, jobs: staleness, audit-verify, purge, export, snapshot, seed-synthetic) | Built. Blueprint and code variable names match (`scripts/verify-render-yaml.py`) |
 | Protected app | `apps/web` (route table in `route-table.tsx`, he/en, mock server, Playwright) | Built subset of the route table |
 | Public site | `apps/public-site` (Astro, he/en, Decap CMS, consent analytics) | Built |
 | Design system, i18n, synthetic data | `packages/design-system`, `packages/i18n`, `packages/synthetic-data` | Built |
-| Render Blueprint | `render.yaml` (one `ari-api` serves API and SPA), `infra/render.staging.yaml`, `infra/policy` | Built, not applied to Render |
+| Render Blueprint | `render.yaml` (one `ari-api` serves API and SPA), `infra/render.staging.yaml`, `infra/render.free.yaml`, `infra/policy` | `render.yaml` and staging not applied. Free demo applied (Blueprint `ari-pst-demo`, Frankfurt) |
 | Docs and runbooks | `docs/architecture.md`, `docs/deployment.md`, `docs/ops-model.md`, `docs/runbooks/` | Built |
-| QA evidence | `docs/qa/` (screenshots, sweep results, scripts) | Partial |
+| QA evidence | `docs/qa/` (screenshots, sweep results, scripts) | Partial. UI fixes verified in `docs/qa/BUGS.md` (Fix verification) |
+| Code review | `docs/REVIEW-2026-11.md` | Two fixes made, other findings open |
 
-**Not built or not verified.** Invite-accept and password-reset pages. Metrics, notifications and admin-health pages. Fonts are not bundled (`packages/design-system/fonts/README.md`). Hebrew copy is a machine draft and needs a Hebrew editor. Lighthouse was not run. Render plan slugs, PITR window and preview variables are UNVERIFIED. Partner logos are not shipped (`OPEN-LOGO-PERMISSION`). All legal items need legal review. Full list: `docs/KNOWN-ISSUES.md`. What was built: `docs/CHANGELOG.md`. Deploy: `docs/deployment.md`. QA: `docs/qa/`.
+**Not built or not verified.** Password-reset page (no API operation). Step-up dialog. Demo banner. Metrics, notifications and admin-health pages. Fonts are not bundled (`packages/design-system/fonts/README.md`). Hebrew copy is a machine draft and needs a Hebrew editor. Lighthouse was not run. Render plan slugs, PITR window and preview variables are UNVERIFIED. Partner logos are not shipped (`OPEN-LOGO-PERMISSION`). All legal items need legal review. Full list: `docs/KNOWN-ISSUES.md`. What was built: `docs/CHANGELOG.md`. Deploy: `docs/deployment.md`. QA: `docs/qa/`.

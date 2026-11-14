@@ -76,10 +76,10 @@ CI enforces this. An architecture test (dependency-cruiser) fails the build if t
 - **Two-step coding:** the portal issues random code blocks. Centers map them locally. No link key is stored in the portal.
 - **Clinician view:** full coded record of the own center, plus a link out to the center's own system.
 - **Audit:** every view, download and decision is logged in a keyed hash chain (action names: `plan/02-security-privacy/07-audit-log.md`, C-11).
-- **Sessions and origin (C-02, C-03):** one origin. SPA at `/`, API at `/api/v1`. Cookies `__Host-sid` (Secure, HttpOnly, SameSite=Strict) and `__Host-csrf` (double submit). No CORS in production. Idle 15 min staff, 30 min researchers. Absolute 4 h admin, 8 h others. Step-up MFA within 5 min.
+- **Sessions and origin (C-02, C-03):** one origin. SPA at `/`, API at `/api/v1`. Cookies `__Host-sid` (Secure, HttpOnly, SameSite=Strict) and `__Host-csrf` (double submit). No CORS in production, with one exception: the static public site may `POST /api/v1/public/forms/*` from `PUBLIC_SITE_ORIGIN`, without credentials. CSP has no `unsafe-eval` (zod 4 runs in jitless mode in `apps/web`). Idle 15 min staff, 30 min researchers. Absolute 4 h admin, 8 h others. Step-up MFA within 5 min.
 - **Request states (C-01):** `draft, submitted, precheck, needs_info, committee_review, appeal_review, approved, rejected, center_coordination, agreements, delivery, closed`. `withdrawn` and `expired` are close reasons. Enforced by DB triggers and functions, mirrored in `packages/domain/src/request-state.ts`.
 - **DB roles (C-06):** `app_migrator` (owns objects, runs migrations only), `app_runtime` (API, cannot `SET ROLE`), `app_audit_writer`, `app_readonly_bg`, `app_break_glass`. Schemas `portal`, `audit`, `search`, `ext`, `agg`.
-- **Health (C-05):** `/livez` (process alive) and `/readyz` (DB reachable, migrations at expected level), both JSON with `version`. Render health check uses `/readyz`.
+- **Health (C-05):** `/livez` (process alive) and `/readyz` (DB reachable, migrations at expected level), both JSON with `version`. `/readyz` reads `portal.migration_level()` and passes when the applied level is at least the level built into the API. Render health check uses `/readyz`.
 
 ## 6. Render topology (Frankfurt, pending legal review)
 ```mermaid
@@ -99,6 +99,8 @@ flowchart TB
   RD --> API
 ```
 There is no separate `ari-app` static site and no `ari-internal` service (C-04, deviation B5). A static site on another host would break the `__Host-` cookie, so `ari-api` builds and serves `apps/web/dist`. Production runs 2 `ari-api` instances. Details: `docs/deployment.md`, `render.yaml`.
+
+The demo that runs today is smaller: `infra/render.free.yaml` (Blueprint `ari-pst-demo`) creates one free web service `ari-demo-api-7teo` (API and SPA) and one free Postgres `ari-demo-db-7teo`, in Frankfurt, with synthetic data. No public site, no crons, no second instance. See `docs/deployment.md` section 13.
 
 | Environment | Trigger | Data |
 |---|---|---|

@@ -16,7 +16,7 @@ const schema = z.object({
   displayName: z.string().trim().min(2, "form.error.required"),
   institution: z.string().trim().min(2, "form.error.required"),
   email: z.string().min(1, "form.error.required").email("form.error.email"),
-  terms: z.literal(true, { errorMap: () => ({ message: "form.error.terms" }) }),
+  terms: z.literal(true, { error: "form.error.terms" }),
 });
 type Values = z.infer<typeof schema>;
 

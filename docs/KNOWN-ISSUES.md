@@ -1,9 +1,10 @@
 # Known issues and unverified items
 
-Honest list as of 2026-11-13 (Phase 1 build, synthetic data only). Owners are suggestions. Severity: B = blocks first deploy or CI, G = gap in a feature, U = unverified fact, L = needs legal review.
+Honest list as of 2026-11-14 (Phase 1 build, synthetic data only). Owners are suggestions. Severity: B = blocks first deploy or CI, G = gap in a feature, U = unverified fact, L = needs legal review.
 
 ## Build and deploy
 Closed by the integration pass (INT-1), verified locally with `pnpm test:e2e:full`: root scripts for CI (old #1), `DATABASE_URL_MIGRATOR` and role bootstrap on Render (#2, #3), API tables in `db/migrations/0010` (#4), env var names (#5), preview seeding and the `DATA_CLASSIFICATION` guard (#6), CORS for the public forms (#7), heartbeat pings after cron runs (#8), `db/README.md` (#9). Also fixed: stale `pnpm-lock.yaml`, API crash with a relative `WEB_DIST_DIR`, `/readyz` did not compare migration levels, no job refreshed the privacy snapshot (QA-002), portal link on the public site (QA-010).
+Closed on 2026-11-14: `/readyz` failed on Render because Render makes its database user the owner of schema `public` (fixed in `db/bootstrap.sql` and `db/migrate.mjs`, see `docs/deployment.md` section 3a); high-severity dependency advisories (nodemailer, `@fastify/static`, zod 4 in `apps/web` with `z.config({ jitless: true })` so the CSP keeps no `unsafe-eval`); AES-GCM without a fixed tag length in `apps/api/src/adapters/auth-local` (now `authTagLength: 16`); CI jobs `cms-guard`, container scan (trivy image), SBOM (`--ignore-npm-errors`) and licence check (per app, `--excludePrivatePackages`).
 
 | # | Sev | Issue | Owner |
 |---|---|---|---|
@@ -20,6 +21,10 @@ Closed by the integration pass (INT-1), verified locally with `pnpm test:e2e:ful
 | 11 | G | Synthetic users share one password (`SEED_USER_PASSWORD`) and have TOTP secrets derived from it. Acceptable for synthetic data only. The seed must be off before GATE-PROD-DATA closes. | Owner |
 | 12 | G | QA-001 (add to cart returned 404 on QA's dev stack) did not reproduce on the production-like stack: the cart step passes in `scripts/e2e-fullstack.mjs`. Likely cause was QA's hand-made seed. QA-013 (401 on first `GET /auth/session`) is unchanged. | QA, Backend |
 | 13 | G | `db/seed.mjs` needs a superuser and cannot run on Render. The API job `seed-synthetic` replaces it there. | Data |
+| 14 | G | The free demo (`infra/render.free.yaml`, service `ari-demo-api-7teo`) runs the pre-deploy step in its start command at every start, because free services have no `preDeployCommand` (UNVERIFIED). So the owner connection string and the migrator password stay in that service's environment, and every restart re-runs roles, migrations and seed. | DevOps |
+| 15 | G | The old hand-made Render service `ARI-PST` (build `yarn`, start `T4C`, auto-deploy from `main`) is still in the workspace and fails on every push to `main`. The owner will delete it (`docs/deployment.md` section 3, step 1). | Owner |
+| 16 | G | The SPA has no step-up dialog. Operations that need a second factor younger than 5 minutes (votes, role grants, k changes, registration decisions, adding a second factor) show "Confirm your second factor" and the user must sign in again. `docs/REVIEW-2026-11.md` R-03. | Frontend |
+| 17 | G | Code review findings that are not fixed yet: `docs/REVIEW-2026-11.md`. | Backend, Frontend |
 
 ## CI gates not yet enforced
 `ci.yml` calls only scripts that exist and do real work. These planned gates have no tool or test yet and are NOT enforced. The workflow says so in comments.
@@ -32,7 +37,7 @@ Closed by the integration pass (INT-1), verified locally with `pnpm test:e2e:ful
 | REQ-to-test traceability (`trace-check`) | Job removed. Tests carry no REQ ids |
 | axe on the protected SPA | `test:a11y` covers the public site only |
 | Export/import round trip (`roundtrip.yml`) | Schedule removed. A manual run fails on purpose: the tools do not exist |
-| CI itself | Not run on GitHub yet. `actionlint` passes. The database jobs assume PostgreSQL 16 binaries at `/usr/lib/postgresql/16/bin` on `ubuntu-24.04` runners (UNVERIFIED) |
+| CI itself | Runs on GitHub for pull requests (PR #1 merged, PR #7 open). Jobs were being fixed on 2026-11-14 (`cms-guard`, container scan, SBOM, licence check); a fully green run is not claimed here. The database jobs assume PostgreSQL 16 binaries at `/usr/lib/postgresql/16/bin` on `ubuntu-24.04` runners (UNVERIFIED) |
 
 ## Not built in the protected app
 Invite accept (`/invite/:token`), password reset, recovery-code page, sample edit page, request coordination page, audit export page, user detail, invitations, committee settings, content admin, admin health, notifications, metrics dashboards. The API may expose some of these; the UI does not. The Phase 1 acceptance checklist (`plan/04-product-workflow/07-phase1-acceptance-checklist.md`) must be re-checked against this list.
@@ -40,7 +45,7 @@ Invite accept (`/invite/:token`), password reset, recovery-code page, sample edi
 ## Unverified (UNVERIFIED)
 - Render: database user rights (`CREATEROLE`), `preDeployCommand` on free instances, `RENDER_EXTERNAL_URL` and `RENDER_GIT_COMMIT` in every service, redirect to an external URL from a static site, `NODE_VERSION` handling. Plan slugs (`pro-4gb`, `starter`, `free`), valid disk sizes, PITR window and whether it meets RPO 15 min, `IS_PULL_REQUEST` in previews, preview cron opt-out, name uniqueness across Blueprints, `render blueprints validate`. `render.com` was not reachable from the build session.
 - Render has no built-in approval gate. The GitHub Environment plus deploy hook design needs the owner's acceptance.
-- CI was not run end to end. Lighthouse CI (`apps/public-site/lighthouserc.json`) was not run. No axe or Lighthouse scores are claimed.
+- A fully green CI run on GitHub is not claimed. Lighthouse CI (`apps/public-site/lighthouserc.json`) was not run. No axe or Lighthouse scores are claimed.
 - Pen-test, DAST and the privacy attack simulation at scale were not run on a deployed stack.
 - Performance: p95 800 ms at 50,000 records (C-12) is a target. A test exists in `db/tests/perf.test.mjs`; no deployed measurement.
 

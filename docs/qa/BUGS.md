@@ -86,3 +86,55 @@ Screenshot paths are relative to the repo root. Owner is the folder that should 
 
 ## QA-016 Low. Countdown read twice
 - Session timeout dialog text in Hebrew reads "הזמן שנותר: 1:35הזמן שנותר: 2:00": a visible countdown plus a live region with a different value. Keep one, or have the live region announce only at intervals.
+
+## Fix verification (UI-FIX, 2026-11-13)
+
+Re-run on commit 95183a4 (canonical request status: `closed` + `closeReason`, regenerated API client); all counts below are from that run.
+Scope: bugs owned by apps/web (B6), apps/public-site (B4), packages/design-system. QA-001, QA-002, QA-010 and QA-015 belong to INT-1 and are not covered here.
+How it was checked: the QA scripts were copied to a scratch folder and run from there, so `docs/qa/results` and `docs/qa/screenshots` still hold the first run. Web stages ran against the mock API on :3010. Nothing here was run against the real API and PostgreSQL.
+One script change was needed: on a 390px screen the language and theme switches now sit behind the menu button, so `01-gallery.mjs` (`setup`) and `03-web-sweep.mjs` (`applyLT`) must click `.ds-shell-menu` first when it is visible. The copies in the scratch run had that one line added. The scripts in `docs/qa/scripts` are unchanged and need the same line, or the gallery stage stops on a hidden button.
+
+| Check (QA script) | Before | After |
+|---|---|---|
+| Gallery: targets at least 44px (mobile) | 0/4 | 4/4 |
+| Gallery: no horizontal scroll | 4/8 | 8/8 |
+| Gallery: axe, contrast, 24px targets, keyboard | 8/8, 8/8, 8/8, 30/30 | same |
+| Public site: targets at least 24px | 2/86 | 86/86 |
+| Public site: axe, contrast, no scroll, clean console | 86/86 each | 86/86 each |
+| Web: axe | 72/108 | 108/108 |
+| Web: no horizontal scroll | 106/108 | 108/108 |
+| Web: targets at least 24px | 43/108 | 108/108 |
+| Web: targets at least 44px on the mobile runs (not in the first report) | 0/54 | 54/54 |
+| Web: contrast, clean console, guards, anonymous redirects | 108/108, 108/108, 66/66, 21/21 | same |
+| Web: functional flows | 24/25 | 25/25 |
+
+Other runs: `@ari/design-system` 114 tests, `@ari/web` 48 unit tests and 30 Playwright tests (9 new in `apps/web/e2e/qa-fixes.spec.ts`), `@ari/i18n` key lint (587 keys, he and en equal) and tests, `@ari/public-site` 50 tests; typecheck and lint pass for these four packages; `pnpm arch` passes.
+
+| ID | Status | What changed and how it was checked |
+|---|---|---|
+| QA-003 | Fixed (mock only) | New `/verify-email?token=` screen (the link the API mails; `/auth/verify-email` opens the same screen). It sets the first password, takes the token out of the address bar, and explains the next steps. The same endpoint and screen serve invited users. First sign-in of an account with no second factor now completes the challenge without a code and lands on a new `/setup-mfa` screen (authenticator app or passkey, recovery codes); every other route redirects there until a factor exists. Mock server gained `POST /auth/verify-email`, a not-yet-activated user and the enrolment-only session rule. Checked by e2e (verify, sign in, enrol, open `/search`) and 6 unit tests. Not run against the real API. |
+| QA-003 gap | Not built | Password reset: `packages/contracts/openapi.yaml` has no forgot-password or reset operation (only `changePassword` for a signed-in user), so there is no screen. A change-password form for signed-in users is also not built. |
+| QA-003 note | Partly open, other owner | Since 95183a4 the generated client has `/auth/verify-email` and `LoginResult.enrollmentRequired`, and the web app calls them directly. The OpenAPI `Session` schema still lacks `mfaEnrolled`, which the API sends (`SessionView`), so the app reads it with a cast in `needsMfaSetup` (`apps/web/src/app/session.tsx`). It should be added to the contract. |
+| QA-004 | Fixed | AppShell at 48em and below: one bar with menu button, brand (ellipsis, no wrap) and an optional pinned slot (the cart link). Language, theme, user name and sign-out open with the menu. The gallery overflow came from `SearchBox`: the input's default width set the minimum width of the box. Checked: gallery no-scroll 8/8, e2e checks bar height, no overlap of header items, and no sideways scroll with the menu open and closed. |
+| QA-005 | Fixed | `.search-layout` columns are `minmax(0, 1fr)`, so the records table scrolls inside its own labelled, focusable region. Web no-scroll 108/108; e2e for the coordinator at 390px. |
+| QA-006 | Fixed | Footer links, breadcrumb links, back links and card title links are at least 24px, and 44px below 64em or on touch. Skip link and brand are 44px. 24px: 86/86. 44px on mobile: 39/43; the 4 left are the off-screen honeypot input on the contact and join forms, which nobody can reach. |
+| QA-007 | Fixed | Table ID links, brand link, footer link, file input: 24px minimum. Segment buttons, link buttons, table links and stand-alone links: 44px at 48em and below or on a coarse pointer. Web 24px 108/108, 44px on mobile 54/54. |
+| QA-008 | Fixed | Search has `h2` "Filters" and `h2` "Results" above the `h3` facet titles (`FacetFilter` has a `headingLevel` prop); account, help, cart and sample entry cards use `h2`. axe 108/108; e2e checks the heading sequence on the four pages. |
+| QA-009 | Fixed (block) | The wizard refuses identifier-like text in research question, planned use and funding with the same five patterns as `packages/domain/src/identifier-guard.ts` (9-digit run, phone, e-mail, exact date, 7 or more digits; same digit normalisation). The step does not advance and a draft with such text is not sent, including autosave and "Save draft". Each pattern has its own he and en message. The same check blocks the reply, coordination note, pre-check note and committee comment. The mock API now answers 422 `IDENTIFIER_SUSPECTED` like the server. The patterns are a copy, because `apps/web` does not depend on `@ari/domain`; a change to the server list must be copied. QA flow 25/25; e2e for all five patterns in he and en, with a check that no PATCH is sent. |
+| QA-011 | Fixed | `LanguageSwitch` with buttons is a labelled group, not a `nav` (it stays a `nav` when its options are links). axe `landmark-unique` gone. |
+| QA-012 | Fixed | The summary line for the consent checkbox shows the error text only ("Please confirm that we may contact you"), in both languages. Seen in the QA form run. |
+| QA-013 | Not fixed | The 401 on `GET /auth/session` before sign-in comes from the API contract. Returning 200 with an "anonymous" body is an API and contract decision. |
+| QA-014 | Not fixed | Needs a product decision. The tokens already support `data-theme`, but a switch without a flash needs a script in `apps/public-site/public` and a check against the site's content security policy. |
+| QA-016 | No change, by design | The visible countdown is `aria-hidden`; the second text is a visually hidden live region that speaks in steps of 30 or 10 seconds. A screen reader hears one of them. `innerText` shows both. |
+| Web axe, 4 odd rules on `/search` (`document-title`, `html-has-lang`, `landmark-one-main`, `page-has-heading-one`) | Not reproduced | They did not come back in the re-run. The same four rules appeared once on three public pages during a re-run while another build was rewriting `dist` (the pages answered 404), and were gone on the next run. Most likely a page read during a rebuild. |
+
+## Status of the INT-1 items (checked against the code on 2026-11-14)
+
+| ID | Status | Evidence |
+|---|---|---|
+| QA-001 | Not reproduced | The cart step passes on the production-like stack in `scripts/e2e-fullstack.mjs`. Likely cause was QA's hand-made seed (`docs/KNOWN-ISSUES.md`, item 12). |
+| QA-002 | Fixed | `apps/api/src/jobs/snapshot.ts` runs `agg.refresh_snapshot()`; cron `ari-cron-snapshot` in `render.yaml` (hourly, minute 5). The free demo has no crons: the snapshot is refreshed at every start (seed) and after a coordinator import. |
+| QA-010 | Fixed in the Blueprint | `render.yaml` sets `PUBLIC_PORTAL_URL` for `ari-public` and redirects `/app/*`. The code default in `apps/public-site/src/lib/env.ts` is still `/app/`. |
+| QA-013 | Not fixed | Unchanged. API and contract decision. |
+| QA-015 | Fixed | `db/README.md` and `docs/KNOWN-ISSUES.md` exist. |
+| QA-003 note | Still open | `Session` in `packages/contracts/openapi.yaml` still has no `mfaEnrolled`; `docs/REVIEW-2026-11.md` R-06. |

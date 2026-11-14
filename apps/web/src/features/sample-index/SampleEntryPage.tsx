@@ -17,11 +17,11 @@ const MONTH = /^(19[89][0-9]|20[0-9]{2})-(0[1-9]|1[0-2])$/;
 const schema = z.object({
   sourceCenterId: z.string().min(1, "form.error.required"),
   diagnosisCode: z.string().min(1, "form.error.required"),
-  ageBandAtDiagnosis: z.enum(ENUMS.ageBand, { errorMap: () => ({ message: "form.error.required" }) }),
-  sex: z.enum(ENUMS.sex, { errorMap: () => ({ message: "form.error.required" }) }),
-  sampleType: z.enum(ENUMS.sampleType, { errorMap: () => ({ message: "form.error.required" }) }),
-  availability: z.enum(ENUMS.availability, { errorMap: () => ({ message: "form.error.required" }) }),
-  clinicalTimepoint: z.enum(ENUMS.timepoint, { errorMap: () => ({ message: "form.error.required" }) }),
+  ageBandAtDiagnosis: z.enum(ENUMS.ageBand, { error: "form.error.required" }),
+  sex: z.enum(ENUMS.sex, { error: "form.error.required" }),
+  sampleType: z.enum(ENUMS.sampleType, { error: "form.error.required" }),
+  availability: z.enum(ENUMS.availability, { error: "form.error.required" }),
+  clinicalTimepoint: z.enum(ENUMS.timepoint, { error: "form.error.required" }),
   collectionMonth: z.string().regex(MONTH, "form.error.month"),
   attachedData: z.array(z.enum(ENUMS.attachedData)),
 });

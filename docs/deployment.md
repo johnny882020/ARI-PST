@@ -5,11 +5,11 @@ Region: Frankfurt (GATE-REGION). No Cloudflare or other proxy in Phase 1 (RT-11)
 
 ## 1. Why the first deploy failed: `T4C: command not found`
 
-The service was created by hand from branch `main` with Start Command `T4C`.
-Two things were wrong:
+The service `ARI-PST` was created by hand from branch `main` with Build Command `yarn` and Start Command `T4C`. It is still in the Render workspace and still broken. The owner will delete it (section 3, step 1). The working demo is the Blueprint in section 13.
+Two things were wrong at the time:
 
 1. `T4C` is not a program. A Start Command must be a real command that starts a server, such as `node apps/api/dist/server.js`. Render ran `T4C` in a shell, the shell found no such command, and the deploy failed.
-2. `main` held only a README. There was no code to build or start. The build lives on branch `claude/sweet-allen-jpkmu4`.
+2. `main` held only a README. There was no code to build or start. This is fixed: PR #1 merged the code from `claude/sweet-allen-jpkmu4` into `main`.
 
 The fix is not a better Start Command. The fix is to let the Blueprint (`render.yaml`, in the repo root) create the services. It contains every command, health check and database link, so nobody types them by hand.
 
@@ -32,13 +32,13 @@ There is no separate `ari-app` static site. A static site would sit on a differe
 
 Before you start, read section 5 (what must be on `main`) and section 12 (assumptions and open gaps).
 
-1. **Delete the broken service.** Render Dashboard, open the failed web service, Settings, scroll to the bottom, Delete Web Service. (Repairing it by hand is possible, but the Blueprint would then create a second service with the same purpose. Delete is cleaner.)
-2. **Put the code on `main`.** Open a pull request from `claude/sweet-allen-jpkmu4` into `main` and merge it (orchestrator or owner does this; the DevOps agent does not merge). Wait for CI. Confirm `render.yaml` is visible on `main` at the repo root.
+1. **Delete the broken service.** Render Dashboard, open the failed web service `ARI-PST`, Settings, scroll to the bottom, Delete Web Service. (Repairing it by hand is possible, but the Blueprint would then create a second service with the same purpose. Delete is cleaner.)
+2. **Put the code on `main`.** Done once with PR #1. Later changes also go from `claude/sweet-allen-jpkmu4` into `main` by pull request (orchestrator or owner merges; agents do not merge). Wait for CI. Confirm `render.yaml` is visible on `main` at the repo root.
 3. **Create the Blueprint.** Dashboard, New, Blueprint. Connect the GitHub repo `johnny882020/ARI-PST`. Select branch `main`. Render reads `render.yaml`. Leave the Blueprint file path empty (root). The production Blueprint needs paid plans. For a free demo use section 13 instead.
 4. **Secret prompts.** Render asks for every `sync: false` value (section 4). For the first synthetic run you may leave ALL of them empty. Render generates the passwords and keys itself.
 5. **Apply.** Render creates the database, then the services. Before `ari-api` starts, the pre-deploy step `node scripts/render-predeploy.mjs` runs (section 3a).
 6. **Check the host names.** `render.yaml` assumes the hosts `ari-api.onrender.com` and `ari-public.onrender.com`. If Render gave other names (the name was taken), change them in one pull request: `PUBLIC_PORTAL_URL`, `PUBLIC_API_BASE`, the two hosts inside the `Content-Security-Policy` header, the `/app/*` redirect and `PUBLIC_SITE_ORIGIN`. Then run `python3 scripts/gen-staging.py`.
-7. **Check.** Run `BASE_URL=https://<ari-api host> bash scripts/smoke.sh --wait 120`. Expect `OK: livez + readyz`. `/readyz` shows the git commit and the migration level.
+7. **Check.** Run `BASE_URL=https://<ari-api host> bash scripts/smoke.sh --wait 120`. Expect `OK: livez + readyz`. `/readyz` shows the git commit and the migration level (from `portal.migration_level()`).
 8. **Sign in.** Copy `SEED_USER_PASSWORD` from Dashboard, `ari-api`, Environment. On your own computer run `SEED_USER_PASSWORD='...' node scripts/seed-credentials.mjs`. It prints the synthetic users, their TOTP secrets and the current code. Do not paste the output into chat or tickets.
 9. **Plan slugs.** If Render rejects a plan name (`pro-4gb` for the database, `starter` for services), pick the nearest plan in the Dashboard and fix `render.yaml` through a pull request. Do not change plans by hand in the Dashboard (drift).
 10. **Staging (optional, later).** Create the `staging` branch from `main`, then New, Blueprint, branch `staging`, Blueprint file path `infra/render.staging.yaml`.
@@ -47,7 +47,7 @@ Before you start, read section 5 (what must be on `main`) and section 12 (assump
 
 `scripts/render-predeploy.mjs` runs before every deploy. It is safe to run again. If it fails, the deploy stops and the old version keeps serving.
 
-1. **Roles.** Render creates one database user, `ari_owner`. It is not a superuser. The step logs in as that user (`DATABASE_URL_OWNER`), creates the roles `app_migrator`, `app_runtime` and `app_readonly_bg` with the passwords Render generated (`DB_PASSWORD_*`), and runs `db/bootstrap.sql`. After this the database belongs to `app_migrator`, and `PUBLIC` cannot connect. The step then checks the result (no app role is elevated, `app_runtime` is a member of nothing) and fails if a check does not hold.
+1. **Roles.** Render creates one database user, `ari_owner`. It is not a superuser. The step logs in as that user (`DATABASE_URL_OWNER`), creates the roles `app_migrator`, `app_runtime` and `app_readonly_bg` with the passwords Render generated (`DB_PASSWORD_*`), and runs `db/bootstrap.sql`. After this the database belongs to `app_migrator`, and `PUBLIC` cannot connect. Render makes its own user the owner of schema `public`, so `bootstrap.sql` grants `USAGE, CREATE` on `public` to `app_migrator` (it creates `public.schema_migrations`) and `USAGE` to `app_core`. `db/migrate.mjs` grants `SELECT` on `public.schema_migrations` to `app_core`, so `portal.migration_level()` (owned by `app_core`) can read the ledger for `/readyz`. The step then checks the result (no app role is elevated, `app_runtime` is a member of nothing) and fails if a check does not hold.
 2. **Migrations.** `node db/migrate.mjs` as `app_migrator`. Forward-only.
 3. **Vocabulary.** Loads the diagnosis vocabulary if the table is empty (see the gap in section 12).
 4. **Synthetic seed.** Only when `SEED_SYNTHETIC=true` or `IS_PULL_REQUEST=true`, and only when `DATA_CLASSIFICATION=synthetic`. Otherwise it refuses.
@@ -152,10 +152,13 @@ Still open. Details and owners are in `docs/KNOWN-ISSUES.md`.
 
 For a demo on Render's free plans. Synthetic data only. Not for production.
 
-1. Dashboard, New, Blueprint, this repo, branch with the code, **Blueprint file path `infra/render.free.yaml`**.
-2. Apply. No values to type. Render creates `ari-demo-db` (free Postgres) and `ari-demo-api` (free web service).
-3. The start command runs the pre-deploy step and then the API. The first start takes a few minutes.
-4. Open `https://<ari-demo-api host>/`. Get the sign-in list as in section 3, step 8 (service `ari-demo-api`).
+**Current demo (checked in the Render workspace on 2026-11-14).** Blueprint `ari-pst-demo`, branch `main`, Blueprint file path `infra/render.free.yaml`, region Frankfurt, free plans. Render added a suffix to the names in the file: web service `ari-demo-api-7teo` (`https://ari-demo-api-7teo.onrender.com`), database `ari-demo-db-7teo`. Auto-deploy is off: deploy by hand (Dashboard, Manual Deploy). The old service `ARI-PST` is not part of the demo (section 1).
+
+To create it again:
+1. Dashboard, New, Blueprint, this repo, branch `main`, **Blueprint file path `infra/render.free.yaml`**.
+2. Apply. No values to type. Render creates the database `ari-demo-db` and the web service `ari-demo-api` (Render may add a suffix such as `-7teo`).
+3. Free services have no `preDeployCommand`. So the start command is `node scripts/render-predeploy.mjs && node apps/api/dist/server.js`: roles, migrations, vocabulary and the synthetic seed (`SEED_PROFILE=tiny`: 40 samples, 2 centers) run at every start, then the API starts. The first start takes a few minutes.
+4. Open `https://<ari-demo-api host>/`. Get the sign-in list as in section 3, step 8 (service `ari-demo-api-7teo`).
 
 What is off in the demo:
 
@@ -168,5 +171,5 @@ What is off in the demo:
 | E-mail and object store | Not configured: invites are not delivered, uploads are lost on restart |
 | PR previews, staging, approval gate | Deploy by hand in the Dashboard |
 
-`DEMO_MODE=true` is set. `/livez` reports it (`checks.demo = "on"`) so the UI can show a banner. The banner itself is not built yet (`docs/KNOWN-ISSUES.md`). UNVERIFIED: that free web services have no `preDeployCommand` (this is why the start command runs it) and that 512 MB RAM is enough for the build.
+`DEMO_MODE=true` is set. `/livez` reports it (`checks.demo = "on"`) so the UI can show a banner. The banner itself is not built yet (`docs/KNOWN-ISSUES.md`). UNVERIFIED: that free web services have no `preDeployCommand` (this is why the start command runs it) and that 512 MB RAM is enough for the build. Because the pre-deploy step runs at every start, the owner connection string and the migrator password must stay in the service environment (same residual risk as section 4).
 
