@@ -28,7 +28,7 @@ const schema = z.object({
   applicantEthicsRef: z.string().trim().regex(/^[A-Za-z0-9._/-]{3,64}$/, "form.error.ethicsRef"),
   plannedUse: z.string().trim().min(10, "form.error.required").max(4000).superRefine(noIdentifier),
   fundingSources: z.string().trim().min(2, "form.error.required").max(1000).superRefine(noIdentifier),
-  declaration: z.literal(true, { errorMap: () => ({ message: "form.error.declaration" }) }),
+  declaration: z.literal(true, { error: "form.error.declaration" }),
 });
 type Values = z.infer<typeof schema>;
 type Field = keyof Omit<Values, "declaration">;
