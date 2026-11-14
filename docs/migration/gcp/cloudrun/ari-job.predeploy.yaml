@@ -31,6 +31,8 @@ spec:
           containers:
             - name: predeploy
               image: IMAGE_DIGEST
+              securityContext:
+                runAsUser: 1000   # the image's non-root 'node' user. Cloud Run v1 supports runAsUser only (UNVERIFIED).
               command: ["node"]
               args: ["scripts/render-predeploy.mjs"]
               resources:
