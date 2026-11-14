@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 // Render preDeployCommand for ari-api:  node scripts/render-predeploy.mjs
+// Free demo (infra/render.free.yaml): free services have no preDeployCommand, so the startCommand runs this script
+// before the API at every start:  node scripts/render-predeploy.mjs && node apps/api/dist/server.js
 // Runs before every deploy. Idempotent. A failure aborts the deploy and the old version keeps serving.
 //
 //   1. BOOTSTRAP  as the Render database user (DATABASE_URL_OWNER). Creates the C-06 roles, sets their

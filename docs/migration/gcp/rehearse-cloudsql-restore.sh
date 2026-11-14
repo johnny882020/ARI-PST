@@ -66,12 +66,16 @@ log "DST: cloudsql-preinit.sql as postgres (roles, bootstrap.sql, extensions)"
 psql -X -q "$DST_ADMIN_URL" -v ON_ERROR_STOP=1 -v pw_migrator="$DB_PASSWORD_MIGRATOR" -v pw_runtime="$DB_PASSWORD_RUNTIME" -v pw_bg="$DB_PASSWORD_BG" \
   -f "$ROOT/docs/migration/gcp/sql/cloudsql-preinit.sql"
 
-log "DST: pg_restore as app_migrator (filtered TOC: no schema ext / extensions / schema public entries)"
-"$PGBIN/pg_restore" -l "$WORK/dump" > "$WORK/toc.full"
-grep -v -E ' (EXTENSION|SCHEMA) - ext | EXTENSION - | COMMENT - EXTENSION | SCHEMA - public | ACL - SCHEMA public ' "$WORK/toc.full" > "$WORK/toc.use"
-echo "TOC entries: $(grep -cv '^;' "$WORK/toc.full") -> $(grep -cv '^;' "$WORK/toc.use")"
+log "DST: pg_restore as app_migrator (restore-pre.sql, filtered TOC, restore-post.sql)"
 DST_MIG_URL="postgres://app_migrator:$DB_PASSWORD_MIGRATOR@127.0.0.1:$DST_PORT/ari_portal"
+psql -X -q "$DST_MIG_URL" -v ON_ERROR_STOP=1 -f "$ROOT/docs/migration/gcp/sql/restore-pre.sql"
+"$PGBIN/pg_restore" -l "$WORK/dump" > "$WORK/toc.full"
+# Drop entries the target already has: schemas (created by preinit/restore-pre) and extensions (created by preinit).
+# Keep every "ACL - SCHEMA x" entry: those carry the USAGE grants.
+grep -v -E '; [0-9]+ [0-9]+ (SCHEMA - |EXTENSION - |COMMENT - EXTENSION )' "$WORK/toc.full" > "$WORK/toc.use"
+echo "TOC entries: $(grep -cv '^;' "$WORK/toc.full") -> $(grep -cv '^;' "$WORK/toc.use")"
 "$PGBIN/pg_restore" -L "$WORK/toc.use" --exit-on-error --single-transaction -d "$DST_MIG_URL" "$WORK/dump"
+psql -X -q "$DST_MIG_URL" -v ON_ERROR_STOP=1 -f "$ROOT/docs/migration/gcp/sql/restore-post.sql"
 
 log "DST: predeploy (bootstrap again, migrate must be up to date, no seed)"
 DATABASE_URL_OWNER=$DST_ADMIN_URL DATA_CLASSIFICATION=synthetic SEED_SYNTHETIC=false \
@@ -86,13 +90,23 @@ fingerprint() { # port
   done
 }
 fingerprint $SRC_PORT > "$WORK/src.fp"; fingerprint $DST_PORT > "$WORK/dst.fp"
-diff -u "$WORK/src.fp" "$WORK/dst.fp" && echo "OK: $(wc -l < "$WORK/src.fp") tables, counts and hashes match"
+diff -u "$WORK/src.fp" "$WORK/dst.fp" || { echo "FAIL: row counts or hashes differ"; exit 1; }
+echo "OK: $(wc -l < "$WORK/src.fp") tables, counts and hashes match"
 
 log "DST: ownership and privilege checks"
 SU -p $DST_PORT -d ari_portal -At -c "SELECT 'owners: '||string_agg(DISTINCT pg_get_userbyid(c.relowner), ',') FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('portal','audit','search','agg','authn','ops')"
 SU -p $DST_PORT -d ari_portal -At -c "SELECT 'definer functions by owner: '||string_agg(o||'='||k, ', ') FROM (SELECT pg_get_userbyid(p.proowner) o, count(*) k FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.prosecdef AND n.nspname NOT IN ('pg_catalog','information_schema','ext') GROUP BY 1) s"
 SU -p $DST_PORT -d ari_portal -At -c "SELECT 'tables with FORCE RLS: '||count(*) FROM pg_class WHERE relforcerowsecurity"
 SU -p $SRC_PORT -d ari_portal -At -c "SELECT 'SRC tables with FORCE RLS: '||count(*) FROM pg_class WHERE relforcerowsecurity"
+ACLQ="SELECT 'ns '||nspname||' '||pg_get_userbyid(nspowner)||' '||coalesce((SELECT string_agg(a::text, ',' ORDER BY a::text) FROM unnest(nspacl) a),'-') FROM pg_namespace WHERE nspname IN ('public','portal','audit','search','agg','authn','ops','ext')
+ UNION ALL SELECT 'rel '||n.nspname||'.'||c.relname||' '||pg_get_userbyid(c.relowner)||' '||coalesce((SELECT string_agg(a::text, ',' ORDER BY a::text) FROM unnest(c.relacl) a),'-')||' rls='||c.relrowsecurity||'/'||c.relforcerowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('public','portal','audit','search','agg','authn','ops')
+ UNION ALL SELECT 'fn '||p.oid::regprocedure::text||' '||pg_get_userbyid(p.proowner)||' '||coalesce((SELECT string_agg(a::text, ',' ORDER BY a::text) FROM unnest(p.proacl) a),'-')||' definer='||p.prosecdef FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('public','portal','audit','search','agg','authn','ops')
+ UNION ALL SELECT 'pol '||schemaname||'.'||tablename||'.'||policyname||' '||array_to_string(roles,',')||' '||cmd FROM pg_policies
+ UNION ALL SELECT 'trg '||tgrelid::regclass::text||'.'||tgname||' '||tgenabled::text FROM pg_trigger WHERE NOT tgisinternal
+ ORDER BY 1"
+SU -p $SRC_PORT -d ari_portal -At -c "$ACLQ" > "$WORK/src.acl"; SU -p $DST_PORT -d ari_portal -At -c "$ACLQ" > "$WORK/dst.acl"
+diff -u "$WORK/src.acl" "$WORK/dst.acl" || { echo "FAIL: owners, grants, RLS, policies or triggers differ"; exit 1; }
+echo "OK: $(wc -l < "$WORK/src.acl") owners, grants, RLS flags, policies and triggers match"
 
 log "DST: audit-verify job as app_readonly_bg"
 DB_HOST=127.0.0.1 DB_PORT=$DST_PORT DB_NAME=ari_portal node "$ROOT/apps/api/dist/jobs/audit-verify.js"
