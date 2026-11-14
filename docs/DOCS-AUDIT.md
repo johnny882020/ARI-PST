@@ -30,3 +30,22 @@ Result: 0 broken relative links found before or after. Backticked path check fou
 
 ## Remaining gaps
 See `KNOWN-ISSUES.md`. The main ones for the docs: Render facts are UNVERIFIED, legal text needs legal review, several Blueprint and code settings do not match yet (documented in `deployment.md` section 12), and the router lists pages the UI does not have.
+
+## Second pass (REVIEW-1, 2026-11-14)
+
+Scope: every `.md` file (234) and `plan/traceability-matrix.csv`, against the code after the deploy, dependency and CI fixes of 2026-11-14. `docs/migration/google-cloud.md` was written by another agent and is not part of this pass.
+Checks: relative links (script: 8 links, 0 broken), Mermaid parse (mermaid 11 `parse`: 79 blocks, 0 failures), backticked repo paths in the top-level docs (2 hits, both on purpose: `db/migrations/0010` is a file prefix, `docs/data-dictionary.md` is listed as not built), Render service names checked in the Render workspace, commands checked against `package.json` scripts.
+
+| File | Changed |
+|---|---|
+| `README.md`, `CLAUDE.md` | Node 22.18, free demo (`infra/render.free.yaml`, `ari-demo-api-7teo`), CORS exception for public forms, zod jitless CSP note, `pnpm test:e2e:full`, link to `REVIEW-2026-11.md` |
+| `docs/deployment.md` | Section 1 (old service `ARI-PST`, PR #1 merged), section 3 steps 1 and 2, section 3a (schema `public` grants, `/readyz`), section 13 (live Blueprint `ari-pst-demo`, names with suffix, start command) |
+| `docs/architecture.md` | CORS exception, CSP, `/readyz` detail, demo topology |
+| `docs/KNOWN-ISSUES.md` | Items closed on 2026-11-14, new items 14 to 17, CI status |
+| `docs/CHANGELOG.md` | New 2026-11-14 entry, migration count 0010, five crons |
+| `docs/runbooks/RB-01`, `RB-02`, `RB-04` | Demo rollback note; old names `SESSION_SECRET`, `AUDIT_HMAC_KEY`, `DATABASE_URL` replaced by what the code uses |
+| `docs/qa/BUGS.md`, `docs/qa/REPORT.md` | Status of the INT-1 items, pointer to later status |
+| `db/README.md` | Grants on schema `public`, `seed.mjs` local and CI only, Render seeds through the API job |
+| `plan/MASTER-PLAN.md`, `plan/README.md`, `plan/ROADMAP.md`, `plan/decision-register.md` | Build status and demo state; OPEN-A6-01 and OPEN-A6-02 defaults are implemented (status left open for the owner) |
+| `docs/REVIEW-2026-11.md` | New: code review findings |
+| `docs/ops-model.md`, other runbooks, `plan/traceability-matrix.csv` | Checked, no change needed (the CSV has no repo paths) |

@@ -66,16 +66,9 @@ log "DST: cloudsql-preinit.sql as postgres (roles, bootstrap.sql, extensions)"
 psql -X -q "$DST_ADMIN_URL" -v ON_ERROR_STOP=1 -v pw_migrator="$DB_PASSWORD_MIGRATOR" -v pw_runtime="$DB_PASSWORD_RUNTIME" -v pw_bg="$DB_PASSWORD_BG" \
   -f "$ROOT/docs/migration/gcp/sql/cloudsql-preinit.sql"
 
-log "DST: pg_restore as app_migrator (restore-pre.sql, filtered TOC, restore-post.sql)"
+log "DST: restore-into-cloudsql.sh as app_migrator"
 DST_MIG_URL="postgres://app_migrator:$DB_PASSWORD_MIGRATOR@127.0.0.1:$DST_PORT/ari_portal"
-psql -X -q "$DST_MIG_URL" -v ON_ERROR_STOP=1 -f "$ROOT/docs/migration/gcp/sql/restore-pre.sql"
-"$PGBIN/pg_restore" -l "$WORK/dump" > "$WORK/toc.full"
-# Drop entries the target already has: schemas (created by preinit/restore-pre) and extensions (created by preinit).
-# Keep every "ACL - SCHEMA x" entry: those carry the USAGE grants.
-grep -v -E '; [0-9]+ [0-9]+ (SCHEMA - |EXTENSION - |COMMENT - EXTENSION )' "$WORK/toc.full" > "$WORK/toc.use"
-echo "TOC entries: $(grep -cv '^;' "$WORK/toc.full") -> $(grep -cv '^;' "$WORK/toc.use")"
-"$PGBIN/pg_restore" -L "$WORK/toc.use" --exit-on-error --single-transaction -d "$DST_MIG_URL" "$WORK/dump"
-psql -X -q "$DST_MIG_URL" -v ON_ERROR_STOP=1 -f "$ROOT/docs/migration/gcp/sql/restore-post.sql"
+MIGRATOR_URL=$DST_MIG_URL PGBIN=$PGBIN bash "$ROOT/docs/migration/gcp/restore-into-cloudsql.sh" "$WORK/dump" "$WORK/restore"
 
 log "DST: predeploy (bootstrap again, migrate must be up to date, no seed)"
 DATABASE_URL_OWNER=$DST_ADMIN_URL DATA_CLASSIFICATION=synthetic SEED_SYNTHETIC=false \
