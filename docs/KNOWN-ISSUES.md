@@ -22,7 +22,7 @@ Severity:
 
 | # | Issue | Owner |
 |---|---|---|
-| M-1 | The SPA has no step-up dialog. Votes, role grants, `k` changes, registration decisions and adding a second factor fail when the sign-in is older than 5 minutes. The user must sign in again. Review R-03. | Frontend |
+| M-1 | The step-up dialog (fixed in [validation F-1](validation/REQUIREMENTS-VALIDATION.md#4-fixes-made-in-this-validation)) accepts the 6-digit code and recovery codes only. A passkey-only account must use a recovery code, because the API has no session-based passkey challenge for step-up. | Backend, Frontend |
 | M-2 | Not built in the protected app: invite accept page (`/invite/:token`), password reset (no API operation), change-password form, recovery-code page, sample edit page, audit export page, user detail, committee settings, content admin, admin health page, notifications, metrics dashboards. Re-check the Phase 1 acceptance checklist ([`plan/04-product-workflow/07-phase1-acceptance-checklist.md`](../plan/04-product-workflow/07-phase1-acceptance-checklist.md)) against this list. | Frontend, product |
 | M-3 | `ari-api` holds the owner connection string and the migrator password in its environment, because Render runs the pre-deploy step there. The free demo keeps them too, because its start command runs the step at every start. The API deletes them from its process at start. A separate one-off job would be cleaner. | DevOps |
 | M-4 | `render.yaml` hard-codes the hosts `ari-api.onrender.com` and `ari-public.onrender.com`. If Render assigns other names, public forms and the sign-in link break until five places are changed ([`deployment.md`](deployment.md#3-production-blueprint-step-by-step), step 4). | DevOps |
@@ -35,7 +35,7 @@ Severity:
 
 | # | Issue | Owner |
 |---|---|---|
-| L-1 | `app_core` cannot execute `search.norm()`, so the pre-deploy step cannot load the vocabulary as `app_core`. The synthetic seed loads it. Fix: migration 0011 (review R-13). | Data |
+| L-1 | Fixed: migration `0012` lets `app_core` execute `search.norm()`, so the pre-deploy step loads the vocabulary without the synthetic seed (validation F-2). Kept here for one release. | Data |
 | L-2 | Rate limits, the search cache and the query budget cache are in process memory, so they are per instance. Accepted for Phase 1. | Backend |
 | L-3 | `/livez` reports `DEMO_MODE` (`checks.demo`), but the SPA shows no demo banner. | Frontend |
 | L-4 | `ALERT_WEBHOOK_URL` is not implemented. A failed cron is visible only in Render. | Backend |

@@ -94,11 +94,11 @@ async function vocabulary(migratorUrl) {
     await c.query('COMMIT');
     log('vocabulary', 'loaded');
   } catch (e) {
-    // Known gap (plan/requests/INT-to-B1.md): app_core has no EXECUTE on search.norm(), which the vocabulary indexes call.
-    // Do not fail the deploy: the synthetic seed loads the vocabulary through a coordinator session instead.
+    // Migration 0012 grants app_core EXECUTE on search.norm(), which the vocabulary indexes call. This branch stays only as a
+    // guard for a database below 0012 (the migrate step runs first, so it should not happen). Do not fail the deploy here.
     if (e?.code !== '42501') throw e;
     await c.query('ROLLBACK').catch(() => {});
-    log('vocabulary', 'skipped: app_core may not write the vocabulary yet (see INT-to-B1). The synthetic seed loads it.');
+    log('vocabulary', 'skipped: app_core may not write the vocabulary (migration 0012 missing?). The synthetic seed loads it.');
   } finally { await c.end().catch(() => {}); }
 }
 

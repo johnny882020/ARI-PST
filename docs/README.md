@@ -38,6 +38,8 @@ The `plan/` folder holds the design-time records. Two plan files stay binding: [
 
 | Document | Content |
 |---|---|
+| [`validation/REQUIREMENTS-VALIDATION.md`](validation/REQUIREMENTS-VALIDATION.md) | Status of every requirement with evidence, and the fixes made |
+| [`ROADMAP-IMPLEMENTATION.md`](ROADMAP-IMPLEMENTATION.md) | Development plan by phase (1 to 3), work packages, exit criteria, metrics |
 | [`KNOWN-ISSUES.md`](KNOWN-ISSUES.md) | Open gaps by severity, unverified facts, legal items |
 | [`REVIEW-2026-11.md`](REVIEW-2026-11.md) | Code review findings |
 | [`qa/REPORT.md`](qa/REPORT.md) | QA results (accessibility, layout, role guards, flows) |
