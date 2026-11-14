@@ -15,7 +15,7 @@ Severity:
 
 | # | Issue | Owner |
 |---|---|---|
-| H-1 | No object store and no SMTP are configured. Uploads live in memory per instance: with 2 instances, an import staged on one instance cannot be committed on the other. No e-mail is sent, so invitations and e-mail verification cannot complete on a deployed stack. | Owner (provide bucket and SMTP) |
+| H-1 | No object store and no SMTP are configured. Uploads live in memory per instance: with 2 instances, an import staged on one instance cannot be committed on the other. No e-mail is sent until a mail service is set: `SMTP_URL`, or `MAIL_API_KEY` for Brevo or Resend over HTTPS ([deployment.md section 13a](deployment.md#13a-e-mail-for-the-demo)). Without it, invitations and e-mail verification cannot complete. | Owner (provide bucket and mail key) |
 | H-2 | The production Blueprint `render.yaml` is not applied. Plan slugs, `CREATEROLE` for the Render database user and the PITR window are UNVERIFIED (see [Unverified](#unverified)). | Owner, DevOps |
 
 ## Medium

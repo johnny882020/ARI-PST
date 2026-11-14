@@ -122,7 +122,7 @@
   "auth.register.approval": "רכז/ת לאומי/ת בודק/ת כל הרשמה. תישלח הודעה בדוא״ל לאחר האישור.",
   "auth.register.backToLogin": "חזרה להתחברות",
   "auth.register.displayName": "שם מלא",
-  "auth.register.done.body": "תודה. נא לבדוק את הדוא״ל ולאמת את הכתובת. רכז/ת יבדוק/תבדוק את ההרשמה.",
+  "auth.register.done.body": "תודה. שלחנו קישור אימות לדוא״ל שלך. אם הוא לא מגיע תוך 10 דקות, נא לבדוק בתיקיית הספאם או לפנות דרך טופס יצירת הקשר. רכז/ת יבדוק/תבדוק את ההרשמה.",
   "auth.register.done.title": "ההרשמה התקבלה",
   "auth.register.email": "דוא״ל מוסדי",
   "auth.register.email.help": "נשלח קישור אימות לכתובת זו.",

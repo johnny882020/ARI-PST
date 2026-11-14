@@ -7,6 +7,7 @@ Every release uses synthetic data only.
 ## [Unreleased]
 
 ### Added
+- E-mail over an HTTPS API: `MAIL_TRANSPORT=brevo` or `resend` with `MAIL_API_KEY` and `MAIL_FROM`. Use it where SMTP ports are closed (free Render plans). Setup: [`deployment.md` section 13a](deployment.md#13a-e-mail-for-the-demo). The API logs the mail transport at start.
 - Google Cloud migration guide, step by step: [`migration/google-cloud.md`](migration/google-cloud.md), with Cloud Run templates, a two-pass Cloud SQL restore script and a local restore rehearsal (PR #9).
 - Documentation index [`docs/README.md`](README.md).
 - Center coordination screen `/requests/:id/coordination` (coordinator and center clinician). The coordinator links coded samples per item, starts center coordination, answers on behalf of a center, records the MTA/DTA (type, reference, status, signed month) and moves the request to delivery. The holding clinician accepts or declines for the own center, sees the own linked samples and marks delivery. The request closes as `delivered`.

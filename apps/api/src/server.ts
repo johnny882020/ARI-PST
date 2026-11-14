@@ -22,6 +22,8 @@ async function main(): Promise<void> {
   worker.start(config.outboxIntervalMs);
   const stop = async (sig: string) => { app.log.info({ sig }, 'shutting down'); worker.stop(); await app.close(); await repo.close(); process.exit(0); };
   process.on('SIGTERM', () => void stop('SIGTERM')); process.on('SIGINT', () => void stop('SIGINT'));
+  if (config.mail.kind === 'console') app.log.warn({ mailTransport: 'console' }, 'mail transport is console: e-mails are not delivered (set MAIL_TRANSPORT and MAIL_API_KEY or SMTP_URL)');
+  else app.log.info({ mailTransport: config.mail.kind }, 'mail transport ready');
   await app.listen({ port: config.port, host: config.host });
 }
 /** C-06: in production the API must log in as a plain role (app_runtime). A superuser, a BYPASSRLS role or the table owner would switch the privacy model off. */

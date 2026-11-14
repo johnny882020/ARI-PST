@@ -49,7 +49,7 @@ flowchart TB
     PG["postgres"]
     AU["auth-local (Argon2id, passkeys, TOTP)"]
     S3["objectstore (S3, local, memory)"]
-    SM["email (SMTP, console)"]
+    SM["email (SMTP, HTTPS API: Brevo or Resend, console)"]
     AP["audit (hash chain in the postgres adapter and DB functions)"]
   end
   HTTP["Fastify HTTP layer + OpenAPI"] --> D

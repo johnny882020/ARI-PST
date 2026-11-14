@@ -122,7 +122,7 @@
   "auth.register.approval": "A national coordinator reviews every registration. You will get an e-mail when it is approved.",
   "auth.register.backToLogin": "Back to sign in",
   "auth.register.displayName": "Full name",
-  "auth.register.done.body": "Thank you. Check your e-mail to verify the address. A coordinator will review your registration.",
+  "auth.register.done.body": "Thank you. We sent a verification link to your e-mail. If it does not arrive within 10 minutes, look in the spam folder or use the contact form. A coordinator will review your registration.",
   "auth.register.done.title": "Registration received",
   "auth.register.email": "Institutional e-mail",
   "auth.register.email.help": "We send a verification link to this address.",

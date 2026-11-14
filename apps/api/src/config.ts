@@ -10,7 +10,7 @@ export interface Config {
   secureCookies: boolean;
   webauthn: { rpId: string; rpName: string; origin: string };
   objectStore: { kind: 'memory' | 'localfs' | 's3'; localDir: string; s3?: { bucket: string; region: string; endpoint?: string; forcePathStyle: boolean } };
-  mail: { kind: 'console' | 'smtp'; smtpUrl?: string; from: string };
+  mail: { kind: 'console' | 'smtp' | 'brevo' | 'resend'; smtpUrl?: string; apiKey?: string; from: string };
   ipHashSalt: string;
   secretsKey: string;                   // encrypts TOTP secrets at rest (AES-256-GCM)
   contactInbox: string;
@@ -47,8 +47,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const host = new URL(publicOrigin).hostname;
   // Object store and mail: with synthetic data the API may run without a bucket or SMTP (previews, demo). Never with other data.
   const store = (env.OBJECT_STORE ?? (env.S3_BUCKET ? 's3' : prod && !synthetic ? 's3' : 'memory')) as 'memory' | 'localfs' | 's3';
-  const mailKind = (env.MAIL_TRANSPORT ?? (env.SMTP_URL ? 'smtp' : prod && !synthetic ? 'smtp' : 'console')) as 'console' | 'smtp';
+  // MAIL_TRANSPORT: console | smtp (SMTP_URL) | brevo | resend (MAIL_API_KEY, HTTPS API: works where SMTP ports are closed).
+  const mailKind = (env.MAIL_TRANSPORT || (env.SMTP_URL ? 'smtp' : env.MAIL_API_KEY ? 'brevo' : prod && !synthetic ? 'smtp' : 'console')) as 'console' | 'smtp' | 'brevo' | 'resend';
+  if (!['console', 'smtp', 'brevo', 'resend'].includes(mailKind)) throw new Error('MAIL_TRANSPORT must be console, smtp, brevo or resend');
   if (mailKind === 'smtp' && !env.SMTP_URL) throw new Error('Missing required environment variable SMTP_URL');
+  if ((mailKind === 'brevo' || mailKind === 'resend') && !env.MAIL_API_KEY) throw new Error('Missing required environment variable MAIL_API_KEY');
+  if ((mailKind === 'brevo' || mailKind === 'resend') && !env.MAIL_FROM) throw new Error('Missing required environment variable MAIL_FROM (a sender address verified with the mail provider)');
   const databaseUrl = roleUrl(env, 'app_runtime', 'DATABASE_URL') ?? (prod ? undefined : 'postgres://postgres@127.0.0.1:55433/ari_pst');
   if (!databaseUrl) throw new Error('Missing database settings: set DATABASE_URL, or DB_HOST + DB_NAME + DB_PASSWORD_RUNTIME');
   return {
@@ -60,7 +64,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       kind: store, localDir: env.OBJECT_STORE_DIR ?? '/tmp/ari-pst-objects',
       ...(store === 's3' ? { s3: { bucket: need('S3_BUCKET'), region: env.S3_REGION ?? 'eu-central-1', ...(env.S3_ENDPOINT ? { endpoint: env.S3_ENDPOINT } : {}), forcePathStyle: bool(env.S3_FORCE_PATH_STYLE, false) } } : {}),
     },
-    mail: { kind: mailKind, ...(env.SMTP_URL ? { smtpUrl: env.SMTP_URL } : {}), from: env.MAIL_FROM ?? 'ARI-PST Portal <no-reply@portal.invalid>' },
+    mail: { kind: mailKind, ...(env.SMTP_URL ? { smtpUrl: env.SMTP_URL } : {}), ...(env.MAIL_API_KEY ? { apiKey: env.MAIL_API_KEY } : {}), from: env.MAIL_FROM ?? 'ARI-PST Portal <no-reply@portal.invalid>' },
     ipHashSalt: need('IP_HASH_SALT', 'dev-only-salt-change-me'),
     secretsKey: need('SECRETS_KEY', 'dev-only-secrets-key-change-me'),
     contactInbox: env.CONTACT_INBOX ?? 'contact@portal.invalid',
