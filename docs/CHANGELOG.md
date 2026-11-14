@@ -11,6 +11,15 @@ Every release uses synthetic data only.
 - `TRUST_PROXY_HOPS` sets Fastify `trustProxy` to a hop count. The default keeps today's behaviour, so M-7 stays open ([`deployment.md` section 4](deployment.md#trusted-proxy-hops-trust_proxy_hops)).
 - Contract: `Session.mfaEnrolled` (required) and `Session.stepUpFresh`; responses `Problem400` and `Problem415` (review R-06, R-10).
 - Migration `0016`: e-mail token kinds `verify` and `password_reset` (review R-08).
+- Password reset (KNOWN-ISSUES M-2). API: `POST /auth/password-reset/request` and `POST /auth/password-reset/confirm` (anonymous, `x-roles: public`, tight per-address rate limit).
+  1. The request always answers `202` before the lookup, so the answer and its time do not tell whether an account exists.
+  2. Only an active account with a verified e-mail gets a mail (template `password_reset`, he and en). Three mails per address per hour at most.
+  3. The link `/reset-password?token=` works once, for 30 minutes. A new request ends the older link. An invite token cannot reset a password.
+  4. Confirm checks the password rules before it uses up the token, sets the password, ends all sessions of the user and writes the audit event `auth.password.reset`. The second factor does not change.
+- Web: "Forgot your password?" on the sign-in page, `/forgot-password`, `/reset-password`.
+- Invite accept page `/invite/:token`. It sets the first password with `POST /auth/verify-email`. Then the first sign-in opens MFA enrolment. The invite e-mail now links to `/invite/<token>`; old `/verify-email?token=` links still work.
+- Change-password page `/account/password` (current password, fresh step-up, ends the other sessions).
+- Recovery-code page `/account/recovery-codes`: `GET /auth/recovery-codes` returns the count of unused codes (never a code). "Make new codes" needs step-up, shows the codes once with a copy button, and writes the audit event `auth.recovery.regenerate`.
 - Requirements validation of REQ-001 to REQ-072 and the spec: [`validation/REQUIREMENTS-VALIDATION.md`](validation/REQUIREMENTS-VALIDATION.md). Implementation roadmap by phase: [`ROADMAP-IMPLEMENTATION.md`](ROADMAP-IMPLEMENTATION.md).
 - Step-up dialog in the protected app (6-digit code or recovery code). The API client sends a call refused with `STEP_UP_REQUIRED` once more after the step-up (review R-03).
 - Migration `0012`: `app_core` may execute `search.norm()` (review R-13).
@@ -25,6 +34,7 @@ Every release uses synthetic data only.
 - Import rule `ETHICS_UNKNOWN`: the ethics reference is present but not registered for the center.
 
 ### Changed
+- `POST /auth/password` needs a fresh step-up (5 minutes or less). The contract lists its `401` answer.
 - CI container scan has a scoped trivy ignore for the Cloud Run Job example (KSV-0118).
 - Documentation rewritten to show the current system only. Runbooks use one template.
 - The researcher tracker and the requests list say "Closed – delivered" for a delivered request.

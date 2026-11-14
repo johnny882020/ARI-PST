@@ -49,7 +49,7 @@ export async function registerCore(app: FastifyInstance, deps: Deps): Promise<vo
     reply.header('X-Trace-Id', req.id);
     const path = req.url.split('?')[0] ?? '';
     // Coarse per-address rate limit. Login and registration are tighter.
-    const tight = path.endsWith('/auth/login') || path.endsWith('/auth/register') || path.endsWith('/auth/mfa/verify') || path.includes('/public/forms/');
+    const tight = path.endsWith('/auth/login') || path.endsWith('/auth/register') || path.endsWith('/auth/mfa/verify') || path.includes('/auth/password-reset/') || path.includes('/public/forms/');
     const retry = limiter.hit(`ip:${req.ipHashValue}:${tight ? 't' : 'g'}`, tight ? config.rate.tightPerMin : config.rate.generalPerMin, 60_000, now);
     if (retry) throw new HttpProblem('RATE_LIMITED', { 'Retry-After': String(retry) });
 

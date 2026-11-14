@@ -3,11 +3,15 @@ import {
   type RoleAssignmentRecord, type SessionRecord, type NotifyPort, type Role, type UserRecord, isRole, violatesSeparationOfDuties,
 } from '@ari/domain';
 import { nid, institutionOf } from '../../lib/util.js';
-import { randomToken } from '../../lib/crypto.js';
+import { randomToken, sha256Hex } from '../../lib/crypto.js';
 
 export interface SessionView { centerId: string | null; userId: string; displayName: string; locale: 'he' | 'en'; roles: RoleAssignmentRecord[]; activeCenterId: string | null; expiresAt: string; csrfToken: string; stepUpFresh: boolean; mfaEnrolled: boolean }
 
+/** Password reset mails per address (key: SHA-256 of the address, never the address). In process memory, like the other limits (L-2). */
+const RESET_MAX = 3; const RESET_WINDOW_MS = 60 * 60_000;
+
 export class IdentityService {
+  private resetHits = new Map<string, number[]>();
   constructor(private repo: Repository, private auth: AuthPort, private notify: NotifyPort, private clock: Clock, private origin: string) {}
   private sys(traceId: string, ipHash: string | null | undefined): Ctx { return { actor: ANON_ACTOR, traceId, ipHash: ipHash ?? null }; }
 
@@ -113,7 +117,38 @@ export class IdentityService {
     await this.repo.tx(ctx, (tx) => tx.users.updateSelf(s.userId, p));
     return this.me(ctx, s);
   }
+  /** Anonymous. The caller always answers 202: no outcome here may tell whether the address has an account (M-2). */
+  async requestPasswordReset(email: string, traceId: string, ipHash: string | null): Promise<void> {
+    const norm = email.trim().toLowerCase();
+    const now = this.clock.now().getTime(); const key = sha256Hex(norm);
+    const hits = (this.resetHits.get(key) ?? []).filter((t) => now - t < RESET_WINDOW_MS);
+    if (hits.length >= RESET_MAX) { this.resetHits.set(key, hits); return; }
+    hits.push(now); this.resetHits.set(key, hits);
+    if (this.resetHits.size > 10_000) for (const [k, v] of this.resetHits) if (v.every((t) => now - t >= RESET_WINDOW_MS)) this.resetHits.delete(k);
+    const userId = await this.auth.findResettableUser(norm);
+    if (!userId) return;
+    const profile = await this.auth.profileFor(userId); if (!profile) return;
+    const token = await this.auth.issueEmailToken(userId, 'password_reset');
+    const ctx = { ...this.sys(traceId, ipHash), actor: { ...ANON_ACTOR, userId } };
+    await this.repo.tx(ctx, (tx) => this.notify.enqueue(tx, { template: 'password_reset', toUserId: userId, toEmail: profile.email, locale: profile.locale, params: { link: `${this.origin}/reset-password?token=${token}` } }));
+    await this.repo.auditStandalone(ctx, { action: 'auth.password.reset_request', outcome: 'success' });
+  }
+  /** Anonymous. Single-use token. Ends every session of the user. The second factor is not changed. */
+  async confirmPasswordReset(token: string, password: string, traceId: string, ipHash: string | null): Promise<void> {
+    const badToken = () => new DomainError('VALIDATION_FAILED', [{ field: 'token', rule: 'FORMAT' }]);
+    const peek = await this.auth.peekEmailToken(token, 'password_reset'); if (!peek) throw badToken();
+    const profile = await this.auth.profileFor(peek); if (!profile) throw badToken();
+    const p = this.auth.checkPasswordPolicy(password, profile.email);
+    if (p) throw new DomainError('VALIDATION_FAILED', [{ field: 'password', rule: p }]);    // the token stays usable
+    const userId = await this.auth.consumeEmailToken(token, 'password_reset');
+    if (!userId || userId !== peek) throw badToken();
+    await this.auth.setPassword(userId, password);
+    await this.auth.revokeAllForUser(userId);
+    await this.repo.auditStandalone({ ...this.sys(traceId, ipHash), actor: { ...ANON_ACTOR, userId } }, { action: 'auth.password.reset', outcome: 'success', details: { sessionsEnded: true } });
+  }
+  async recoveryCodeStatus(s: SessionRecord): Promise<{ unused: number }> { return { unused: await this.auth.countUnusedRecoveryCodes(s.userId) }; }
   async changePassword(s: SessionRecord, current: string, next: string, traceId: string, ipHash: string | null): Promise<SessionRecord> {
+    if (!stepUpFresh(s.mfaAt, this.clock.now().getTime())) throw new DomainError('STEP_UP_REQUIRED');
     const profile = await this.auth.profileFor(s.userId); if (!profile) throw new DomainError('NOT_FOUND');
     const ok = await this.auth.verifyPassword(profile.email, current);
     if (!ok || !('userId' in ok)) throw new DomainError('VALIDATION_FAILED', [{ field: 'currentPassword', rule: 'FORMAT' }]);
@@ -167,9 +202,11 @@ export class IdentityService {
     await this.repo.auditStandalone({ ...this.sys(traceId, null), actor: { ...ANON_ACTOR, userId: s.userId } }, { action: 'auth.mfa.enroll', outcome: 'success', details: { factor: 'webauthn' } });
     return { recoveryCodes: first ? await this.auth.issueRecoveryCodes(s.userId) : [] };
   }
-  async regenerateRecoveryCodes(s: SessionRecord): Promise<{ recoveryCodes: string[] }> {
+  async regenerateRecoveryCodes(s: SessionRecord, traceId = 'recovery'): Promise<{ recoveryCodes: string[] }> {
     if (!stepUpFresh(s.mfaAt, this.clock.now().getTime())) throw new DomainError('STEP_UP_REQUIRED');
-    return { recoveryCodes: await this.auth.issueRecoveryCodes(s.userId) };
+    const codes = await this.auth.issueRecoveryCodes(s.userId);
+    await this.repo.auditStandalone({ ...this.sys(traceId, null), actor: { ...ANON_ACTOR, userId: s.userId } }, { action: 'auth.recovery.regenerate', outcome: 'success' });
+    return { recoveryCodes: codes };
   }
   async logout(ctx: Ctx, s: SessionRecord): Promise<void> {
     await this.auth.revokeSession(s.id);

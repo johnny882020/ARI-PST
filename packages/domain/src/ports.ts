@@ -267,6 +267,12 @@ export interface AuthPort {
   /** One-use e-mail tokens. The adapter stores the purpose; a token consumes only for the purpose it was issued for. */
   issueEmailToken(userId: string, purpose: EmailTokenPurpose): Promise<string>;
   consumeEmailToken(token: string, purpose: EmailTokenPurpose): Promise<string | null>;
+  /** Reads a live e-mail token without using it up (to check a new password first). Single use stays with consumeEmailToken. */
+  peekEmailToken(token: string, purpose: 'password_reset'): Promise<string | null>;
+  /** Account for a password reset request: only an active user with a verified e-mail. Null otherwise (caller must not tell). */
+  findResettableUser(email: string): Promise<string | null>;
+  /** Number of recovery codes not used yet. */
+  countUnusedRecoveryCodes(userId: string): Promise<number>;
 }
 
 // ---------- Object store ----------

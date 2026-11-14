@@ -13,6 +13,7 @@ const T: Record<string, Record<Locale, { subject: string; body: string }>> = {
   committee_assigned: { he: { subject: 'בקשה ממתינה להצבעה', body: 'בקשה חדשה ממתינה להצבעת הוועדה.' }, en: { subject: 'Request awaiting committee vote', body: 'A request is waiting for your committee vote.' } },
   coordinator_precheck: { he: { subject: 'בקשה חדשה לבדיקה מקדימה', body: 'הוגשה בקשה חדשה.' }, en: { subject: 'New request to pre-check', body: 'A new request was submitted.' } },
   staleness_digest: { he: { subject: 'סיכום רעננות נתונים', body: 'יש רשומות שדורשות אימות. היכנסו לפורטל.' }, en: { subject: 'Data freshness digest', body: 'Some records need verification. Sign in to the portal.' } },
+  password_reset: { he: { subject: 'איפוס סיסמה - ARI-PST', body: 'התקבלה בקשה לאיפוס הסיסמה שלכם. לקביעת סיסמה חדשה היכנסו לקישור (בתוקף 30 דקות, לשימוש אחד): {link}\nאם לא ביקשתם איפוס, אפשר להתעלם מההודעה. הסיסמה הנוכחית לא תשתנה.' }, en: { subject: 'Reset your password - ARI-PST', body: 'We received a request to reset your password. Open this link to set a new one (valid for 30 minutes, one use only): {link}\nIf you did not ask for this, ignore this e-mail. Your current password stays the same.' } },
   contact_form: { he: { subject: 'פנייה חדשה מהאתר', body: '{message}' }, en: { subject: 'New website inquiry', body: '{message}' } },
 };
 export function renderTemplate(template: string, locale: Locale, params: Record<string, string>): { subject: string; text: string } {

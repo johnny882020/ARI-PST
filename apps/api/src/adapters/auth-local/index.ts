@@ -11,7 +11,7 @@ import { PasswordHasher, passwordPolicy } from './password.js';
 import { newTotpSecret, otpauthUri, totpVerify } from './totp.js';
 
 export interface AuthOptions { rpId: string; rpName: string; origin: string; secretsKey: string; argon: { memoryCost: number; timeCost: number; parallelism: number } }
-const MAX_FAILS = 5; const LOCK_MS = 15 * 60_000; const CHALLENGE_MS = 5 * 60_000; const INVITE_MS = 7 * 86_400_000;
+const MAX_FAILS = 5; const LOCK_MS = 15 * 60_000; const CHALLENGE_MS = 5 * 60_000; const INVITE_MS = 7 * 86_400_000; const RESET_MS = 30 * 60_000;
 const DUMMY_HASH_PW = 'dummy-password-for-constant-time';
 /** authn.challenges.kind for an e-mail token. The kind equals the purpose; an unknown purpose throws (never a silent default). */
 function emailKind(purpose: EmailTokenPurpose): EmailTokenPurpose {
@@ -154,11 +154,19 @@ export class PgAuth implements AuthPort {
   async failChallenge(token: string) { await this.q(`UPDATE authn.challenges SET attempts = attempts + 1 WHERE token_hash = $1`, [sha256Buf(token)]); }
   /** R-08: the purpose is the stored kind, and consume matches it. A token issued for one purpose never consumes for another.
    *  Kinds 'verify' and 'password_reset' need migration 0016 (CHECK on authn.challenges.kind). */
-  async issueEmailToken(userId: string, purpose: EmailTokenPurpose) { const t = randomToken(24); await this.putChallenge(t, userId, emailKind(purpose), null, INVITE_MS); return t; }
+  async issueEmailToken(userId: string, purpose: EmailTokenPurpose) {
+    const t = randomToken(24); const kind = emailKind(purpose);
+    // One live reset link per user, 30 minutes: a new request ends the older link.
+    if (kind === 'password_reset') await this.q(`DELETE FROM authn.challenges WHERE user_id = $1 AND kind = 'password_reset'`, [userId]);
+    await this.putChallenge(t, userId, kind, null, kind === 'password_reset' ? RESET_MS : INVITE_MS); return t;
+  }
   async consumeEmailToken(token: string, purpose: EmailTokenPurpose) {
     const r = await this.q(`DELETE FROM authn.challenges WHERE token_hash = $1 AND kind = $2 AND expires_at > now() RETURNING user_id`, [sha256Buf(token), emailKind(purpose)]);
     return (r.rows[0]?.user_id as string) ?? null;
   }
+  async peekEmailToken(token: string, purpose: 'password_reset') { const r = await this.q(`SELECT user_id FROM authn.challenges WHERE token_hash = $1 AND kind = $2 AND expires_at > now()`, [sha256Buf(token), purpose]); return (r.rows[0]?.user_id as string) ?? null; }
+  async findResettableUser(email: string) { const u = (await this.q('SELECT user_id, status, email_verified FROM authn.find_login($1)', [email.toLowerCase()])).rows[0]; return u && u.status === 'active' && u.email_verified ? (u.user_id as string) : null; }
+  async countUnusedRecoveryCodes(userId: string) { return Number((await this.q('SELECT count(*)::int AS n FROM authn.recovery_codes WHERE user_id = $1 AND used_at IS NULL', [userId])).rows[0]?.n ?? 0); }
   // ----- sessions -----
   async createSession(userId: string, o: { mfaAt: number | null; ipHash: string | null; roles: RoleAssignmentRecord[]; displayName: string; locale: 'he' | 'en' }): Promise<SessionRecord> {
     const id = randomToken(32); const csrf = randomToken(24); const now = this.now();

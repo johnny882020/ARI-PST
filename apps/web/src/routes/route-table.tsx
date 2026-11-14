@@ -34,6 +34,10 @@ export const ROUTES: RouteDef[] = [
   { id: "verify-email", path: "/verify-email", roles: "public", openWhenSignedIn: true, load: p(() => import("../features/identity-access/VerifyEmailPage"), "VerifyEmailPage") },
   { id: "verify-email-auth", path: "/auth/verify-email", roles: "public", openWhenSignedIn: true, load: p(() => import("../features/identity-access/VerifyEmailPage"), "VerifyEmailPage") },
   { id: "setup-mfa", path: "/setup-mfa", roles: "enrol", load: p(() => import("../features/identity-access/MfaSetupPage"), "MfaSetupPage") },
+  // Account recovery and invitation (KNOWN-ISSUES M-2). apps/api sends `${origin}/reset-password?token=` and `${origin}/invite/<token>`.
+  { id: "forgot-password", path: "/forgot-password", roles: "public", load: p(() => import("../features/identity-access/ForgotPasswordPage"), "ForgotPasswordPage") },
+  { id: "reset-password", path: "/reset-password", roles: "public", openWhenSignedIn: true, load: p(() => import("../features/identity-access/ResetPasswordPage"), "ResetPasswordPage") },
+  { id: "invite", path: "/invite/:token", roles: "public", openWhenSignedIn: true, load: p(() => import("../features/identity-access/InviteAcceptPage"), "InviteAcceptPage") },
   { id: "session-ended", path: "/session-ended", roles: "public", openWhenSignedIn: true, load: p(() => import("../features/identity-access/SessionEndedPage"), "SessionEndedPage") },
 
   { id: "home", path: "/home", roles: "any", nav: { labelKey: "nav.home" }, load: p(() => import("../features/home/HomePage"), "HomePage") },
@@ -63,6 +67,8 @@ export const ROUTES: RouteDef[] = [
 
   { id: "account", path: "/account", roles: "any", nav: { labelKey: "nav.account" }, load: p(() => import("../features/identity-access/AccountPage"), "AccountPage") },
   { id: "security", path: "/account/security", roles: "any", load: p(() => import("../features/identity-access/SecurityPage"), "SecurityPage") },
+  { id: "change-password", path: "/account/password", roles: "any", load: p(() => import("../features/identity-access/ChangePasswordPage"), "ChangePasswordPage") },
+  { id: "recovery-codes", path: "/account/recovery-codes", roles: "any", load: p(() => import("../features/identity-access/RecoveryCodesPage"), "RecoveryCodesPage") },
   { id: "help", path: "/help", roles: "any", load: p(() => import("../features/home/HelpPage"), "HelpPage") },
 ];
 
