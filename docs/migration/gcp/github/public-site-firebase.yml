@@ -1,0 +1,53 @@
+# EXAMPLE workflow (not active here). Public site (Astro) to Firebase Hosting. docs/migration/google-cloud.md section 4.8.
+# Same rule as Render's autoDeployTrigger=checksPass: deploys after CI passes on main. No approval gate (public content only).
+# Pull requests get a preview channel that expires after 3 days (like Render previews). Fork PRs get nothing.
+# Vars: GCP_WIF_PROVIDER, GCP_SITE_DEPLOY_SA (role: Firebase Hosting Admin on the site project only), FIREBASE_PROJECT,
+#       PUBLIC_PORTAL_URL (https://portal.<domain>/), PUBLIC_API_BASE (https://portal.<domain>)
+name: public-site-firebase
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  pull_request:
+    paths: ["apps/public-site/**", "packages/design-system/**", "packages/i18n/**", "pnpm-lock.yaml", "docs/migration/gcp/firebase/**"]
+permissions:
+  contents: read
+jobs:
+  deploy:
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Build
+        env:
+          PUBLIC_PORTAL_URL: ${{ vars.PUBLIC_PORTAL_URL }}
+          PUBLIC_API_BASE: ${{ vars.PUBLIC_API_BASE }}
+        run: pnpm --filter @ari/public-site build
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SITE_DEPLOY_SA }}
+          create_credentials_file: true
+      - name: Deploy
+        env:
+          PROJECT: ${{ vars.FIREBASE_PROJECT }}
+          PR: ${{ github.event.pull_request.number }}
+        working-directory: docs/migration/gcp/firebase
+        run: |
+          npx --yes firebase-tools@14 --version
+          if [ -n "$PR" ]; then
+            npx --yes firebase-tools@14 hosting:channel:deploy "pr-$PR" --expires 3d --project "$PROJECT" --non-interactive
+          else
+            npx --yes firebase-tools@14 deploy --only hosting --project "$PROJECT" --non-interactive
+          fi
