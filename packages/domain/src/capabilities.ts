@@ -15,6 +15,7 @@ export const OPERATION_ACCESS: Record<string, Access> = {
   logout: ALL_AUTH, getAuthSession: ALL_AUTH, getSessionInfo: ALL_AUTH, extendSession: ALL_AUTH, getMe: ALL_AUTH, updateMe: ALL_AUTH, changePassword: ALL_AUTH,
   stepUp: ALL_AUTH, enrollTotpStart: ALL_AUTH, enrollTotpConfirm: ALL_AUTH, webauthnRegisterOptions: ALL_AUTH,
   webauthnRegisterVerify: ALL_AUTH, regenerateRecoveryCodes: ALL_AUTH,
+  requestPasswordReset: 'public', confirmPasswordReset: 'public', getRecoveryCodeStatus: ALL_AUTH,
   // samples
   listSamples: R('center_clinician', 'national_coordinator'),
   createSample: COORD,

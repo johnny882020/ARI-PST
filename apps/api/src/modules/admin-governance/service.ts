@@ -33,7 +33,7 @@ export class AdminService {
       return { id: u.id, pending };
     });
     const token = await this.auth.issueEmailToken(out.id, 'invite');
-    await this.repo.tx(ctx, (tx) => this.notify.enqueue(tx, { template: 'invite', toUserId: out.id, toEmail: email, locale: b.locale ?? 'he', params: { link: `${this.origin}/verify-email?token=${token}` } }));
+    await this.repo.tx(ctx, (tx) => this.notify.enqueue(tx, { template: 'invite', toUserId: out.id, toEmail: email, locale: b.locale ?? 'he', params: { link: `${this.origin}/invite/${token}` } }));
     return this.repo.tx(ctx, async (tx) => (await tx.users.getById(out.id))!);
   }
   async updateUser(ctx: Ctx, id: string, p: { displayName?: string; status?: 'active' | 'suspended' | 'closed' }) {

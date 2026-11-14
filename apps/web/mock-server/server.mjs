@@ -19,6 +19,7 @@ function reset() {
   state.samples = seedSamples();
   state.sessions = new Map(); // sid -> {userId, csrf, expiresAt}
   state.challenges = new Map(); // token -> {userId}
+  state.resetTokens = new Map(); // single use
   state.emailTokens = new Map([[VERIFY_TOKEN, { userId: state.users.find((u) => u.email === "newuser@example.test").id }]]); // single use
   state.carts = new Map(); // userId -> items
   state.requests = [];
@@ -269,6 +270,23 @@ async function handleApi(req, res, url) {
     audit(u, "auth.password.change", "user", u.id);
     res.writeHead(204, { "cache-control": "no-store" }); return res.end();
   }
+  // Password reset: always 202, never tells whether the address exists. The mock prints the link to the console.
+  if (path === "/auth/password-reset/request" && method === "POST") {
+    const b = await readJson(req);
+    const u = state.users.find((x) => x.email === String(b.email ?? "").toLowerCase() && x.status === "active");
+    if (u) { const tok = randomBytes(16).toString("hex"); state.resetTokens.set(tok, { userId: u.id }); console.log(`[mock mail] /reset-password?token=${tok}`); }
+    return send(res, 202, { accepted: true });
+  }
+  if (path === "/auth/password-reset/confirm" && method === "POST") {
+    const b = await readJson(req);
+    const t = typeof b.token === "string" ? state.resetTokens.get(b.token) : undefined;
+    if (!t) return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "token", rule: "FORMAT" }] });
+    if (typeof b.password !== "string" || b.password.length < 12 || b.password.length > 128) return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "password", rule: "LENGTH" }] });
+    state.resetTokens.delete(b.token);
+    const u = state.users.find((x) => x.id === t.userId); u.password = b.password;
+    for (const [sid, rec] of state.sessions) if (rec.userId === u.id) state.sessions.delete(sid);
+    res.writeHead(204, { "cache-control": "no-store" }); return res.end();
+  }
   if (path === "/auth/login" && method === "POST") {
     const b = await readJson(req);
     const u = state.users.find((x) => x.email === String(b.email).toLowerCase());
@@ -320,6 +338,13 @@ async function handleApi(req, res, url) {
     return send(res, 200, sessionDto({ user: s.user, csrf: s.csrf, expiresAt: rec.expiresAt }));
   }
   if (path === "/auth/methods" && method === "GET") return send(res, 200, { items: state.methods });
+  if (path === "/auth/recovery-codes" && method === "GET") return send(res, 200, { unused: state.recoveryUnused ?? 10 });
+  if (path === "/auth/recovery-codes" && method === "POST") { state.recoveryUnused = 10; return send(res, 200, { recoveryCodes: Array.from({ length: 10 }, (_, i) => `SYNTH-${String(i + 1).padStart(4, "0")}-CODE`) }); }
+  if (path === "/auth/password" && method === "POST") {
+    const b = await readJson(req);
+    if (b.currentPassword !== (s.user.password ?? PASSWORD)) return problem(res, 422, "VALIDATION_FAILED", "Validation failed", { errors: [{ field: "currentPassword", rule: "FORMAT" }] });
+    s.user.password = b.newPassword; res.writeHead(204); return res.end();
+  }
   if (path === "/auth/enrol/totp" && method === "POST") return send(res, 200, { otpauthUri: "otpauth://totp/ARI-PST:synthetic?secret=JBSWY3DPEHPK3PXP&issuer=ARI-PST", secret: "JBSWY3DPEHPK3PXP" });
   if (path === "/auth/enrol/totp/confirm" && method === "POST") {
     const b = await readJson(req);

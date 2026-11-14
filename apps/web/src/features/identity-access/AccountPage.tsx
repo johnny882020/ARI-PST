@@ -21,7 +21,11 @@ export function AccountPage() {
       </Card>
       <Card heading={t("account.security")} headingLevel={2}>
         <p>{t("account.security.lead")}</p>
-        <Link className="ds-btn ds-btn-secondary" to="/account/security"><span className="ds-btn-label">{t("account.security.open")}</span></Link>
+        <div className="row">
+          <Link className="ds-btn ds-btn-secondary" to="/account/security"><span className="ds-btn-label">{t("account.security.open")}</span></Link>
+          <Link className="ds-btn ds-btn-secondary" to="/account/password"><span className="ds-btn-label">{t("account.password.open")}</span></Link>
+          <Link className="ds-btn ds-btn-secondary" to="/account/recovery-codes"><span className="ds-btn-label">{t("account.recovery.open")}</span></Link>
+        </div>
       </Card>
     </div>
   );

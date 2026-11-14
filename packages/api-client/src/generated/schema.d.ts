@@ -780,7 +780,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Change own password. Ends all other sessions. */
+        /** Change own password. Needs the current password and a fresh step-up. Ends all other sessions. */
         post: operations["changePassword"];
         delete?: never;
         options?: never;
@@ -812,10 +812,45 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Number of own recovery codes not used yet. Never returns a code. */
+        get: operations["getRecoveryCodeStatus"];
         put?: never;
         /** Replace the recovery codes. Shown once. Needs a fresh step-up. */
         post: operations["regenerateRecoveryCodes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password-reset/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for a password reset link by e-mail. The answer is always 202, so it never tells whether an account exists. The link works once, for 30 minutes. */
+        post: operations["requestPasswordReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password-reset/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set a new password with the e-mailed one-time token. Ends all sessions of the user. The second factor stays as it is. */
+        post: operations["confirmPasswordReset"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2002,6 +2037,17 @@ export interface components {
         };
         RecoveryCodes: {
             recoveryCodes: string[];
+        };
+        RecoveryCodeStatus: {
+            unused: number;
+        };
+        PasswordResetRequest: {
+            /** Format: email */
+            email: string;
+        };
+        PasswordResetConfirm: {
+            token: string;
+            password: string;
         };
         Me: {
             id: string;
@@ -3770,6 +3816,7 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["Problem401"];
             422: components["responses"]["Problem422"];
         };
     };
@@ -3798,6 +3845,27 @@ export interface operations {
             401: components["responses"]["Problem401"];
         };
     };
+    getRecoveryCodeStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Count. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodeStatus"];
+                };
+            };
+            401: components["responses"]["Problem401"];
+        };
+    };
     regenerateRecoveryCodes: {
         parameters: {
             query?: never;
@@ -3817,6 +3885,56 @@ export interface operations {
                 };
             };
             401: components["responses"]["Problem401"];
+        };
+    };
+    requestPasswordReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted. The same answer for a known and an unknown address. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Accepted"];
+                };
+            };
+            422: components["responses"]["Problem422"];
+            429: components["responses"]["Problem429"];
+        };
+    };
+    confirmPasswordReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetConfirm"];
+            };
+        };
+        responses: {
+            /** @description Password changed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: components["responses"]["Problem422"];
+            429: components["responses"]["Problem429"];
         };
     };
     getMe: {

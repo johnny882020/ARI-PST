@@ -35,7 +35,14 @@ export function identityHandlers(svc: IdentityService, cfg: Config): Record<stri
     webauthnRegisterVerify: async (req) => { const b = body<{ name: string; attestation: unknown }>(req); return svc.webauthnRegisterVerify(sess(req), b.attestation, b.name, req.id); },
     recoverMfa: async (req, reply) => { const b = body<{ challengeToken: string; recoveryCode: string }>(req); const s = await svc.verifyMfa(b, req.id, req.ipHashValue); setSessionCookie(reply, cfg, s); reply.setCookie(CSRF_COOKIE, s.csrfToken, cookieOptions(cfg.secureCookies, false)); return svc.view(s); },
     listAuthMethods: async (req) => ({ items: await svc.methods(sess(req)) }),
-    regenerateRecoveryCodes: async (req) => svc.regenerateRecoveryCodes(sess(req)),
+    regenerateRecoveryCodes: async (req) => svc.regenerateRecoveryCodes(sess(req), req.id),
+    getRecoveryCodeStatus: async (req) => svc.recoveryCodeStatus(sess(req)),
+    // The reply does not wait for the lookup and the mail, so the answer time does not tell whether the address has an account.
+    requestPasswordReset: async (req, reply) => {
+      svc.requestPasswordReset(body<{ email: string }>(req).email, req.id, req.ipHashValue).catch(() => req.log.warn({ traceId: req.id }, 'password reset request failed'));
+      return reply.code(202).header('cache-control', 'no-store').send({ accepted: true });
+    },
+    confirmPasswordReset: async (req, reply) => { const b = body<{ token: string; password: string }>(req); await svc.confirmPasswordReset(b.token, b.password, req.id, req.ipHashValue); return reply.code(204).header('cache-control', 'no-store').send(); },
     getMe: async (req) => svc.me(req.ctx, sess(req)),
     updateMe: async (req) => svc.updateMe(req.ctx, sess(req), body(req)),
     listPendingRegistrations: async (req) => ({ items: await svc.registrations(req.ctx) }),

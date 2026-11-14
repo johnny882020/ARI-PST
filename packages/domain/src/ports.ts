@@ -221,6 +221,8 @@ export interface SessionRecord {
   roles: RoleAssignmentRecord[]; displayName: string; locale: 'he' | 'en';
 }
 export type MfaFactor = 'totp' | 'webauthn';
+/** E-mail token purpose. The auth adapter stores it as the token kind (review R-08). */
+export type EmailTokenPurpose = 'invite' | 'verify' | 'password_reset';
 export interface AuthPort {
   hashPassword(pw: string): Promise<string>;
   /** Constant-time. Returns null for unknown user and wrong password alike. Applies lockout. */
@@ -261,8 +263,14 @@ export interface AuthPort {
   mfaFactorsFor(userId: string): Promise<MfaFactor[]>;
   recordLoginSuccess(userId: string): Promise<void>;
   /** Email verification tokens. */
-  issueEmailToken(userId: string, purpose: 'verify_email' | 'invite'): Promise<string>;
-  consumeEmailToken(token: string, purpose: 'verify_email' | 'invite'): Promise<string | null>;
+  issueEmailToken(userId: string, purpose: EmailTokenPurpose): Promise<string>;
+  consumeEmailToken(token: string, purpose: EmailTokenPurpose): Promise<string | null>;
+  /** Reads a live e-mail token without using it up (to check a new password first). Single use stays with consumeEmailToken. */
+  peekEmailToken(token: string, purpose: 'password_reset'): Promise<string | null>;
+  /** Account for a password reset request: only an active user with a verified e-mail. Null otherwise (caller must not tell). */
+  findResettableUser(email: string): Promise<string | null>;
+  /** Number of recovery codes not used yet. */
+  countUnusedRecoveryCodes(userId: string): Promise<number>;
 }
 
 // ---------- Object store ----------

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import QRCode from "qrcode";
 import { Alert, Badge, Button, Checkbox, Dialog, Input, Skeleton, Table, type TableColumn } from "@ari/design-system";
@@ -121,6 +122,7 @@ export function SecurityPage() {
       <div className="row">
         {passkeysSupported() ? <Button onClick={() => setDialog("passkey")}>{t("auth.security.addPasskey")}</Button> : <span className="muted">{t("auth.passkey.unsupported")}</span>}
         <Button onClick={() => setDialog("totp")}>{t("auth.security.addTotp")}</Button>
+        <Link className="ds-btn ds-btn-quiet" to="/account/recovery-codes"><span className="ds-btn-label">{t("account.recovery.open")}</span></Link>
       </div>
       <Dialog open={dialog !== null} onClose={() => setDialog(null)} title={t(dialog === "passkey" ? "auth.security.addPasskey" : "auth.security.addTotp")}>
         {dialog === "totp" ? <TotpEnrol onClose={() => setDialog(null)} /> : dialog === "passkey" ? <PasskeyEnrol onClose={() => setDialog(null)} /> : null}

@@ -64,6 +64,7 @@ export function LoginPage() {
           <Button type="submit" variant="primary" loading={isSubmitting}>{t("auth.login.submit")}</Button>
         </div>
       </form>
+      <p><Link to="/forgot-password">{t("auth.login.forgot")}</Link></p>
       <p className="muted">{t("auth.login.noAccount")} <Link to="/register">{t("auth.login.register")}</Link></p>
       <p className="muted">{t("privacy.notice.short")}</p>
     </>
