@@ -6,7 +6,7 @@ import { renderWithApp } from "../../test/render";
 vi.mock("../../lib/api", () => ({
   api: {
     GET: async (path: string) => path === "/samples/{sampleId}"
-      ? { data: undefined, error: { type: "about:blank", title: "Not found", status: 404, code: "NOT_FOUND" }, response: { ok: false, status: 404 } }
+      ? { data: undefined, error: { type: "about:blank", title: "Not found", status: 404, code: "NOT_FOUND" }, response: new Response(null, { status: 404 }) }
       : { data: { items: [] }, response: { ok: true, status: 200 } },
   },
   setCsrfFallback: vi.fn(),
