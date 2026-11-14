@@ -3,7 +3,8 @@
 // Drives the browser UI, asserts text and state, and saves screenshots for human review.
 //
 //   pnpm test:e2e:flows            = node scripts/e2e-flows.mjs
-//   Build first: pnpm -r build     (apps/api/dist, apps/web/dist, apps/public-site/dist)
+//   It rebuilds apps/web and apps/public-site first (add --no-build to skip; apps/api/dist is built when missing).
+//   node scripts/e2e-flows.mjs --serve   only starts the stack (for debugging), Ctrl+C stops it.
 //
 // What it starts (and stops at the end):
 //   - throwaway PostgreSQL 16 like Render (scripts/sim-render-db.sh: one NOSUPERUSER owner) on FLOWS_DB_PORT (55450)
@@ -139,6 +140,15 @@ async function startStack() {
   siteServer = startSite();
   return `readyz ok, version ${ready.version}, migration ${ready.checks?.migrationApplied}; seed: ${seed.split('\n').filter((l) => /"ok"/.test(l)).pop()?.slice(0, 160) ?? 'done'}`;
 }
+/** Rebuilds the SPA and the public site so screenshots show the current code (skip with --no-build). */
+function build() {
+  if (process.argv.includes('--no-build')) return 'skipped (--no-build)';
+  const pnpm = (args) => sh('pnpm', args);
+  if (!existsSync(path.join(root, 'apps/api/dist/server.js'))) pnpm(['-r', '--filter=@ari/api...', 'build']);
+  pnpm(['--filter', '@ari/web', 'build']);
+  pnpm(['--filter', '@ari/public-site', 'build']);
+  return 'apps/web and apps/public-site rebuilt';
+}
 function startSite() {
   const dist = path.join(root, 'apps/public-site/dist');
   const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.xml': 'application/xml', '.txt': 'text/plain', '.woff2': 'font/woff2', '.webp': 'image/webp', '.ico': 'image/x-icon' };
@@ -244,6 +254,7 @@ async function main() {
   mkdirSync(SHOTS, { recursive: true });
   for (const f of (await import('node:fs')).readdirSync(SHOTS)) if (f.endsWith('.png')) rmSync(path.join(SHOTS, f));
   if (process.argv.includes('--serve')) { console.log(await startStack()); console.log(`serving ${BASE} and ${SITE}; Ctrl+C to stop`); await new Promise((r) => { process.on('SIGINT', r); process.on('SIGTERM', r); }); return; }
+  if (!(await step('setup', 'build apps/web and apps/public-site', build))) return;
   const up = await step('setup', 'start Render-like DB, predeploy with synthetic seed, API (production build), public site', startStack);
   if (!up) return;
   browser = await chromium.launch();
@@ -630,18 +641,17 @@ async function main() {
     await coord.locator('#field-collectionMonth').fill('2025-03');
     await shot(coord, 'h-ingest', 'sample-entry', 'he');
     await coord.locator('main form button[type=submit]').click();
-    await coord.waitForURL(/\/samples\/smp_/, { timeout: 15000 });
-    await waitMain(coord, /ברשומה זו אין זהות מטופל/);
+    await waitMain(coord, /נשמר בקוד smp_/);
     await shot(coord, 'h-ingest', 'sample-created', 'he');
     checkClean(coord);
-    return new URL(coord.url()).pathname;
+    return (await mainText(coord)).match(/smp_[0-9A-Z]+/)?.[0];
   });
   await step('h-ingest', 'CSV import dry-run: good and bad rows, rejection report', async () => {
     const centers = (await lookup(coord, 'GET', '/api/v1/centers')).json;
     const c = (centers.items ?? centers)[0];
     const hdr = (await lookup(coord, 'GET', '/api/v1/import-templates/csv')).text.trim().split(',');
     const row = (o) => hdr.map((h) => o[h] ?? '').join(',');
-    const good = { source_center_code: c.code, diagnosis_source_value: S.search.code, age_band_at_diagnosis: '6_lt10', sex: 'female', sample_type: 'ffpe', availability: 'available', quantity_class: 'medium', clinical_timepoint: 'diagnosis', collection_month: '2024-05', consent_status: 'broad_consent', verified: 'true' };
+    const good = { source_center_code: c.code, diagnosis_source_value: S.search.code, age_band_at_diagnosis: '6_lt10', sex: 'female', sample_type: 'ffpe', availability: 'available', quantity_class: 'medium', clinical_timepoint: 'diagnosis', collection_month: '2024-05', consent_status: 'broad_consent', ethics_approval_ref: 'HC-2024-0012', verified: 'true' };
     const csv = [hdr.join(','), row(good),
       row({ ...good, collection_month: '2024-05-17' }),          // exact date: refused
       row({ ...good, sex: 'unknown_value' }),                    // not in vocabulary

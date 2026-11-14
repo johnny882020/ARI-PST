@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AppShell, Badge, Button, LanguageSwitch, ThemeToggle, type NavItem, type Theme } from "@ari/design-system";
+import { AppShell, Badge, Button, Eyebrow, LanguageSwitch, Logo, ThemeToggle, type NavItem, type Theme } from "@ari/design-system";
 import { unwrap } from "@ari/api-client";
 import { useLocale, useT } from "../../app/locale";
 import { useSession } from "../../app/session";
@@ -42,7 +42,7 @@ export function AppLayout() {
 
   return (
     <AppShell
-      brand={<Link to="/" className="brand-link"><strong>ARI-PST</strong>&nbsp;<span className="brand-sub">× Tech4Cancer</span></Link>}
+      brand={<Link to="/" className="brand-link"><Logo size={40} /></Link>}
       nav={items}
       navLabel={t("shell.nav.label")}
       renderLink={(it, props) => <NavLink to={it.href} className={props.className} aria-current={props["aria-current"]} onClick={props.onClick}>{props.children}</NavLink>}
@@ -59,7 +59,7 @@ export function AppLayout() {
           ) : null}
         </>
       }
-      footer={<p className="footer-note">{t("privacy.badge")} · <Link to="/help">{t("nav.help")}</Link></p>}
+      footer={<p className="footer-note"><bdi className="footer-brand">ARI-PST × Tech4Cancer</bdi> · {t("privacy.badge")} · <Link to="/help">{t("nav.help")}</Link></p>}
     >
       <ErrorBoundary fallback={() => <RootErrorFallback />}>
         <Outlet />
@@ -78,15 +78,20 @@ export function PublicLayout() {
     <div className="public-wrap">
       <a className="ds-skip" href="#main">{t("shell.skip")}</a>
       <header className="public-head">
-        <span className="public-brand"><strong>ARI-PST</strong> <span className="brand-sub">× Tech4Cancer</span></span>
+        <span className="public-brand"><Logo size={40} /></span>
         <span className="spacer" />
         <LanguageSwitch value={locale} onChange={setLocale} />
         <ThemeToggle value={theme} onChange={(th) => { setTheme(th); writePref("ui.theme", th); }} />
       </header>
-      <main id="main" className="narrow" tabIndex={-1}>
-        <Outlet />
+      <main id="main" className="public-main" tabIndex={-1}>
+        <div className="public-hero">
+          <Eyebrow>{t("shell.eyebrow")}</Eyebrow>
+        </div>
+        <div className="narrow public-card">
+          <Outlet />
+        </div>
       </main>
-      <footer className="footer-note">{t("privacy.badge")}</footer>
+      <footer className="footer-note"><bdi className="footer-brand">ARI-PST × Tech4Cancer</bdi> · {t("privacy.badge")}</footer>
     </div>
   );
 }
