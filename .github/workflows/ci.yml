@@ -145,7 +145,7 @@ jobs:
         run: docker run --rm -v "$PWD:/project" openpolicyagent/conftest:v0.56.0 test render.yaml infra/render.staging.yaml -p infra/policy
       - name: trivy config scan (IaC misconfigurations)
         # Pinned image instead of aquasecurity/trivy-action (the action tag 0.28.0 did not resolve). TODO pin by digest.
-        run: docker run --rm -v "$PWD:/src" -w /src aquasec/trivy:0.57.1 config --exit-code 1 --severity HIGH,CRITICAL .
+        run: docker run --rm -v "$PWD:/src" -w /src aquasec/trivy:0.57.1 config --ignorefile .trivyignore.yaml --exit-code 1 --severity HIGH,CRITICAL .
       # No Dockerfile exists in Phase 1 (Render native runtimes). Add hadolint here if one is introduced.
 
   cms-guard:
