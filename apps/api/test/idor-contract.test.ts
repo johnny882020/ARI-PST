@@ -115,13 +115,13 @@ describe('problem+json contract', () => {
   it('every error is RFC 9457 with code and traceId and no values', async () => {
     const cases: Array<[Awaited<ReturnType<Harness['session']>> | null, string, string, unknown?]> = [
       [null, 'GET', '/api/v1/samples'], [await h.session(f.resIl), 'GET', '/api/v1/samples'], [await h.session(f.coord), 'GET', `/api/v1/samples/smp_${'0'.repeat(26)}`],
-      [await h.session(f.coord), 'POST', '/api/v1/samples', { sourceCenterId: 'bad', secret: '0501234567' }], [null, 'GET', '/api/v1/nope'],
+      [await h.session(f.coord), 'POST', '/api/v1/samples', { sourceCenterId: 'zz-not-a-center-qx', secret: '0501234567' }], [null, 'GET', '/api/v1/nope'],
     ];
     for (const [s, m, u, b] of cases) {
       const r = await h.call(s, m, u, b === undefined ? {} : { body: b });
       expect(r.res.headers['content-type']).toMatch(/application\/problem\+json/);
       expect(h.contract.validateResponse('listSamples', 403, r.json, 'application/problem+json') ?? []).toEqual([]);
-      expect(r.json.traceId).toBeTruthy(); expect(r.body).not.toContain('0501234567'); expect(r.body).not.toContain('bad');
+      expect(r.json.traceId).toBeTruthy(); expect(r.body).not.toContain('0501234567'); expect(r.body).not.toContain('zz-not-a-center-qx');   // sentinel uses non-hex letters, so a random traceId cannot contain it
     }
   });
 });

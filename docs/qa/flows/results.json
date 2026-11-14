@@ -1,5 +1,5 @@
 {
-  "when": "2026-11-14T14:44:53.188Z",
+  "when": "2026-11-14T14:54:13.099Z",
   "base": "http://localhost:18100",
   "site": "http://localhost:18101",
   "passed": 39,
@@ -16,7 +16,7 @@
       ],
       "shots": [],
       "api": false,
-      "ms": 12943,
+      "ms": 13906,
       "status": "pass"
     },
     {
@@ -28,7 +28,7 @@
       ],
       "shots": [],
       "api": false,
-      "ms": 3802,
+      "ms": 2891,
       "status": "pass"
     },
     {
@@ -42,7 +42,7 @@
         "03-a-signin-home-he.png"
       ],
       "api": false,
-      "ms": 2356,
+      "ms": 2278,
       "status": "pass"
     },
     {
@@ -68,7 +68,7 @@
         "07-a-signin-home-en.png"
       ],
       "api": false,
-      "ms": 2285,
+      "ms": 2274,
       "status": "pass"
     },
     {
@@ -82,7 +82,7 @@
         "10-a-signin-mobile-home-he.png"
       ],
       "api": false,
-      "ms": 1998,
+      "ms": 2013,
       "status": "pass"
     },
     {
@@ -94,7 +94,7 @@
         "11-b-search-start-he.png"
       ],
       "api": false,
-      "ms": 8391,
+      "ms": 1490,
       "status": "pass"
     },
     {
@@ -106,7 +106,7 @@
       ],
       "shots": [],
       "api": false,
-      "ms": 56,
+      "ms": 52,
       "status": "pass"
     },
     {
@@ -120,7 +120,7 @@
         "12-b-search-filtered-count-he.png"
       ],
       "api": false,
-      "ms": 1834,
+      "ms": 1836,
       "status": "pass"
     },
     {
@@ -132,7 +132,7 @@
         "13-b-search-suppressed-too-few-he.png"
       ],
       "api": false,
-      "ms": 1438,
+      "ms": 1413,
       "status": "pass"
     },
     {
@@ -144,7 +144,7 @@
         "14-b-search-added-to-cart-he.png"
       ],
       "api": false,
-      "ms": 1520,
+      "ms": 1532,
       "status": "pass"
     },
     {
@@ -157,7 +157,7 @@
         "16-b-search-suppressed-too-few-en.png"
       ],
       "api": false,
-      "ms": 2890,
+      "ms": 2950,
       "status": "pass"
     },
     {
@@ -169,7 +169,7 @@
         "17-b-search-mobile-filtered-count-he.png"
       ],
       "api": false,
-      "ms": 1984,
+      "ms": 16336,
       "status": "pass"
     },
     {
@@ -177,13 +177,13 @@
       "name": "open the cart and start a request",
       "ok": true,
       "notes": [
-        "req_01M7D879AP0C6B1STWTMQ2AK4J"
+        "req_01M7D8R661W43TYB6ZYABHQVCQ"
       ],
       "shots": [
         "18-c-request-cart-he.png"
       ],
       "api": false,
-      "ms": 1119,
+      "ms": 1222,
       "status": "pass"
     },
     {
@@ -197,7 +197,7 @@
         "19-c-request-identifier-refused-he.png"
       ],
       "api": false,
-      "ms": 495,
+      "ms": 511,
       "status": "pass"
     },
     {
@@ -210,7 +210,7 @@
         "21-c-request-review-he.png"
       ],
       "api": false,
-      "ms": 1180,
+      "ms": 1294,
       "status": "pass"
     },
     {
@@ -225,7 +225,7 @@
         "23-c-request-tracker-submitted-he.png"
       ],
       "api": false,
-      "ms": 1110,
+      "ms": 1061,
       "status": "pass"
     },
     {
@@ -237,7 +237,7 @@
         "24-d-precheck-home-he.png"
       ],
       "api": false,
-      "ms": 1323,
+      "ms": 1301,
       "status": "pass"
     },
     {
@@ -249,7 +249,7 @@
         "25-d-precheck-request-detail-he.png"
       ],
       "api": false,
-      "ms": 646,
+      "ms": 744,
       "status": "pass"
     },
     {
@@ -262,7 +262,7 @@
         "27-d-precheck-forwarded-he.png"
       ],
       "api": false,
-      "ms": 1140,
+      "ms": 1147,
       "status": "pass"
     },
     {
@@ -277,7 +277,7 @@
         "29-e-committee-vote1-after-he.png"
       ],
       "api": false,
-      "ms": 2112,
+      "ms": 2153,
       "status": "pass"
     },
     {
@@ -293,7 +293,7 @@
         "32-e-committee-queue-after-en.png"
       ],
       "api": false,
-      "ms": 2782,
+      "ms": 2641,
       "status": "pass"
     },
     {
@@ -305,7 +305,7 @@
         "33-e-committee-tracker-approved-he.png"
       ],
       "api": false,
-      "ms": 1190,
+      "ms": 1087,
       "status": "pass"
     },
     {
@@ -321,7 +321,7 @@
         "36-f-delivery-tracker-coordination-he.png"
       ],
       "api": false,
-      "ms": 4478,
+      "ms": 4413,
       "status": "pass"
     },
     {
@@ -334,7 +334,7 @@
         "38-f-delivery-tracker-agreements-he.png"
       ],
       "api": false,
-      "ms": 2026,
+      "ms": 1976,
       "status": "pass"
     },
     {
@@ -348,7 +348,7 @@
         "41-f-delivery-tracker-delivery-he.png"
       ],
       "api": false,
-      "ms": 3007,
+      "ms": 2955,
       "status": "pass"
     },
     {
@@ -364,7 +364,7 @@
         "44-f-delivery-tracker-closed-en.png"
       ],
       "api": false,
-      "ms": 3161,
+      "ms": 3006,
       "status": "pass"
     },
     {
@@ -376,7 +376,7 @@
         "45-f-delivery-mobile-tracker-closed-he.png"
       ],
       "api": false,
-      "ms": 1180,
+      "ms": 1135,
       "status": "pass"
     },
     {
@@ -390,7 +390,7 @@
         "46-g-clinician-samples-own-center-he.png"
       ],
       "api": false,
-      "ms": 1413,
+      "ms": 1260,
       "status": "pass"
     },
     {
@@ -404,7 +404,7 @@
         "47-g-clinician-sample-detail-he.png"
       ],
       "api": false,
-      "ms": 592,
+      "ms": 597,
       "status": "pass"
     },
     {
@@ -418,7 +418,7 @@
         "48-g-clinician-other-center-hidden-he.png"
       ],
       "api": false,
-      "ms": 2470,
+      "ms": 2326,
       "status": "pass"
     },
     {
@@ -426,14 +426,14 @@
       "name": "coordinator adds one coded record through the form",
       "ok": true,
       "notes": [
-        "smp_01M7D894F873B606YN3B9AQ8FY"
+        "smp_01M7D8T7BTJQ0TWZXTRTHR9B05"
       ],
       "shots": [
         "49-h-ingest-sample-entry-he.png",
         "50-h-ingest-sample-created-he.png"
       ],
       "api": false,
-      "ms": 1940,
+      "ms": 1849,
       "status": "pass"
     },
     {
@@ -448,7 +448,7 @@
         "52-h-ingest-import-dry-run-report-he.png"
       ],
       "api": false,
-      "ms": 1627,
+      "ms": 1615,
       "status": "pass"
     },
     {
@@ -460,7 +460,7 @@
         "53-i-admin-home-he.png"
       ],
       "api": false,
-      "ms": 1312,
+      "ms": 1316,
       "status": "pass"
     },
     {
@@ -474,7 +474,7 @@
         "54-i-admin-audit-verified-he.png"
       ],
       "api": false,
-      "ms": 899,
+      "ms": 875,
       "status": "pass"
     },
     {
@@ -486,7 +486,7 @@
         "55-i-admin-samples-forbidden-he.png"
       ],
       "api": true,
-      "ms": 1006,
+      "ms": 1041,
       "status": "pass"
     },
     {
@@ -498,7 +498,7 @@
         "56-j-public-home-he.png"
       ],
       "api": false,
-      "ms": 1312,
+      "ms": 1276,
       "status": "pass"
     },
     {
@@ -510,7 +510,7 @@
         "57-j-public-home-en.png"
       ],
       "api": false,
-      "ms": 1216,
+      "ms": 1202,
       "status": "pass"
     },
     {
@@ -522,7 +522,7 @@
         "58-j-public-mobile-home-he.png"
       ],
       "api": false,
-      "ms": 1169,
+      "ms": 1065,
       "status": "pass"
     }
   ]
