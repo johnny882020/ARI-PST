@@ -71,6 +71,7 @@ Details: [`docs/architecture.md`](docs/architecture.md).
 | Protected app | React 18, Vite 5, React Router 6, TanStack Query 5, zod 4 (jitless) |
 | Public site | Astro (static), Decap CMS (Git-based) |
 | Shared UI and strings | `packages/design-system` (logical CSS only), `packages/i18n` (ICU, he and en) |
+| Visual style | Calm navy and gold, pill controls, Hebrew-first RTL ([style guide](docs/design/STYLE-GUIDE.md)) |
 | Contract | OpenAPI 3.1 (`packages/contracts/openapi.yaml`), generated client (`openapi-typescript`) |
 | Database | PostgreSQL 16, forward-only SQL migrations |
 | Tests | Vitest, Playwright, axe-core, dependency-cruiser |
@@ -174,6 +175,7 @@ Open findings: [`docs/REVIEW-2026-11.md`](docs/REVIEW-2026-11.md). Known gaps: [
 |---|---|
 | [`docs/README.md`](docs/README.md) | Index of all current documents |
 | [`docs/architecture.md`](docs/architecture.md) | Architecture and security design |
+| [`docs/design/STYLE-GUIDE.md`](docs/design/STYLE-GUIDE.md) | Visual style: calm navy and gold, pill controls, Hebrew-first RTL |
 | [`docs/deployment.md`](docs/deployment.md) | Deploy to Render, GitHub settings, rollback |
 | [`docs/migration/google-cloud.md`](docs/migration/google-cloud.md) | Move from Render to Google Cloud |
 | [`docs/ops-model.md`](docs/ops-model.md) | Owners, cadence, release rules |
