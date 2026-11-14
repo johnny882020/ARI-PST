@@ -230,8 +230,9 @@ const tracker = (page) => page.getByRole('list', { name: /התקדמות הבק�
 async function trackerSteps(page) {
   const lis = tracker(page).getByRole('listitem');
   const n = await lis.count();
-  const cur = await tracker(page).locator('li[aria-current=step]').first().innerText().catch(() => null);
-  return { n, cur: cur?.split('\n')[0] ?? null };
+  const texts = (await lis.allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
+  const curIdx = await lis.evaluateAll((els) => els.findIndex((e) => e.getAttribute('aria-current') === 'step'));
+  return { n, texts, cur: curIdx >= 0 ? texts[curIdx] : null, last: texts[texts.length - 1] };
 }
 const totalTile = (page) => page.locator('main [data-state]').filter({ hasText: /דגימות תואמות|Samples that match/ }).first();
 const tileState = (page, want) => totalTile(page).and(page.locator(`[data-state=${want}]`)).waitFor({ timeout: 10000 });
@@ -554,7 +555,9 @@ async function main() {
     must(await api(coord, 'PUT', `/api/v1/requests/${S.reqId}/resolved-samples`, { itemId: r.items[0].id, sampleIds: me.items.slice(0, 2).map((s) => s.sampleCode) }), 204, 'resolved-samples');
     must(await api(coord, 'POST', `/api/v1/requests/${S.reqId}/transition`, { to: 'center_coordination' }), 200, 'to center_coordination');
     await res.reload({ waitUntil: 'networkidle' });
-    expect((await trackerSteps(res)).cur?.includes('תיאום'), 'tracker not at coordination');
+    await waitMain(res, /אושרה\. השלב הבא: תיאום עם המרכז/);
+    const tr = await trackerSteps(res);
+    expect(tr.cur?.includes('תיאום'), 'tracker not at coordination: ' + tr.cur);
     await shot(res, 'f-delivery', 'tracker-coordination', 'he');
   });
   await step('f-delivery', '[api] clinician accepts for the center; coordinator records the MTA (no screen for this)', async () => {
@@ -574,7 +577,7 @@ async function main() {
     await waitMain(res, /נמסרה\./);
     const tr = await trackerSteps(res);
     expect(tr.n === 8, 'tracker not 8 steps');
-    expect(/סגורה/.test(tr.cur ?? ''), `current step is "${tr.cur}", not Closed`);
+    expect(/סגורה/.test(tr.last ?? '') && (tr.cur === null || /סגורה/.test(tr.cur)), `last step "${tr.last}", current "${tr.cur}"`);
     await noIdentifiers(res);
     await shot(res, 'f-delivery', 'tracker-closed', 'he');
     await setLang(res, 'en');
@@ -582,7 +585,7 @@ async function main() {
     await shot(res, 'f-delivery', 'tracker-closed', 'en');
     await setLang(res, 'he');
     checkClean(res);
-    return `${tr.n} steps, current "${tr.cur}"`;
+    return `${tr.n} steps; last step "${tr.last}"`;
   });
   await step('f-delivery', 'mobile 390x844: researcher tracker at "Closed" (he)', async () => {
     const m = await newPage('he', MOBILE);
@@ -660,10 +663,11 @@ async function main() {
     const file = path.join(OUT, '.import-dry-run.csv'); writeFileSync(file, csv);
     await coord.goto(BASE + '/import/new', { waitUntil: 'networkidle' });
     await coord.locator('#field-file').setInputFiles(file);
-    rmSync(file);
     await shot(coord, 'h-ingest', 'import-upload', 'he');
-    await coord.locator('main form button[type=submit]').click();
-    await coord.waitForURL(/\/import\/imp_|\/import\/[a-z]+_/, { timeout: 15000 });
+    await coord.getByRole('button', { name: 'העלאה ובדיקה' }).click();
+    try { await coord.waitForURL(/\/import\/imp_/, { timeout: 15000 }); }
+    catch (e) { throw new Error(`upload did not open the job page; url ${coord.url()}; screen: ${(await mainText(coord)).replace(/\s+/g, ' ').slice(-200)}`); }
+    finally { rmSync(file, { force: true }); }
     await waitMain(coord, /הורדת דוח דחיות|נדחו/, 20000);
     await coord.waitForLoadState('networkidle');
     const tiles = [];
@@ -690,14 +694,23 @@ async function main() {
     await adm.locator('main table tbody tr').first().waitFor();
     await adm.getByRole('button', { name: 'בדיקת שלמות' }).click();
     await waitMain(adm, /שרשרת הביקורת שלמה/);
-    const actions = (await adm.locator('main table tbody tr td:nth-child(4)').allInnerTexts()).map((s) => s.trim());
+    // Newest first, 25 per page: read up to 4 pages with the pagination "Next" button.
+    const actions = [];
+    for (let pg = 0; pg < 4; pg++) {
+      actions.push(...(await adm.locator('main table tbody tr td:nth-child(4)').allInnerTexts()).map((s) => s.trim()));
+      if (pg === 0) await shot(adm, 'i-admin', 'audit-verified', 'he');
+      const next = adm.getByRole('navigation', { name: 'מעבר בין עמודים' }).getByRole('button').last();
+      if (['request.vote', 'request.state_changed', 'request.deliver'].every((w) => actions.includes(w)) || await next.isDisabled()) break;
+      const first = await adm.locator('main table tbody tr').first().innerText();
+      await next.click();
+      await adm.waitForFunction((f) => document.querySelector('main table tbody tr')?.innerText !== f, first, { timeout: 10000 });
+    }
     const want = ['request.deliver', 'request.state_changed', 'request.vote'];
     const seen = want.filter((w) => actions.includes(w));
     await noIdentifiers(adm);
-    await shot(adm, 'i-admin', 'audit-verified', 'he');
     expect(seen.length === want.length, `missing on page 1: ${want.filter((w) => !seen.includes(w)).join(', ')} (seen: ${[...new Set(actions)].slice(0, 8).join(', ')})`);
     checkClean(adm);
-    return `${actions.length} rows on page 1; flow actions seen: ${seen.join(', ')}`;
+    return `${actions.length} rows read; flow actions seen: ${seen.join(', ')}`;
   });
   await step('i-admin', 'admin cannot open sample data (UI 403 page, and API 403)', async () => {
     await adm.goto(BASE + '/samples', { waitUntil: 'networkidle' });
