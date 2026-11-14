@@ -173,3 +173,6 @@ What is off in the demo:
 
 `DEMO_MODE=true` is set. `/livez` reports it (`checks.demo = "on"`) so the UI can show a banner. The banner itself is not built yet (`docs/KNOWN-ISSUES.md`). UNVERIFIED: that free web services have no `preDeployCommand` (this is why the start command runs it) and that 512 MB RAM is enough for the build. Because the pre-deploy step runs at every start, the owner connection string and the migrator password must stay in the service environment (same residual risk as section 4).
 
+
+## Moving off Render
+A step-by-step guide to move every part of the portal to Google Cloud is in [`migration/google-cloud.md`](migration/google-cloud.md). It keeps synthetic data only until `GATE-PROD-DATA` closes.

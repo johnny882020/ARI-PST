@@ -42,6 +42,7 @@ pnpm --filter @ari/db test                    # database tests: starts a throwaw
 ## Documentation
 - Architecture: `docs/architecture.md`
 - Deploy to Render: `docs/deployment.md`
+- Migrate to Google Cloud (step by step): `docs/migration/google-cloud.md`
 - Runbooks: `docs/runbooks/`
 - QA reports and screenshots: `docs/qa/`
 - What was built: `docs/CHANGELOG.md`. What is missing or unverified: `docs/KNOWN-ISSUES.md`. Documentation audit: `docs/DOCS-AUDIT.md`. Code review findings: `docs/REVIEW-2026-11.md`
