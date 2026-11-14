@@ -14,7 +14,9 @@
 // Output: docs/qa/flows/screenshots/NN-<flow>-<step>-<locale>.png and docs/qa/flows/results.json
 //
 // Steps marked [api] call the real API from inside the signed-in browser session (same cookies and CSRF header as the
-// SPA). They are used ONLY where the UI has no screen for the action; the report names each one.
+// SPA). They are used ONLY where the UI has no screen for the action; the report names each one. Read-only lookups that
+// only plan the test (which codes exist) do not count as [api].
+// The SPA is built with a synthetic VITE_CENTER_SYSTEM_URL_TEMPLATE (an .invalid host) so the clinician link-out renders.
 import { spawn, spawnSync } from 'node:child_process';
 import { createHmac } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -38,6 +40,7 @@ const OUT = path.join(root, 'docs/qa/flows');
 const SHOTS = path.join(OUT, 'screenshots');
 const PGDATA = `/tmp/ari-flows-pg-${DB_PORT}`;
 const U = (slug) => `synthetic.${slug}@example.invalid`;
+const CENTER_LINK_TEMPLATE = 'https://center-system.example.invalid/lookup?code={sampleCode}&center={centerCode}';
 
 // ---- TOTP (RFC 6238), same derivation as scripts/seed-credentials.mjs
 const totpKey = (email) => createHmac('sha256', PASSWORD).update('ari-pst-seed-totp:' + email).digest().subarray(0, 20);
@@ -145,11 +148,11 @@ async function startStack() {
 /** Rebuilds the SPA and the public site so screenshots show the current code (skip with --no-build). */
 function build() {
   if (process.argv.includes('--no-build')) return 'skipped (--no-build)';
-  const pnpm = (args) => sh('pnpm', args);
-  if (!existsSync(path.join(root, 'apps/api/dist/server.js'))) pnpm(['-r', '--filter=@ari/api...', 'build']);
-  pnpm(['--filter', '@ari/web', 'build']);
+  const pnpm = (args, env) => sh('pnpm', args, env);
+  pnpm(['-r', '--filter=@ari/api...', 'build']);
+  pnpm(['--filter', '@ari/web', 'build'], { VITE_CENTER_SYSTEM_URL_TEMPLATE: CENTER_LINK_TEMPLATE });
   pnpm(['--filter', '@ari/public-site', 'build']);
-  return 'apps/web and apps/public-site rebuilt';
+  return 'apps/api, apps/web and apps/public-site rebuilt';
 }
 function startSite() {
   const dist = path.join(root, 'apps/public-site/dist');
@@ -257,7 +260,7 @@ async function main() {
   mkdirSync(SHOTS, { recursive: true });
   for (const f of (await import('node:fs')).readdirSync(SHOTS)) if (f.endsWith('.png')) rmSync(path.join(SHOTS, f));
   if (process.argv.includes('--serve')) { console.log(await startStack()); console.log(`serving ${BASE} and ${SITE}; Ctrl+C to stop`); await new Promise((r) => { process.on('SIGINT', r); process.on('SIGTERM', r); }); return; }
-  if (!(await step('setup', 'build apps/web and apps/public-site', build))) return;
+  if (!(await step('setup', 'build apps/api, apps/web and apps/public-site', build))) return;
   const up = await step('setup', 'start Render-like DB, predeploy with synthetic seed, API (production build), public site', startStack);
   if (!up) return;
   browser = await chromium.launch();
@@ -396,6 +399,8 @@ async function main() {
     await res.goto(BASE + '/cart', { waitUntil: 'networkidle' });
     const t = await mainText(res);
     expect(t.includes(S.search.he), 'cart item does not name the diagnosis');
+    expect(!/10_plus|lt10/.test(t), 'cart shows a raw count token');
+    expect(/10 או יותר|מעט מדי להצגה/.test(t), 'cart count band is not localized');
     await shot(res, 'c-request', 'cart', 'he');
     await res.getByRole('button', { name: 'התחלת בקשה' }).click();
     await res.waitForURL(/\/requests\/new\?draft=req_/);
@@ -533,61 +538,111 @@ async function main() {
     await lastVoter?.context().close();
   });
 
-  // f. Coordination -> agreements -> delivery -> closed ----------------------------------------------------------
+  // f. Coordination -> agreements -> delivery -> closed, all in the UI ------------------------------------------
   const clin = await newPage('he');
-  await step('f-delivery', 'coordinator: "Center coordination" card on the approved request (UI button)', async () => {
-    await coord.reload({ waitUntil: 'networkidle' });
-    await waitMain(coord, /תיאום מרכז/);
-    allow(coord, /PATCH \/api\/v1\/requests\/.*\/steps\//);
-    await coord.getByRole('button', { name: 'סימון תיאום כהושלם' }).click();
-    await coord.waitForTimeout(1500);
-    const alert = await coord.locator('main [role=alert]').allInnerTexts();
-    await shot(coord, 'f-delivery', 'coordination-button', 'he');
-    const st = (await lookup(coord, 'GET', `/api/v1/requests/${S.reqId}`)).json?.status;
-    checkClean(coord);
-    if (st === 'approved') throw new Error(`UI GAP: the button does not move the request (status still "${st}"; alert: ${alert.join(' ').slice(0, 120) || 'none'}). No UI exists to resolve samples, start center coordination, record an MTA/DTA or mark delivery; the clinician cannot open /requests`);
-    return 'status ' + st;
-  });
-  await step('f-delivery', '[api] coordinator resolves samples and starts center coordination (no screen for this)', async () => {
+  const coordUrl = () => `${BASE}/requests/${S.reqId}/coordination`;
+  await step('f-delivery', 'coordinator opens center coordination from the approved request and links samples of one center', async () => {
     await signIn(clin, U('clinician.a'), 'he');
-    const me = must(await api(clin, 'GET', `/api/v1/samples?limit=50&diagnosisCode=${S.search.code}`), 200, 'clinician samples');
-    expect(me.items?.length >= 1, 'clinician center has no sample of the requested diagnosis');
+    // planning only: which center the clinician holds and its Hebrew name (read-only lookups)
+    const me = must(await lookup(clin, 'GET', `/api/v1/samples?limit=1`), 200, 'clinician samples');
     S.centerId = me.items[0].sourceCenterId;
-    const r = must(await api(coord, 'GET', `/api/v1/requests/${S.reqId}`), 200, 'get');
-    must(await api(coord, 'PUT', `/api/v1/requests/${S.reqId}/resolved-samples`, { itemId: r.items[0].id, sampleIds: me.items.slice(0, 2).map((s) => s.sampleCode) }), 204, 'resolved-samples');
-    must(await api(coord, 'POST', `/api/v1/requests/${S.reqId}/transition`, { to: 'center_coordination' }), 200, 'to center_coordination');
+    const centers = must(await lookup(clin, 'GET', '/api/v1/centers'), 200, 'centers');
+    S.centerHe = (centers.items ?? centers).find((c) => c.id === S.centerId).nameHe;
+    await coord.goto(`${BASE}/requests/${S.reqId}`, { waitUntil: 'networkidle' });
+    await waitMain(coord, /תיאום מרכזים/);
+    await coord.getByRole('link', { name: 'פתיחת תיאום מרכזים' }).click();
+    await coord.waitForURL(/\/coordination$/);
+    await waitMain(coord, /קישור דגימות לבקשה/);
+    await coord.locator('main fieldset input[type=checkbox]').first().waitFor({ timeout: 15000 });
+    let linked = 0;
+    for (const fs of await coord.locator('main fieldset').all()) {
+      const boxes = fs.getByRole('checkbox', { name: new RegExp(S.centerHe) });
+      const n = Math.min(await boxes.count(), 2);
+      if (!n) continue;
+      for (let i = 0; i < n; i++) await boxes.nth(i).check();
+      await fs.getByRole('button', { name: 'שמירת קישורים' }).click();
+      await fs.getByText('הקישורים נשמרו.').waitFor();
+      linked += n; break;
+    }
+    expect(linked > 0, `no sample of ${S.centerHe} offered for linking`);
+    await waitMain(coord, /דגימות מקושרות|דגימה אחת מקושרת/);
+    await noIdentifiers(coord);
+    await shot(coord, 'f-delivery', 'coordination-link-samples', 'he');
+    await coord.getByRole('button', { name: 'התחלת תיאום מרכזים' }).click();
+    await waitMain(coord, /תשובות המרכזים/);
+    await waitMain(coord, /ממתין למרכז/);
+    await shot(coord, 'f-delivery', 'coordination-started', 'he');
     await res.reload({ waitUntil: 'networkidle' });
     await waitMain(res, /אושרה\. השלב הבא: תיאום עם המרכז/);
     const tr = await trackerSteps(res);
     expect(tr.cur?.includes('תיאום'), 'tracker not at coordination: ' + tr.cur);
     await shot(res, 'f-delivery', 'tracker-coordination', 'he');
+    checkClean(coord); checkClean(res);
+    return `${linked} samples of ${S.centerHe} linked`;
   });
-  await step('f-delivery', '[api] clinician accepts for the center; coordinator records the MTA (no screen for this)', async () => {
-    must(await api(clin, 'PATCH', `/api/v1/requests/${S.reqId}/steps/center_coordination`, { accepted: true, publicNote: 'SYNTHETIC: center accepted' }), 200, 'center accept');
+  await step('f-delivery', 'clinician opens the request from the list, sees own linked samples, accepts for the center', async () => {
+    await clin.getByRole('link', { name: 'בקשות' }).first().click();
+    await clin.waitForURL(/\/requests$/);
+    await clin.locator(`main a[href="/requests/${S.reqId}"]`).first().click();
+    await clin.waitForURL(new RegExp(`/requests/${S.reqId}$`));
+    await clin.getByRole('link', { name: 'פתיחת תיאום מרכזים' }).click();
+    await clin.waitForURL(/\/coordination$/);
+    await waitMain(clin, /דגימות המרכז שלך בבקשה זו/);
+    expect(await clin.locator('main a[href^="/samples/smp_"]').count() > 0, 'own linked samples not listed');
+    await clin.getByLabel(/^הערה למבקש/).fill('SYNTHETIC: center accepted');
+    await shot(clin, 'f-delivery', 'clinician-accept', 'he');
+    await clin.getByRole('button', { name: 'אישור', exact: true }).click();
+    await waitMain(clin, /הסכמים \(MTA\/DTA\)/);
+    expect(await clin.getByRole('button', { name: 'שמירת הסכם' }).count() === 0, 'clinician can record an agreement');
+    await noIdentifiers(clin);
+    checkClean(clin);
     await res.reload({ waitUntil: 'networkidle' });
     await waitMain(res, /MTA\/DTA/);
     await shot(res, 'f-delivery', 'tracker-agreements', 'he');
-    must(await api(coord, 'PATCH', `/api/v1/requests/${S.reqId}/steps/mta_dta`, { centerId: S.centerId, agreement: { kind: 'mta', docRef: 'MTA-2026-001' } }), 200, 'mta');
-    must(await api(coord, 'POST', `/api/v1/requests/${S.reqId}/transition`, { to: 'delivery' }), 200, 'to delivery');
+    checkClean(res);
+  });
+  await step('f-delivery', 'coordinator records the MTA (status, reference, signed month) and moves to delivery', async () => {
+    await coord.goto(coordUrl(), { waitUntil: 'networkidle' });
+    await waitMain(coord, /שמירת הסכם/);
+    expect(await coord.getByRole('button', { name: 'מעבר למסירה' }).isDisabled(), 'delivery open without a signed agreement');
+    await coord.getByLabel('סטטוס ההסכם').selectOption('signed');
+    await coord.getByLabel(/^אסמכתת ההסכם/).fill('MTA-2026-001');
+    await coord.getByLabel(/^חודש החתימה/).fill('2026-01');
+    await shot(coord, 'f-delivery', 'agreement-form', 'he');
+    await coord.getByRole('button', { name: 'שמירת הסכם' }).click();
+    await coord.getByText('ההסכם נשמר.').waitFor();
+    await coord.getByRole('table', { name: 'הסכמים (MTA/DTA)' }).getByText('נחתם').waitFor();
+    await coord.getByRole('button', { name: 'מעבר למסירה' }).click();
+    await waitMain(coord, /רק המרכז המחזיק מאשר את המסירה/);
+    expect(await coord.getByRole('button', { name: 'סימון כנמסר' }).count() === 0, 'coordinator can mark delivered');
+    await shot(coord, 'f-delivery', 'coordination-delivery', 'he');
+    checkClean(coord);
     await res.reload({ waitUntil: 'networkidle' });
     await waitMain(res, /המסירה בהכנה/);
     await shot(res, 'f-delivery', 'tracker-delivery', 'he');
+    checkClean(res);
   });
-  await step('f-delivery', '[api] clinician confirms delivery; researcher tracker shows "Closed" (delivered)', async () => {
-    must(await api(clin, 'PATCH', `/api/v1/requests/${S.reqId}/steps/delivery`, { status: 'done' }), 200, 'delivered');
+  await step('f-delivery', 'clinician marks delivered; request closes as delivered; researcher tracker shows "Closed – delivered"', async () => {
+    await clin.goto(coordUrl(), { waitUntil: 'networkidle' });
+    await clin.getByRole('button', { name: 'סימון כנמסר' }).click();
+    await waitMain(clin, /סגורה – נמסרה/);
+    await shot(clin, 'f-delivery', 'clinician-delivered', 'he');
+    checkClean(clin);
+    const st = (await lookup(coord, 'GET', `/api/v1/requests/${S.reqId}`)).json;
+    expect(st?.status === 'closed' && st?.closeReason === 'delivered', `status ${st?.status} / ${st?.closeReason}`);
     await res.reload({ waitUntil: 'networkidle' });
-    await waitMain(res, /נמסרה\./);
+    await waitMain(res, /סגורה – נמסרה\./);
     const tr = await trackerSteps(res);
     expect(tr.n === 8, 'tracker not 8 steps');
     expect(/סגורה/.test(tr.last ?? '') && (tr.cur === null || /סגורה/.test(tr.cur)), `last step "${tr.last}", current "${tr.cur}"`);
     await noIdentifiers(res);
     await shot(res, 'f-delivery', 'tracker-closed', 'he');
     await setLang(res, 'en');
-    await waitMain(res, /Delivered\./);
+    await waitMain(res, /Closed – delivered\./);
     await shot(res, 'f-delivery', 'tracker-closed', 'en');
     await setLang(res, 'he');
     checkClean(res);
-    return `${tr.n} steps; last step "${tr.last}"`;
+    return `${tr.n} steps; last step "${tr.last}"; closeReason ${st.closeReason}`;
   });
   await step('f-delivery', 'mobile 390x844: researcher tracker at "Closed" (he)', async () => {
     const m = await newPage('he', MOBILE);
@@ -619,8 +674,10 @@ async function main() {
     const t = await mainText(clin);
     expect(/ברשומה זו אין זהות מטופל/.test(t), 'no-identity notice missing');
     expect(!/(?<![0-9])[0-9]{1,2}[./-][0-9]{1,2}[./-][0-9]{2,4}(?![0-9])/.test(t.split('אימות אחרון')[0] ?? t), 'an exact date is shown in the record fields');
-    const links = await clin.locator('main a[href^="http"]').count();
-    if (!links) note('Link-out to the center system is a text pointer, not a hyperlink (no URL per center in the index)');
+    const link = clin.locator('main a[href^="https://center-system.example.invalid/"]');
+    expect(await link.count() === 1, 'no link-out to the center system');
+    expect(await link.getAttribute('target') === '_blank' && /noopener/.test(await link.getAttribute('rel') ?? ''), 'link-out does not open safely in a new tab');
+    note(`link-out: ${(await link.getAttribute('href')).replace(/code=[^&]+/, 'code=<coded id>')}`);
     await noIdentifiers(clin);
     await shot(clin, 'g-clinician', 'sample-detail', 'he');
     checkClean(clin);
@@ -634,6 +691,8 @@ async function main() {
     await clin.waitForTimeout(800);
     const t = await mainText(clin);
     expect(!t.includes('המערכת של המרכז'), 'the other center record rendered');
+    expect((await clin.locator('main h1').innerText()).trim() === 'לא זמין', 'page title is not "Not available"');
+    expect(!/משהו השתבש/.test(t), 'generic error page shown');
     await shot(clin, 'g-clinician', 'other-center-hidden', 'he');
     checkClean(clin);
     return t.split('\n').slice(0, 2).join(' / ').slice(0, 120);
@@ -656,8 +715,12 @@ async function main() {
     const c = (centers.items ?? centers)[0];
     const hdr = (await lookup(coord, 'GET', '/api/v1/import-templates/csv')).text.trim().split(',');
     const row = (o) => hdr.map((h) => o[h] ?? '').join(',');
-    const good = { source_center_code: c.code, diagnosis_source_value: S.search.code, age_band_at_diagnosis: '6_lt10', sex: 'female', sample_type: 'ffpe', availability: 'available', quantity_class: 'medium', clinical_timepoint: 'diagnosis', collection_month: '2024-05', consent_status: 'broad_consent', ethics_approval_ref: 'HC-2024-0012', verified: 'true' };
+    const eth = (await lookup(coord, 'GET', `/api/v1/ethics-approvals?centerId=${c.id}`)).json?.items ?? [];
+    const ref = eth.find((e) => e.status === 'active')?.approvalRef;
+    expect(ref, 'no active synthetic ethics approval for the center');
+    const good = { source_center_code: c.code, diagnosis_source_value: S.search.code, age_band_at_diagnosis: '6_lt10', sex: 'female', sample_type: 'ffpe', availability: 'available', quantity_class: 'medium', clinical_timepoint: 'diagnosis', collection_month: '2024-05', consent_status: 'broad_consent', ethics_approval_ref: ref, verified: 'true' };
     const csv = [hdr.join(','), row(good),
+      row({ ...good, age_band_at_diagnosis: '10_lt15', ethics_approval_ref: 'HC-2024-0012' }),   // present but not registered: warning ETHICS_UNKNOWN
       row({ ...good, collection_month: '2024-05-17' }),          // exact date: refused
       row({ ...good, sex: 'unknown_value' }),                    // not in vocabulary
       row({ ...good, ethics_approval_ref: '123456789' }),        // ID-number-like text
@@ -676,6 +739,8 @@ async function main() {
     for (const l of ['שורות', 'התקבלו', 'אזהרות', 'נדחו']) tiles.push(await tileNumber(coord, l));
     const t = await mainText(coord);
     expect(Number(tiles[3]) >= 2, `rejected rows ${tiles[3]}`);
+    expect(Number(tiles[1]) >= 1, `the row with a registered ethics reference was not accepted cleanly (accepted ${tiles[1]})`);
+    expect(Number(tiles[2]) === 1, `warnings ${tiles[2]} (only the unregistered reference should warn)`);
     expect(t.includes('הורדת דוח דחיות'), 'no rejection report link');
     await shot(coord, 'h-ingest', 'import-dry-run-report', 'he');
     checkClean(coord);
