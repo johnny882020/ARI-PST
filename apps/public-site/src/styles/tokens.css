@@ -66,12 +66,12 @@
   --fs-h3: 1.5rem;
   --fs-h2: 2rem;
   --fs-h1: 2.75rem;
-  --fs-display: clamp(2.5rem, 1.6rem + 4.2vw, 4.5rem);
+  --fs-display: clamp(2.125rem, 1.25rem + 3.6vw, 4.5rem);   /* 34 px at 390, 66 px at 1280, max 72 */
   --lh-display: 1.05;
   --lh-tight: 1.2;
   --lh-snug: 1.4;
   --lh-body: 1.6;            /* Hebrew needs more air */
-  --ls-display: -0.02em;
+  --ls-display: -0.025em;
   --ls-eyebrow: 0.28em;
   --ls-wordmark: 0.12em;
   --fw-light: 300;
@@ -206,7 +206,7 @@
   :root { --gutter: 1.5rem; }
 }
 @media (max-width: 47.99em) {
-  :root { --fs-h1: 2.125rem; --fs-h2: 1.625rem; --header-h: 4rem; }
+  :root { --fs-h1: 2.125rem; --fs-h2: 1.625rem; --header-h: 4rem; --fs-lead-lg: 1.125rem; --fs-eyebrow: 0.75rem; --control-h-lg: 3.25rem; --btn-pad-inline: 1.5rem; }
 }
 
 /* ---- Reduced motion: no movement, only instant state change ---- */
