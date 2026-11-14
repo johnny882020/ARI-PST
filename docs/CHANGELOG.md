@@ -9,10 +9,24 @@ Every release uses synthetic data only.
 ### Added
 - Google Cloud migration guide, step by step: [`migration/google-cloud.md`](migration/google-cloud.md), with Cloud Run templates, a two-pass Cloud SQL restore script and a local restore rehearsal (PR #9).
 - Documentation index [`docs/README.md`](README.md).
+- Center coordination screen `/requests/:id/coordination` (coordinator and center clinician). The coordinator links coded samples per item, starts center coordination, answers on behalf of a center, records the MTA/DTA (type, reference, status, signed month) and moves the request to delivery. The holding clinician accepts or declines for the own center, sees the own linked samples and marks delivery. The request closes as `delivered`.
+- `center_clinician` can open `/requests` and `/requests/:id` for requests that involve the own center (row-level security decides).
+- API: `GET /requests/{id}/resolved-samples` and `GET /requests/{id}/agreements` (with `x-roles`). `RequestStep.accepted`. The MTA/DTA step takes `status` (`draft`, `sent`, `signed`) and `signedMonth` (`YYYY-MM`, not in the future).
+- Migration `0011`: agreement status and signed month; delivery needs a **signed** agreement for every accepted center; a clinician reads only the sample links of the own center.
+- Clinician link-out to the center system: build-time template `VITE_CENTER_SYSTEM_URL_TEMPLATE` (`https` only, placeholders `{sampleCode}` and `{centerCode}`, opens in a new tab with `rel=noopener`). Without a template the record shows a labelled reference.
+- Import rule `ETHICS_UNKNOWN`: the ethics reference is present but not registered for the center.
 
 ### Changed
 - CI container scan has a scoped trivy ignore for the Cloud Run Job example (KSV-0118).
 - Documentation rewritten to show the current system only. Runbooks use one template.
+- The researcher tracker and the requests list say "Closed – delivered" for a delivered request.
+- `pnpm test:e2e:flows` flow f runs through the UI only (no `[api]` steps). The script always rebuilds `apps/api`.
+
+### Fixed
+- "Mark coordination done" failed with a validation error because no `centerId` was sent. The coordinator now answers per center.
+- The cart showed the raw token `10_plus`. It now says "10 or more" (`lt10`: "Fewer than 10").
+- Another center's record showed "Something went wrong". It now shows a "Not available" page.
+- CSV import said "ethics reference missing" when a reference was present but not registered. That case now has its own rule and message.
 
 ### Removed
 - `docs/DOCS-AUDIT.md`. Its role moved to [`docs/README.md`](README.md).
