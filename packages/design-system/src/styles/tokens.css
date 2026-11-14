@@ -1,5 +1,5 @@
 /* ARI-PST x Tech4Cancer - design tokens v0.2 (brand refresh 2026-11: navy + gold, calm and airy)
-   Rules: logical properties only. No left/right in components. Contrast numbers: see 01-brand-identity.md section 10.
+   Rules: logical properties only. No left/right in components. Contrast numbers: see 01-brand-identity.md section 11.
    Theme: follows OS. Override with data-theme="light" or data-theme="dark" on <html>.
    Copies: packages/design-system/src/styles/tokens.css (this file plus helpers) and apps/public-site/src/styles/tokens.css (exact copy). */
 

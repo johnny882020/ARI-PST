@@ -10,7 +10,8 @@ Status: draft v0.1. Owner: A5. Binding input: `plan/00-contract-pack.md`.
 | `04-accessibility.md` | WCAG 2.1 AA, Israeli law status (UNVERIFIED), contrast table, keyboard flows, screen-reader copy |
 | `05-ux-writing.md` | Microcopy he/en: errors, suppression, consent, empty states, statuses |
 | `06-screens-wireframes.md` | Seven key screens as descriptions |
-| `logo-a-bridge.svg`, `logo-b-constellation.svg`, `logo-c-sprout.svg` | Logo sketches |
+| `logo-a-bridge.svg`, `logo-b-constellation.svg`, `logo-c-sprout.svg` | Logo sketches (superseded) |
+| `logo-d-rising-sun.svg` | Chosen logo mark, brand refresh 2026-11 (see 01 section 11) |
 | `mockups/*.html` | Seven self-contained mockups (he RTL, en LTR, light/dark) |
 
 Open items: see the report to the orchestrator and `plan/requests/A5-to-*.md`.

@@ -51,12 +51,12 @@ describe('migration runner', () => {
   });
   it('a failing migration rolls back completely (DDL and bookkeeping) and later runs can continue after the fix', async () => {
     const tmp = mkdtempSync(path.join(tmpdir(), 'mig-')); cpSync(MIG, tmp, { recursive: true });
-    writeFileSync(path.join(tmp, '0011_bad.sql'), 'CREATE TABLE portal.half_applied (id int);\nSELECT 1/0;\n');
-    await expect(m(tmp)).rejects.toThrow(/0011_bad.sql failed/);
+    writeFileSync(path.join(tmp, '0099_bad.sql'), 'CREATE TABLE portal.half_applied (id int);\nSELECT 1/0;\n');
+    await expect(m(tmp)).rejects.toThrow(/0099_bad.sql failed/);
     expect((await pool('postgres', DBN).query(`SELECT to_regclass('portal.half_applied') t`)).rows[0].t).toBeNull();
-    expect((await pool('postgres', DBN).query(`SELECT count(*)::int n FROM public.schema_migrations WHERE version='0011'`)).rows[0].n).toBe(0);
-    writeFileSync(path.join(tmp, '0011_bad.sql'), 'CREATE TABLE portal.fixed_later (id int);\n');
-    expect(await m(tmp)).toEqual(['0011_bad.sql']);
+    expect((await pool('postgres', DBN).query(`SELECT count(*)::int n FROM public.schema_migrations WHERE version='0099'`)).rows[0].n).toBe(0);
+    writeFileSync(path.join(tmp, '0099_bad.sql'), 'CREATE TABLE portal.fixed_later (id int);\n');
+    expect(await m(tmp)).toEqual(['0099_bad.sql']);
   });
   it('duplicate numbers are rejected', async () => {
     const tmp = mkdtempSync(path.join(tmpdir(), 'mig-')); cpSync(MIG, tmp, { recursive: true });

@@ -22,12 +22,12 @@ export function LogoMark({ size = 40, className }: LogoMarkProps) {
       focusable="false"
     >
       <circle className="ds-logo-ring" cx="24" cy="24" r="22.75" fill="none" strokeWidth="1.5" />
-      <g className="ds-logo-arcs" fill="none" strokeWidth="2.25" strokeLinecap="round">
-        <path d="M10.4 23.7A15 15 0 0 1 37.6 23.7" />
-        <path d="M15.4 24A10.5 10.5 0 0 1 32.6 24" />
-        <path d="M20.1 25.4A6 6 0 0 1 27.9 25.4" />
+      <g className="ds-logo-arcs" fill="none" strokeWidth="2.1" strokeLinecap="round">
+        <path d="M5.8 31.1A19.1 19.1 0 0 1 42.2 31.1" />
+        <path className="ds-logo-arc-mid" d="M12 34.3A12.8 12.8 0 0 1 36 34.3" />
+        <path d="M18.6 37.6A6 6 0 0 1 29.4 37.6" />
       </g>
-      <circle className="ds-logo-dot" cx="24" cy="15" r="2.4" />
+      <circle className="ds-logo-dot" cx="24" cy="16.6" r="3.1" />
     </svg>
   );
 }

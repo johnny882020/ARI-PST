@@ -40,6 +40,8 @@ export const OPERATION_ACCESS: Record<string, Access> = {
   listRequestSteps: R('researcher_il', 'center_clinician', 'national_coordinator', 'committee_member'),
   updateRequestStep: R('national_coordinator', 'center_clinician'),
   resolveRequestSamples: COORD,
+  listResolvedSamples: R('national_coordinator', 'center_clinician'),
+  listRequestAgreements: R('national_coordinator', 'committee_member', 'center_clinician'),
   castVote: R('committee_member'),
   listVotes: R('committee_member', 'national_coordinator'),
   listDecisions: R('researcher_il', 'national_coordinator', 'committee_member'),

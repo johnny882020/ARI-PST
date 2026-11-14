@@ -365,9 +365,27 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Sample links of a request. Coordinator sees all; a center clinician sees only the links of the own center (row-level security). */
+        get: operations["listResolvedSamples"];
         /** Coordinator links an item to concrete sample ids. Never shown to the applicant. */
         put: operations["resolveRequestSamples"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requests/{requestId}/agreements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** MTA/DTA records per center (status, reference, signed month). A center clinician sees only the own center. */
+        get: operations["listRequestAgreements"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1704,6 +1722,8 @@ export interface components {
             publicNote?: string | null;
             /** @description Coordinator and committee only. Omitted for applicants. */
             internalNote?: string | null;
+            /** @description center_coordination step: the center accepted (true) or declined (false). Omitted for applicants. */
+            accepted?: boolean | null;
             /** Format: date-time */
             startedAt?: string | null;
             /** Format: date-time */
@@ -1717,12 +1737,30 @@ export interface components {
             centerId?: components["schemas"]["CenterId"];
             /** @description center_coordination step: the holding center accepts or declines. */
             accepted?: boolean;
-            /** @description mta_dta step: coordinator records the agreement reference. */
+            /** @description mta_dta step: coordinator records the agreement reference. status defaults to signed; signedMonth (YYYY-MM, not in the future) is required for signed and defaults to the current month. */
             agreement?: {
                 /** @enum {string} */
                 kind: "mta" | "dta";
                 docRef: string;
+                status?: components["schemas"]["AgreementStatus"];
+                signedMonth?: string;
             };
+        };
+        /** @enum {string} */
+        AgreementStatus: "draft" | "sent" | "signed";
+        RequestAgreement: {
+            centerId: components["schemas"]["CenterId"];
+            /** @enum {string} */
+            kind: "mta" | "dta";
+            docRef: string;
+            status: components["schemas"]["AgreementStatus"];
+            signedMonth?: string | null;
+        };
+        ResolvedSample: {
+            itemId: string;
+            /** @description Coded sample id (smp_...). A tombstone code stays when the sample was purged. */
+            sampleId: string;
+            centerId: components["schemas"]["CenterId"];
         };
         Vote: {
             requestId: string;
@@ -1775,7 +1813,7 @@ export interface components {
             issues: {
                 field: string;
                 /** @enum {string} */
-                rule: "REQUIRED" | "VOCAB" | "FORMAT" | "RANGE" | "UNKNOWN_COLUMN" | "IDENTIFIER_SUSPECTED" | "DUPLICATE_ROW" | "CENTER_MISMATCH" | "ETHICS_MISSING" | "ETHICS_EXPIRED" | "NOT_FOUND" | "STALE_OVERWRITE";
+                rule: "REQUIRED" | "VOCAB" | "FORMAT" | "RANGE" | "UNKNOWN_COLUMN" | "IDENTIFIER_SUSPECTED" | "DUPLICATE_ROW" | "CENTER_MISMATCH" | "ETHICS_MISSING" | "ETHICS_UNKNOWN" | "ETHICS_EXPIRED" | "NOT_FOUND" | "STALE_OVERWRITE";
                 /** @enum {string} */
                 severity: "error" | "warning";
             }[];
@@ -2882,6 +2920,31 @@ export interface operations {
             409: components["responses"]["Problem409"];
         };
     };
+    listResolvedSamples: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: components["parameters"]["RequestIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Links (coded sample ids only). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ResolvedSample"][];
+                    };
+                };
+            };
+            404: components["responses"]["Problem404"];
+        };
+    };
     resolveRequestSamples: {
         parameters: {
             query?: never;
@@ -2907,6 +2970,31 @@ export interface operations {
                 };
                 content?: never;
             };
+        };
+    };
+    listRequestAgreements: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: components["parameters"]["RequestIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Agreements. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["RequestAgreement"][];
+                    };
+                };
+            };
+            404: components["responses"]["Problem404"];
         };
     };
     castVote: {

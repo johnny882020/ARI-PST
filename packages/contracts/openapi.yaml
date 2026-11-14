@@ -503,6 +503,47 @@ paths:
                   items: { $ref: '#/components/schemas/SampleId' }
       responses:
         '204': { description: Linked. }
+    get:
+      tags: [requests]
+      operationId: listResolvedSamples
+      x-roles: [national_coordinator, center_clinician]
+      summary: Sample links of a request. Coordinator sees all; a center clinician sees only the links of the own center (row-level security).
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Links (coded sample ids only).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ResolvedSample' }
+        '404': { $ref: '#/components/responses/Problem404' }
+  /requests/{requestId}/agreements:
+    get:
+      tags: [requests]
+      operationId: listRequestAgreements
+      x-roles: [national_coordinator, committee_member, center_clinician]
+      summary: MTA/DTA records per center (status, reference, signed month). A center clinician sees only the own center.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Agreements.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/RequestAgreement' }
+        '404': { $ref: '#/components/responses/Problem404' }
   /requests/{requestId}/votes:
     put:
       tags: [requests]
@@ -1812,6 +1853,7 @@ components:
         status: { type: string, enum: [pending, in_progress, done, skipped, blocked] }
         publicNote: { type: [string, 'null'], maxLength: 1000 }
         internalNote: { type: [string, 'null'], maxLength: 2000, description: Coordinator and committee only. Omitted for applicants. }
+        accepted: { type: [boolean, 'null'], description: 'center_coordination step: the center accepted (true) or declined (false). Omitted for applicants.' }
         startedAt: { type: [string, 'null'], format: date-time }
         completedAt: { type: [string, 'null'], format: date-time }
     RequestStepUpdate:
@@ -1827,10 +1869,29 @@ components:
           type: object
           additionalProperties: false
           required: [kind, docRef]
-          description: 'mta_dta step: coordinator records the agreement reference.'
+          description: 'mta_dta step: coordinator records the agreement reference. status defaults to signed; signedMonth (YYYY-MM, not in the future) is required for signed and defaults to the current month.'
           properties:
             kind: { type: string, enum: [mta, dta] }
             docRef: { type: string, pattern: '^[A-Za-z0-9._/-]{3,64}$' }
+            status: { $ref: '#/components/schemas/AgreementStatus' }
+            signedMonth: { type: string, pattern: '^[0-9]{4}-(0[1-9]|1[0-2])$' }
+    AgreementStatus: { type: string, enum: [draft, sent, signed] }
+    RequestAgreement:
+      type: object
+      required: [centerId, kind, docRef, status]
+      properties:
+        centerId: { $ref: '#/components/schemas/CenterId' }
+        kind: { type: string, enum: [mta, dta] }
+        docRef: { type: string }
+        status: { $ref: '#/components/schemas/AgreementStatus' }
+        signedMonth: { type: [string, 'null'], pattern: '^[0-9]{4}-(0[1-9]|1[0-2])$' }
+    ResolvedSample:
+      type: object
+      required: [itemId, sampleId, centerId]
+      properties:
+        itemId: { type: string }
+        sampleId: { type: string, description: Coded sample id (smp_...). A tombstone code stays when the sample was purged. }
+        centerId: { $ref: '#/components/schemas/CenterId' }
     Vote:
       type: object
       required: [requestId, vote, votedAt]
@@ -1887,7 +1948,7 @@ components:
             required: [field, rule, severity]
             properties:
               field: { type: string }
-              rule: { type: string, enum: [REQUIRED, VOCAB, FORMAT, RANGE, UNKNOWN_COLUMN, IDENTIFIER_SUSPECTED, DUPLICATE_ROW, CENTER_MISMATCH, ETHICS_MISSING, ETHICS_EXPIRED, NOT_FOUND, STALE_OVERWRITE] }
+              rule: { type: string, enum: [REQUIRED, VOCAB, FORMAT, RANGE, UNKNOWN_COLUMN, IDENTIFIER_SUSPECTED, DUPLICATE_ROW, CENTER_MISMATCH, ETHICS_MISSING, ETHICS_UNKNOWN, ETHICS_EXPIRED, NOT_FOUND, STALE_OVERWRITE] }
               severity: { type: string, enum: [error, warning] }
     ImportRowPage:
       type: object

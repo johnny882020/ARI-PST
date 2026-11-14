@@ -82,6 +82,13 @@ describe('import rules', () => {
     expect(r.row.outcome).toBe('rejected'); expect(JSON.stringify(r.row)).not.toContain('123456789');
     expect(rejectionReportCsv([r.row]).split('\n')[1]).toBe('2,rejected,sex,IDENTIFIER_SUSPECTED,error');
   });
+  it('ethics: an empty reference is ETHICS_MISSING; a present but unregistered one is ETHICS_UNKNOWN; a registered one has no warning', () => {
+    const rules = (r: ReturnType<typeof validateImportRow>) => r.row.issues.filter((i) => i.field === 'ethics_approval_ref').map((i) => i.rule);
+    expect(rules(validateImportRow(1, { ...row, ethics_approval_ref: '' }, lk))).toEqual(['ETHICS_MISSING']);
+    expect(rules(validateImportRow(1, row, lk))).toEqual(['ETHICS_UNKNOWN']);
+    const ok = validateImportRow(1, row, { ...lk, ethics: () => ({ id: 'eth_x', status: 'active' as const }) });
+    expect(rules(ok)).toEqual([]); expect(ok.row.outcome).toBe('accepted');
+  });
   it('conflicting updates to one code are rejected', () => {
     const lk2 = { ...lk, existingSample: () => ({ centerId: 'ctr_x' }) };
     const code = 'smp_' + '1'.repeat(26);

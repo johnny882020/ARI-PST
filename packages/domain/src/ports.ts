@@ -61,7 +61,7 @@ export interface Bucket { bucket: string; level: string; count: number | null; s
 export interface AggregateCount { count: number | null; suppressed: boolean; k: number; band?: string | null }
 
 export interface RequestItemRecord { createdAt?: string; id: string; criteria: Filters; requestedCount: number | null; shownCountBucket: string | null }
-export interface RequestStepRecord { stepKey: StepKey; centerId: string | null; status: 'pending' | 'in_progress' | 'done' | 'skipped' | 'blocked'; publicNote: string | null; internalNote?: string | null; startedAt: string | null; completedAt: string | null }
+export interface RequestStepRecord { stepKey: StepKey; centerId: string | null; status: 'pending' | 'in_progress' | 'done' | 'skipped' | 'blocked'; publicNote: string | null; internalNote?: string | null; accepted?: boolean | null; startedAt: string | null; completedAt: string | null }
 export interface RequestRecord {
   id: string; status: RequestState; closeReason: CloseReason | null; applicantUserId: string;
   researchQuestion: string | null; applicantEthicsRef: string | null; plannedUse: string | null; fundingSources: string | null;
@@ -139,6 +139,10 @@ export interface SearchRepo {
   spent(institution: string | null): Promise<{ spentDay: number; spent30d: number; spentInstitution30d: number }>;
   recordQuery(institution: string | null, queryKey: string, cost: number): Promise<void>;
 }
+export type AgreementStatus = 'draft' | 'sent' | 'signed';
+export interface AgreementInput { kind: 'mta' | 'dta'; docRef: string; status?: AgreementStatus; signedMonth?: string }
+export interface AgreementRecord { centerId: string; kind: 'mta' | 'dta'; docRef: string; status: AgreementStatus; signedMonth: string | null }
+export interface ResolvedSampleRecord { itemId: string; sampleId: string; centerId: string }
 export interface RequestRepo {
   getDraftFor(userId: string): Promise<RequestRecord | null>;
   create(r: { id: string; applicantUserId: string; idempotencyKey: string | null; fields: { researchQuestion?: string; applicantEthicsRef?: string; plannedUse?: string; fundingSources?: string } }): Promise<RequestRecord>;
@@ -152,8 +156,12 @@ export interface RequestRepo {
   saveIdempotency(userId: string, key: string, methodPath: string, requestHash: string, status: number, requestId: string | null): Promise<void>;
   transition(id: string, to: RequestState, closeReason: CloseReason | null, extra?: { reasonCode?: string; note?: string; checklist?: Record<string, boolean>; idempotencyKey?: string }): Promise<RequestRecord | null>;
   steps(id: string, includeInternal: boolean): Promise<RequestStepRecord[]>;
-  updateStep(id: string, key: StepKey, centerId: string, p: { accepted?: boolean; agreement?: { kind: 'mta' | 'dta'; docRef: string }; publicNote?: string; internalNote?: string }): Promise<RequestStepRecord>;
+  updateStep(id: string, key: StepKey, centerId: string, p: { accepted?: boolean; agreement?: AgreementInput; publicNote?: string; internalNote?: string }): Promise<RequestStepRecord>;
   resolveSamples(requestId: string, itemId: string, sampleIds: string[]): Promise<boolean>;
+  /** Sample links of the request. Row-level security limits a center clinician to the own center. */
+  resolvedSamples(requestId: string): Promise<ResolvedSampleRecord[]>;
+  /** MTA/DTA records. Row-level security limits a center clinician to the own center. */
+  agreements(requestId: string): Promise<AgreementRecord[]>;
   castVote(requestId: string, voterUserId: string, vote: VoteValue, comment: string | null, rationaleCode: string | null): Promise<VoteRecord>;
   votes(requestId: string): Promise<VoteRecord[]>;
   tally(requestId: string, userId: string): Promise<{ approve: number; reject: number; abstain: number; myVote: VoteValue | null; conflictDeclared: boolean } | null>;

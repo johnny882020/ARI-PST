@@ -179,3 +179,12 @@ Follow the same palette. Max 5 series. Pair color with pattern or label. Direct 
 
 ## 10. Do / don't summary
 Do: space, plain words, one primary action, visible status. Don't: heavy shadows, gradients over text, color-only status, icon-only buttons without labels, red for suppression, carousels.
+
+## 11. Brand refresh 2026-11
+Tokens: `tokens.css` v0.2 (copied to `packages/design-system` and, exactly, to `apps/public-site`).
+- **Type:** display = Inter / SF-like (`--font-display`); body = Source Sans 3 (`--font-body`); Hebrew = Assistant then Heebo (`--font-he`, `--font-display-he`). No file is bundled; stacks fall back to system fonts (no CDN).
+- **Scale:** eyebrow 13 px (12 px phone), caps, tracking 0.28em (0 in Hebrew) · body 16 · lead 19 · hero lead 20 (18 phone) · h4 20 · h3 24 · h2 32 · h1 44 · display `clamp(2.125rem, 1.25rem + 3.6vw, 4.5rem)`, weight 400, line-height 1.05, tracking -0.025em (0 in Hebrew).
+- **Radii:** cards and dialogs 24 px (`--radius-xl`), inputs 12 px, buttons, segments, search box and nav items `--radius-pill`.
+- **Buttons:** pills. `sm` 44 px, `md` 48 px (`--control-h`), `lg` 56 px (`--control-h-lg`; 52 px phone). Primary = navy fill. Secondary = surface, light border, navy text. Optional trailing arrow mirrors in RTL.
+- **New components:** `Logo`, `LogoMark`, `Eyebrow`, `DisplayHeading`, `buttonClass()`, `ButtonArrow`; `IconButton variant="outline"` (round menu button); `LanguageSwitch` shows "EN | עב" (full endonym is the accessible name); segmented controls have a light border and a navy active pill.
+- **Hero:** soft vertical gradient `--color-hero-from` → `--color-bg`, eyebrow with gold dot, display headline, muted lead, primary + secondary pills.

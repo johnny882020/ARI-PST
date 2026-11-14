@@ -352,8 +352,9 @@
 /* ===== Brand: logo, eyebrow, display heading ===== */
 .ds-logo { display: inline-flex; align-items: center; gap: var(--space-3); color: var(--color-heading); direction: ltr; unicode-bidi: isolate; }
 .ds-logo-mark { flex: none; }
-.ds-logo-ring { stroke: var(--color-border); }
+.ds-logo-ring { stroke: color-mix(in srgb, var(--color-border) 55%, var(--color-border-strong)); }
 .ds-logo-arcs { stroke: var(--color-primary); }
+.ds-logo-arc-mid { stroke: color-mix(in srgb, var(--color-primary) 60%, var(--color-surface)); }
 .ds-logo-dot { fill: var(--color-gold); }
 .ds-logo-text { display: inline-flex; flex-direction: column; line-height: 1.1; }
 .ds-wordmark { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: 1.375rem; letter-spacing: var(--ls-wordmark); text-transform: uppercase; color: var(--color-heading); white-space: nowrap; }
@@ -393,7 +394,7 @@
 /* ===== Forced colors ===== */
 @media (forced-colors: active) {
   .ds-btn, .ds-control, .ds-box, .ds-switch-track, .ds-card, .ds-tile, .ds-alert, .ds-dialog, .ds-toast, .ds-segmented { border: 1px solid CanvasText; }
-  .ds-logo-ring, .ds-logo-arcs { stroke: CanvasText; }
+  .ds-logo-ring, .ds-logo-arcs, .ds-logo-arc-mid { stroke: CanvasText; }
   .ds-logo-dot, .ds-eyebrow-dot { fill: CanvasText; background: CanvasText; }
   .ds-segment.ds-selected { forced-color-adjust: none; background: Highlight; color: HighlightText; }
   .ds-btn-primary { background: ButtonFace; color: ButtonText; }
