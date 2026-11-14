@@ -13,6 +13,8 @@ Trigger: deploy failed, `/readyz` failing, error rate up after a deploy marker. 
 
 Public site: roll back `ari-public` the same way, or merge a `git revert` PR (checksPass redeploys).
 
+Free demo (`infra/render.free.yaml`): the service is `ari-demo-api-7teo`. Roll back the same way in Render. Its start command runs `scripts/render-predeploy.mjs` before the API, so a failing pre-deploy step shows as a failed start in its logs, not as a failed pre-deploy. `DEPLOY_PAUSED` and `deploy-protected` do not apply: the demo deploys by hand.
+
 ## Verify
 30 minutes of normal SLIs. `/readyz` OK. Version in `/readyz` equals the intended git SHA.
 
