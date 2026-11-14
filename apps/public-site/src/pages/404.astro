@@ -1,6 +1,7 @@
 ---
 import '../styles/tokens.css';
 import '../styles/global.css';
+import Logo from '../components/Logo.astro';
 ---
 <!doctype html>
 <html lang="he" dir="rtl">
@@ -13,10 +14,13 @@ import '../styles/global.css';
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
-    <main id="main" tabindex="-1">
+    <main id="main" tabindex="-1" class="hero">
+      <div class="hero-inner">
+      <p class="lockup brand-solo" lang="en" dir="ltr"><Logo /><span class="wordmark">ARI-PST</span></p>
       <h1 lang="he">לא מצאנו את הדף</h1>
       <h1 lang="en" dir="ltr">We cannot find this page</h1>
       <p class="row"><a class="btn btn-primary" href="/he/" lang="he">לדף הבית</a> <a class="btn btn-primary" href="/en/" lang="en">Home page</a></p>
+      </div>
     </main>
   </body>
 </html>

@@ -1,6 +1,7 @@
 ---
 import '../styles/tokens.css';
 import '../styles/global.css';
+import Logo from '../components/Logo.astro';
 import { SITE_URL } from '../lib/env';
 ---
 <!doctype html>
@@ -17,14 +18,17 @@ import { SITE_URL } from '../lib/env';
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
-    <main id="main" tabindex="-1">
-      <h1><bdi>ARI-PST × Tech4Cancer</bdi></h1>
+    <main id="main" tabindex="-1" class="hero">
+      <div class="hero-inner">
+      <p class="lockup brand-solo" lang="en" dir="ltr"><Logo /><span class="wordmark">ARI-PST</span></p>
+      <h1 class="display"><bdi>ARI-PST × Tech4Cancer</bdi></h1>
       <p class="lead" lang="he">מדע שהולך לצד המשפחות</p>
       <p class="lead" lang="en" dir="ltr">Science that walks beside families</p>
-      <p class="row">
+      <p class="hero-actions">
         <a class="btn btn-primary" href="/he/" hreflang="he" lang="he">עברית</a>
         <a class="btn btn-primary" href="/en/" hreflang="en" lang="en">English</a>
       </p>
+      </div>
     </main>
   </body>
 </html>

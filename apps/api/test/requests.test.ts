@@ -94,10 +94,35 @@ describe('request flow end to end', () => {
     const item = (await h.call(co, 'GET', `/api/v1/requests/${id}`)).json.items[0].id;
     expect((await h.call(co, 'PUT', `/api/v1/requests/${id}/resolved-samples`, { body: { itemId: item, sampleIds: sampleCodes.slice(0, 3) } })).status).toBe(204);
     expect((await h.call(co, 'POST', `/api/v1/requests/${id}/transition`, { body: { to: 'center_coordination' } })).status).toBe(200);
-    const ca = await h.session(f.clinA);
+    const ca = await h.session(f.clinA); const cb = await h.session(f.clinB);
+    // the coordinator lists the links; the holding clinician sees the request and only its own links; another center sees nothing
+    const links = await h.call(co, 'GET', `/api/v1/requests/${id}/resolved-samples`);
+    expect(links.status, links.body).toBe(200); expect(links.json.items).toHaveLength(3);
+    const clinLinks = await h.call(ca, 'GET', `/api/v1/requests/${id}/resolved-samples`);
+    expect(clinLinks.status, clinLinks.body).toBe(200);
+    expect(clinLinks.json.items.every((x: { centerId: string }) => x.centerId === f.centerA)).toBe(true);
+    expect((await h.call(ca, 'GET', `/api/v1/requests/${id}`)).status).toBe(200);
+    expect((await h.call(ca, 'GET', '/api/v1/requests')).json.items.map((r: { id: string }) => r.id)).toContain(id);
+    expect((await h.call(cb, 'GET', `/api/v1/requests/${id}`)).status).toBe(404);
+    expect((await h.call(cb, 'GET', `/api/v1/requests/${id}/resolved-samples`)).status).toBe(404);
+    expect((await h.call(app, 'GET', `/api/v1/requests/${id}/resolved-samples`)).status).toBe(403);
+    // a coordinator response without a center is a clear validation error
+    const noCenter = await h.call(co, 'PATCH', `/api/v1/requests/${id}/steps/center_coordination`, { body: { accepted: true } });
+    expect(noCenter.status).toBe(422); expect(noCenter.body).toContain('centerId');
     expect((await h.call(ca, 'PATCH', `/api/v1/requests/${id}/steps/center_coordination`, { body: { accepted: true, publicNote: 'Accepted' } })).status).toBe(200);
+    const caSteps = (await h.call(ca, 'GET', `/api/v1/requests/${id}`)).json.steps.filter((s: { stepKey: string }) => s.stepKey === 'center_coordination');
+    expect(caSteps[0]).toMatchObject({ centerId: f.centerA, status: 'done', accepted: true });
     expect((await h.call(co, 'GET', `/api/v1/requests/${id}`)).json.status).toBe('agreements');
-    expect((await h.call(co, 'PATCH', `/api/v1/requests/${id}/steps/mta_dta`, { body: { centerId: f.centerA, agreement: { kind: 'mta', docRef: 'MTA-2026-001' } } })).status).toBe(200);
+    // a clinician cannot record an agreement; a sent agreement does not open delivery; a future month is refused
+    expect((await h.call(ca, 'PATCH', `/api/v1/requests/${id}/steps/mta_dta`, { body: { agreement: { kind: 'mta', docRef: 'MTA-2026-001', status: 'signed', signedMonth: '2026-01' } } })).status).toBe(403);
+    expect((await h.call(co, 'PATCH', `/api/v1/requests/${id}/steps/mta_dta`, { body: { centerId: f.centerA, agreement: { kind: 'mta', docRef: 'MTA-2026-001', status: 'signed', signedMonth: '2999-01' } } })).status).toBe(422);
+    const sent = await h.call(co, 'PATCH', `/api/v1/requests/${id}/steps/mta_dta`, { body: { centerId: f.centerA, agreement: { kind: 'mta', docRef: 'MTA-2026-001', status: 'sent' } } });
+    expect(sent.status, sent.body).toBe(200);
+    expect((await h.call(co, 'POST', `/api/v1/requests/${id}/transition`, { body: { to: 'delivery' } })).status).toBeGreaterThanOrEqual(400);
+    expect((await h.call(co, 'PATCH', `/api/v1/requests/${id}/steps/mta_dta`, { body: { centerId: f.centerA, agreement: { kind: 'mta', docRef: 'MTA-2026-001', status: 'signed', signedMonth: '2026-01' } } })).status).toBe(200);
+    const agr = await h.call(ca, 'GET', `/api/v1/requests/${id}/agreements`);
+    expect(agr.status, agr.body).toBe(200); expect(agr.json.items).toEqual([{ centerId: f.centerA, kind: 'mta', docRef: 'MTA-2026-001', status: 'signed', signedMonth: '2026-01' }]);
+    expect((await h.call(app, 'GET', `/api/v1/requests/${id}/agreements`)).status).toBe(403);
     expect((await h.call(co, 'POST', `/api/v1/requests/${id}/transition`, { body: { to: 'delivery' } })).status).toBe(200);
     // coordinator cannot mark delivered
     expect((await h.call(co, 'POST', `/api/v1/requests/${id}/transition`, { body: { to: 'closed', closeReason: 'withdrawn' } })).status).toBeGreaterThanOrEqual(400);

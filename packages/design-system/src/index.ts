@@ -5,3 +5,4 @@ export * from "./components/forms";
 export * from "./components/display";
 export * from "./components/structure";
 export * from "./components/overlays";
+export * from "./components/brand";

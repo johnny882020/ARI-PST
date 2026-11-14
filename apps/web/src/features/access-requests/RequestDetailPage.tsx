@@ -26,10 +26,8 @@ export function RequestDetailPage() {
   const canVote = useCan("requests.vote");
   const canCoordinate = useCan("requests.coordinate");
   const [reply, setReply] = useState("");
-  const [note, setNote] = useState("");
   // Identifier-like text is refused before it is sent (same rules as the server guard).
   const replyIdKey = identifierMessageKey(reply);
-  const noteIdKey = identifierMessageKey(note);
 
   const q = useQuery({
     queryKey: qk.request(id),
@@ -42,10 +40,6 @@ export function RequestDetailPage() {
   const respond = useMutation({
     mutationFn: () => unwrap(api.POST("/requests/{requestId}/respond", { params: { path: { requestId: id } }, body: { message: reply } })),
     onSuccess: (r) => { qc.setQueryData(qk.request(id), r); setReply(""); },
-  });
-  const stepMut = useMutation({
-    mutationFn: (stepKey: string) => unwrap(api.PATCH("/requests/{requestId}/steps/{stepKey}", { params: { path: { requestId: id, stepKey: stepKey as never } }, body: { status: "done", publicNote: note || undefined } })),
-    onSuccess: () => { setNote(""); void qc.invalidateQueries({ queryKey: qk.request(id) }); },
   });
 
   if (q.isPending) return <Skeleton lines={6} />;
@@ -68,7 +62,7 @@ export function RequestDetailPage() {
     labels: Object.fromEntries(REQUEST_STEP_IDS.map((s) => [s, t(`requests.tracker.stage.${s}.label` as never)])) as never,
     current: view.current, status: view.status, dates, descriptions,
   });
-  const activeApiStep = r.status === "center_coordination" || r.status === "approved" ? "center_coordination" : r.status === "agreements" ? "mta_dta" : r.status === "delivery" ? "delivery" : null;
+  const coordinationOpen = ["approved", "center_coordination", "agreements", "delivery"].includes(r.status) || (r.status === "closed" && (r.steps ?? []).some((s) => s.centerId));
 
   return (
     <div className="stack">
@@ -98,13 +92,10 @@ export function RequestDetailPage() {
           <dt><strong>{t("requests.detail.submitted")}</strong></dt><dd style={{ marginInlineStart: 0 }}>{r.submittedAt ? fmtDate(r.submittedAt, locale) : "—"}</dd>
         </dl>
       </Card>
-      {canCoordinate && activeApiStep ? (
+      {canCoordinate && coordinationOpen ? (
         <Card as="div" heading={t("requests.coordination.title")} headingLevel={2}>
-          <form className="stack" onSubmit={(e) => { e.preventDefault(); if (!noteIdKey) stepMut.mutate(activeApiStep); }}>
-            <Textarea label={t("requests.coordination.note")} rows={2} value={note} onChange={(e) => setNote(e.target.value)} autoComplete="off" error={noteIdKey ? t(noteIdKey) : undefined} />
-            {stepMut.isError ? <Alert tone="danger">{t(problemMessageKey(stepMut.error))}</Alert> : null}
-            <div><Button type="submit" variant="primary" loading={stepMut.isPending}>{t(`requests.coordination.done.${activeApiStep}` as never)}</Button></div>
-          </form>
+          <p className="muted">{t("requests.coord.lead")}</p>
+          <div><Link className="ds-btn ds-btn-primary" to={`/requests/${r.id}/coordination`}><span className="ds-btn-label">{t("requests.coord.open")}</span></Link></div>
         </Card>
       ) : null}
     </div>

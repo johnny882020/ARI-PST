@@ -58,6 +58,41 @@ describe('state machine in the database (RT-03, RT-26)', () => {
     expect(ev.map((e) => e.to_state)).toEqual(['draft', 'submitted', 'precheck', 'committee_review', 'approved', 'center_coordination', 'agreements', 'delivery', 'closed']);
   });
 
+  it('0011: agreement status and month; delivery needs a signed agreement; clinician reads only own linked samples', async () => {
+    const id = await draft();
+    await toCommittee(id);
+    await vote(id, 'comA', 'approve'); await vote(id, 'comB', 'approve');
+    const sampleB = (await q(admin(), `SELECT id FROM portal.samples WHERE source_center_id=$1 LIMIT 1`, [C.B]))[0].id;
+    await as('coordA', async (c) => {
+      const [{ id: item }] = await q(c, 'SELECT id FROM portal.request_items WHERE request_id=$1', [id]);
+      await c.query('INSERT INTO portal.request_item_samples (request_item_id, sample_id) VALUES ($1,$2),($1,$3)', [item, sampleId, sampleB]);
+      await c.query('SELECT portal.request_start_center_coordination($1)', [id]);
+    });
+    // each clinician sees only the links of its own center
+    const seenA = await as('clinA', (c) => q(c, 'SELECT center_id FROM portal.request_item_samples ris JOIN portal.request_items i ON i.id = ris.request_item_id WHERE i.request_id=$1', [id]));
+    expect(seenA.map((r) => r.center_id)).toEqual([C.A]);
+    expect(await as('resA', (c) => q(c, 'SELECT 1 FROM portal.request_item_samples'))).toEqual([]);
+    await as('clinA', (c) => c.query(`SELECT portal.request_center_respond($1,$2,true,NULL)`, [id, C.A]));
+    await as('clinB', (c) => c.query(`SELECT portal.request_center_respond($1,$2,false,NULL)`, [id, C.B]));
+    expect((await status(id)).status).toBe('agreements');
+    // a draft or a future month does not count; a clinician cannot record
+    await fails(as('clinA', (c) => c.query(`SELECT portal.request_record_agreement($1,$2,'mta','SYNTH-MTA-2','signed','2026-01')`, [id, C.A])), 'forbidden');
+    await fails(as('coordA', (c) => c.query(`SELECT portal.request_record_agreement($1,$2,'mta','SYNTH-MTA-2','signed',NULL)`, [id, C.A])), 'signed_month_required');
+    await fails(as('coordA', (c) => c.query(`SELECT portal.request_record_agreement($1,$2,'mta','SYNTH-MTA-2','signed','2999-01')`, [id, C.A])), 'signed_month_in_future');
+    await fails(as('coordA', (c) => c.query(`SELECT portal.request_record_agreement($1,$2,'mta','SYNTH-MTA-2','signed','2026-13')`, [id, C.A])), '23514');
+    await fails(as('coordA', (c) => c.query(`SELECT portal.request_record_agreement($1,$2,'dta','SYNTH-DTA-2','sent',NULL)`, [id, C.B])), 'center_not_involved');
+    await as('coordA', (c) => c.query(`SELECT portal.request_record_agreement($1,$2,'mta','SYNTH-MTA-2','sent',NULL)`, [id, C.A]));
+    await fails(as('coordA', (c) => c.query('SELECT portal.request_start_delivery($1)', [id])), 'agreements_missing');
+    await as('coordA', (c) => c.query(`SELECT portal.request_record_agreement($1,$2,'mta','SYNTH-MTA-2','signed','2026-01')`, [id, C.A]));
+    const agr = await as('clinA', (c) => q(c, 'SELECT kind, doc_ref, status, signed_month FROM portal.request_agreements WHERE request_id=$1', [id]));
+    expect(agr).toEqual([{ kind: 'mta', doc_ref: 'SYNTH-MTA-2', status: 'signed', signed_month: '2026-01' }]);
+    expect(await as('clinB', (c) => q(c, 'SELECT 1 FROM portal.request_agreements WHERE request_id=$1', [id]))).toEqual([]);
+    await as('coordA', (c) => c.query('SELECT portal.request_start_delivery($1)', [id]));
+    expect((await status(id)).status).toBe('delivery');
+    await as('clinA', (c) => c.query('SELECT portal.request_center_delivered($1,$2)', [id, C.A]));
+    expect(await status(id)).toEqual({ status: 'closed', close_reason: 'delivered' });
+  });
+
   it('applicant cannot reopen a closed request or set any governance column', async () => {
     const id = await draft();
     await as('resA', (c) => c.query('SELECT portal.request_withdraw($1)', [id]));

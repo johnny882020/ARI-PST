@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import {
   DomainError, STEP_KEYS, applicantMayEdit, canonicalizeFilters, cartMayChange, checkTransition, scanObjectDeep, stableStringify,
   stepForState, validateEthicsRef, validateFilterShape, type CloseReason, type Clock, type Ctx, type DecisionOutcome, type Filters,
-  type NotifyPort, type Repository, type RequestRecord, type RequestState, type RequestStepRecord, type StepKey, type Tx,
+  type AgreementInput, type NotifyPort, type Repository, type RequestRecord, type RequestState, type RequestStepRecord, type StepKey, type Tx,
 } from '@ari/domain';
 import { countBucket, type SearchService } from '../search-discovery/index.js';
 import { nid, notFound } from '../../lib/util.js';
@@ -183,19 +183,29 @@ export class RequestService {
   async steps(ctx: Ctx, id: string) {
     return this.repo.tx(ctx, async (tx) => { const r = await this.load(tx, ctx, id); return r.steps ?? []; });
   }
-  async updateStep(ctx: Ctx, id: string, key: StepKey, p: { accepted?: boolean; agreement?: { kind: 'mta' | 'dta'; docRef: string }; publicNote?: string; internalNote?: string; centerId?: string }) {
+  async updateStep(ctx: Ctx, id: string, key: StepKey, p: { accepted?: boolean; agreement?: AgreementInput; publicNote?: string; internalNote?: string; centerId?: string; status?: string }) {
     if (key !== 'center_coordination' && key !== 'delivery' && key !== 'mta_dta') throw new DomainError('VALIDATION_FAILED', [{ field: 'stepKey', rule: 'VOCAB' }]);
+    // A clinician always acts for the own center (a different centerId in the body is ignored, the database checks it again).
     const centerId = ctx.actor.role === 'center_clinician' ? ctx.actor.centerId : p.centerId;
     if (!centerId) throw new DomainError('VALIDATION_FAILED', [{ field: 'centerId', rule: 'REQUIRED' }]);
+    if (key === 'center_coordination' && typeof p.accepted !== 'boolean') throw new DomainError('VALIDATION_FAILED', [{ field: 'accepted', rule: 'REQUIRED' }]);
+    if (key === 'mta_dta' && !p.agreement) throw new DomainError('VALIDATION_FAILED', [{ field: 'agreement', rule: 'REQUIRED' }]);
+    if (p.agreement?.signedMonth && p.agreement.signedMonth > this.clock.now().toISOString().slice(0, 7)) throw new DomainError('VALIDATION_FAILED', [{ field: 'agreement.signedMonth', rule: 'RANGE' }]);
     const note = scanObjectDeep({ a: p.publicNote, b: p.internalNote, c: p.agreement?.docRef }, { maxLength: null });
     if (note.length) throw new DomainError('VALIDATION_FAILED', [{ field: 'publicNote', rule: 'IDENTIFIER_SUSPECTED' }]);
     return this.repo.tx(ctx, async (tx) => {
       const cur = await tx.requests.get(id); if (!cur) throw notFound();
-      const { centerId: _c, ...rest } = p;
+      const { centerId: _c, status: _s, ...rest } = p;
       const s = await tx.requests.updateStep(id, key, centerId, rest);
       await this.notify.enqueue(tx, { template: 'request_status', toUserId: cur.applicantUserId });
       return ctx.actor.role === 'national_coordinator' ? s : { ...s, internalNote: undefined };
     });
+  }
+  async resolvedSamples(ctx: Ctx, id: string) {
+    return this.repo.tx(ctx, async (tx) => { if (!(await tx.requests.get(id))) throw notFound(); return tx.requests.resolvedSamples(id); });
+  }
+  async agreements(ctx: Ctx, id: string) {
+    return this.repo.tx(ctx, async (tx) => { if (!(await tx.requests.get(id))) throw notFound(); return tx.requests.agreements(id); });
   }
   async resolveSamples(ctx: Ctx, id: string, itemId: string, sampleIds: string[]) {
     await this.repo.tx(ctx, async (tx) => {

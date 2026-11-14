@@ -22,7 +22,7 @@ pnpm typecheck | pnpm lint | pnpm build
 pnpm arch                          # dependency-cruiser: fails if domain/api break boundary rules
 ```
 Database tests need a local PostgreSQL 16 (binaries in `/usr/lib/postgresql/16/bin`). `pnpm --filter @ari/db test` runs `db/scripts/test-db.sh` (throwaway cluster on port 55432: `db/bootstrap.sql`, then `db/migrate.mjs` as `app_migrator`, then vitest). API integration tests use `apps/api/scripts/test-db.sh` (port 55433). The migration runner reads `DATABASE_URL_MIGRATOR`; see the header of `db/migrate.mjs`.
-Other useful commands: `pnpm --filter @ari/web mock` (mock API), `pnpm --filter @ari/web test:e2e` (Playwright), `pnpm --filter @ari/api-client gen:check` (generated client matches the OpenAPI spec), `python3 scripts/verify-render-yaml.py` (all three Blueprints), `bash scripts/smoke.sh`, `pnpm test:e2e:full` (simulated Render database on port 55435, pre-deploy step, API on 18080, browser flow).
+Other useful commands: `pnpm test:unit` (no PostgreSQL needed), `pnpm --filter @ari/web mock` (mock API), `pnpm --filter @ari/web test:e2e` (Playwright), `pnpm --filter @ari/api-client gen:check` (generated client matches the OpenAPI spec), `python3 scripts/verify-render-yaml.py` (all three Blueprints), `bash scripts/smoke.sh`, `pnpm test:e2e:full` (simulated Render database on port 55435, pre-deploy step, API on 18080, browser flow).
 
 ## Architecture (big picture)
 - **Modular monolith, hexagonal.** `packages/domain` holds pure rules and ports (Repository, Auth, ObjectStore, Mailer, Clock, Audit). It must import **no** platform library (pg, fastify, aws-sdk, nodemailer…). `pnpm arch` enforces this. Platform code lives only in `apps/api/src/adapters/*`. This keeps a later move from Render to Base44 cheap.
@@ -43,7 +43,17 @@ Other useful commands: `pnpm --filter @ari/web mock` (mock API), `pnpm --filter 
 - Legal and regulatory statements are "needs legal review". Do not present them as advice.
 
 ## Delivery
-Git is the source of truth; auto-deploy to Render via `render.yaml` (Blueprint). The live demo today is the free-plan Blueprint `infra/render.free.yaml` (Blueprint `ari-pst-demo`, service `ari-demo-api-7teo`, database `ari-demo-db-7teo`, branch `main`, manual deploy); its start command runs `scripts/render-predeploy.mjs` before the server because free services have no pre-deploy step. The hand-made service `ARI-PST` is broken and will be deleted. Public site deploys after CI passes. The protected area waits for a GitHub Environment approval, then a Render deploy hook. Preview environments use synthetic data. Render has no built-in approval gate, so this design is deliberate. See `docs/deployment.md` (section 12 known gaps, section 13 free demo), `docs/KNOWN-ISSUES.md` and `docs/REVIEW-2026-11.md`. `render.com` may be blocked in the Claude session network, so Render facts in the plan are partly UNVERIFIED.
+- Git is the source of truth. Every change is a PR to `main`; the only required check is `ci-gate` (green on `main`). PRs #1 and #7 are merged.
+- **Live demo:** free-plan Blueprint `infra/render.free.yaml` (Blueprint `ari-pst-demo`, service `ari-demo-api-7teo` at https://ari-demo-api-7teo.onrender.com, database `ari-demo-db-7teo`, Frankfurt, branch `main`, manual deploy). Free services have no pre-deploy step, so its start command runs `scripts/render-predeploy.mjs` before the server. Sign-in list: `SEED_USER_PASSWORD=... node scripts/seed-credentials.mjs` (value from the Render Environment page; never paste the output).
+- **Production:** `render.yaml` (paid plans) is not applied yet. Public site deploys after CI; the protected area waits for a GitHub Environment approval (`production-protected`), then a Render deploy hook. Render has no built-in approval gate, so this design is deliberate. Previews use synthetic data.
+- The hand-made service `ARI-PST` is broken and will be deleted.
+- Google Cloud migration guide: `docs/migration/google-cloud.md`.
+- `render.com` may be blocked in the Claude session network, so Render facts are partly UNVERIFIED.
+
+## Documentation
+- `docs/` describes the current system; start at `docs/README.md`. Gaps: `docs/KNOWN-ISSUES.md`. Review findings: `docs/REVIEW-2026-11.md`. History: `docs/CHANGELOG.md` (Keep a Changelog).
+- `plan/` folders `01`–`10` and `plan/requests/` are design-time records. Do not rewrite them to match the code; update `docs/` instead.
+- Write docs in short plain sentences (ASD-STE100 style), numbered steps, tables where they help. No "in progress", agent names or wave notes in `README.md` or `docs/`.
 
 ## Working with the plan and agents
 - Parallel build agents own separate folders; do not edit another agent's folder. Cross-agent needs go in `plan/requests/<from>-to-<to>.md`.

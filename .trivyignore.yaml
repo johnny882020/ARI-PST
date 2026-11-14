@@ -1,0 +1,9 @@
+# Narrow, reviewed suppressions for `trivy config`. Each entry names one rule, exact paths and the reason.
+misconfigurations:
+  - id: AVD-KSV-0118
+    paths:
+      - "docs/migration/gcp/cloudrun/ari-job.predeploy.yaml"
+    statement: >-
+      Example Cloud Run Job template, not a Kubernetes Job. Trivy reads it as Kubernetes and asks for a pod-level
+      securityContext, which the Cloud Run Job TaskSpec does not take. The image runs as the non-root 'node' user
+      (Dockerfile USER node) and the container sets runAsUser 1000.

@@ -88,7 +88,7 @@ export function validateImportRow(rowNo: number, raw: Record<string, string>, lk
     if (!ETHICS_REF_RE.test(er)) err('ethics_approval_ref', 'FORMAT');
     else if (center) {
       const e = lk.ethics(center.id, er);
-      if (!e) warn('ethics_approval_ref', 'ETHICS_MISSING');
+      if (!e) warn('ethics_approval_ref', 'ETHICS_UNKNOWN');
       else { ethicsId = e.id; if (e.status !== 'active') warn('ethics_approval_ref', 'ETHICS_EXPIRED'); }
     }
   } else warn('ethics_approval_ref', 'ETHICS_MISSING');

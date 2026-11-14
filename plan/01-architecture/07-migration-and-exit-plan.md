@@ -64,3 +64,6 @@ Rollback: keep the DB in read-only freeze; if verify fails, unfreeze Render stac
 Total exit effort (ASSUMPTION, UNVERIFIED): 6-14 weeks for stage 3 plus 2-3 weeks for stages 1-2. Export of the archive itself: under 1 hour for the Phase 1 data size.
 
 Needs legal review for any data transfer between processors.
+
+## Google Cloud target
+A concrete, step-by-step exit to Google Cloud (Cloud Run, Cloud SQL, Cloud Run Jobs, Secret Manager, Firebase Hosting) is in [`docs/migration/google-cloud.md`](../../docs/migration/google-cloud.md).

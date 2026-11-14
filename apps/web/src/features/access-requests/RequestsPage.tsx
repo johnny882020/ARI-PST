@@ -18,7 +18,7 @@ export function RequestsPage() {
   const q = useQuery({ queryKey: qk.requests(), queryFn: () => unwrap(api.GET("/requests", { params: { query: {} } })), refetchInterval: 30_000 });
   const cols: TableColumn<RequestDto>[] = [
     { key: "id", header: t("requests.list.col.id"), render: (r) => <Link to={`/requests/${r.id}`}><bdi dir="ltr">{r.id.slice(0, 12)}…</bdi></Link> },
-    { key: "status", header: t("requests.list.col.status"), render: (r) => <Badge tone={r.status === "needs_info" ? "warning" : r.status === "rejected" ? "danger" : r.status === "closed" && r.closeReason === "delivered" ? "success" : "info"}>{t(`requests.status.${r.status}` as MessageKey)}</Badge> },
+    { key: "status", header: t("requests.list.col.status"), render: (r) => <Badge tone={r.status === "needs_info" ? "warning" : r.status === "rejected" ? "danger" : r.status === "closed" && r.closeReason === "delivered" ? "success" : "info"}>{r.status === "closed" && r.closeReason === "delivered" ? t("requests.status.closedDelivered") : t(`requests.status.${r.status}` as MessageKey)}</Badge> },
     { key: "submitted", header: t("requests.list.col.submitted"), render: (r) => (r.submittedAt ? fmtDate(r.submittedAt, locale) : "—") },
   ];
   return (

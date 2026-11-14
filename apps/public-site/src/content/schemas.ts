@@ -58,7 +58,7 @@ export const pageSchema = z
     intro: z.string().optional(),
     // home
     hero: z
-      .object({ headline: z.string(), subline: z.string(), cta_primary: link, cta_secondary: link.optional() })
+      .object({ eyebrow: z.string().optional(), headline: z.string(), subline: z.string(), cta_primary: link, cta_secondary: link.optional() })
       .optional(),
     value_props: z.array(z.object({ icon: z.string(), title: z.string(), text: z.string() })).max(6).optional(),
     featured_partners: z.array(kebab).optional(),

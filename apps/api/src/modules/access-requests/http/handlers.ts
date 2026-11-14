@@ -23,6 +23,8 @@ export function requestHandlers(svc: RequestService): Record<string, Handler> {
     listRequestSteps: async (req) => ({ items: await svc.steps(req.ctx, rid(req)) }),
     updateRequestStep: async (req) => svc.updateStep(req.ctx, rid(req), params<{ stepKey: any }>(req).stepKey, body(req)),
     resolveRequestSamples: async (req, reply) => { const b = body<{ itemId: string; sampleIds: string[] }>(req); await svc.resolveSamples(req.ctx, rid(req), b.itemId, b.sampleIds); return reply.code(204).send(); },
+    listResolvedSamples: async (req) => ({ items: await svc.resolvedSamples(req.ctx, rid(req)) }),
+    listRequestAgreements: async (req) => ({ items: await svc.agreements(req.ctx, rid(req)) }),
     castVote: async (req) => svc.castVote(req.ctx, rid(req), body(req)),
     listVotes: async (req) => ({ items: (await svc.listVotes(req.ctx, rid(req))).map(({ voterUserId: _v, ...v }) => v) }),
     listDecisions: async (req) => ({ items: await svc.decisions(req.ctx, rid(req)) }),

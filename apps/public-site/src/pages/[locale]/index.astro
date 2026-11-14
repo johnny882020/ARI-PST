@@ -18,13 +18,18 @@ const hasOther = await hasTranslation('pages', locale === 'he' ? 'en' : 'he', 'h
 const s = await settings(locale);
 ---
 <BaseLayout locale={locale} title={d.title} description={d.description} slug="" hasOther={hasOther}>
-  <section class="hero">
-    <p class="chip"><bdi>ARI-PST × Tech4Cancer</bdi></p>
-    <h1>{d.hero!.headline}</h1>
-    <p class="lead">{d.hero!.subline}</p>
-    <div class="row">
-      <a class="btn btn-primary" href={d.hero!.cta_primary.url} data-umami-event="cta_click" data-umami-event-id="home-primary">{d.hero!.cta_primary.label}</a>
-      {d.hero!.cta_secondary && <a class="btn" href={d.hero!.cta_secondary.url} data-umami-event="cta_click" data-umami-event-id="home-secondary">{d.hero!.cta_secondary.label}</a>}
+  <section class="hero" slot="hero" aria-labelledby="hero-title">
+    <div class="hero-inner">
+      {d.hero!.eyebrow && <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span><span>{d.hero!.eyebrow}</span></p>}
+      <h1 id="hero-title" class="display">{d.hero!.headline}</h1>
+      <p class="hero-lead">{d.hero!.subline}</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href={d.hero!.cta_primary.url} data-umami-event="cta_click" data-umami-event-id="home-primary">
+          <span>{d.hero!.cta_primary.label}</span>
+          <svg class="btn-arrow" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.5 12h15M13 5.5l6.5 6.5-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </a>
+        {d.hero!.cta_secondary && <a class="btn btn-secondary btn-lg" href={d.hero!.cta_secondary.url} data-umami-event="cta_click" data-umami-event-id="home-secondary">{d.hero!.cta_secondary.label}</a>}
+      </div>
     </div>
   </section>
   <h2>{t(locale, 'howItWorks')}</h2>

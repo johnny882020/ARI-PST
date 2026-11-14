@@ -45,7 +45,10 @@ Components carry built-in he/en default strings (close, next, "Too few to show",
 `Input`, `Textarea`, `Select` accept `label`, `help`, `error`, `required` and wrap themselves in `Field`.
 
 ### Actions
-`Button` (`variant: primary|secondary|quiet|danger`, `loading`, `iconStart`, `iconEnd`, `size`) · `IconButton` (`label` required, adds tooltip) · `Chip` (optional `onRemove`) · `LanguageSwitch` · `ThemeToggle`.
+`Button` (`variant: primary|secondary|quiet|danger`, `size: sm|md|lg` = 44/48/56 px pills, `arrow` adds a trailing arrow that mirrors in RTL, `loading`, `iconStart`, `iconEnd`) · `buttonClass({ variant, size, arrow })` and `ButtonArrow` (button look on a router `Link` or `<a>`) · `IconButton` (`label` required, adds tooltip; `variant="outline"` is the round light-bordered button) · `Chip` (optional `onRemove`) · `LanguageSwitch` (segmented pill "EN | עב"; the visible code is short, the accessible name is the endonym) · `ThemeToggle`.
+
+### Brand
+`Logo` (mark + "ARI-PST" wordmark; `partner` adds "× Tech4Cancer"; `size`) · `LogoMark` · `Eyebrow` (gold dot + caps line; no tracking or caps in Hebrew) · `DisplayHeading` (`level`, `size: display|title`). CSS helpers: `.ds-hero` (soft gradient band), `.ds-lead`.
 
 ### Display
 `Card` · `Badge` (`tone`) · `StatusPill` (`status`: `done|current|waiting-you|waiting-others|returned|rejected|upcoming`) · `Alert` (`tone`, `onDismiss`) · `Skeleton` · `EmptyState` · `ErrorState` (`traceId`, `onRetry`) · `AggregateCountTile` · `SuppressionNotice` · `SuppressedCell`.
@@ -66,11 +69,15 @@ Components carry built-in he/en default strings (close, next, "Too few to show",
 ## Stepper mapping
 
 `REQUEST_STEP_IDS = ["cart","submission","precheck","committee","coordination","agreements","delivery","closed"]`.
-`useRequestSteps({ current, status?, dates?, descriptions?, labels? })` uses the built-in he/en step labels. `buildRequestSteps({ labels, current, ... })` is the non-hook form. Both return `Stepper` steps: earlier steps `done`, the current one `current` (or `status` override such as `waiting-you`, `returned`, `rejected`), later ones `upcoming`. B6 maps the API state enum to a `current` id.
+`useRequestSteps({ current, status?, dates?, descriptions?, labels? })` uses the built-in he/en step labels. `buildRequestSteps({ labels, current, ... })` is the non-hook form. Both return `Stepper` steps: earlier steps `done`, the current one `current` (or `status` override such as `waiting-you`, `returned`, `rejected`), later ones `upcoming`. `apps/web` maps the API request status to a `current` id.
+
+## Visual style (brand refresh 2026-11)
+
+Navy `#2C4F76` primary, gold `#E0B84F` decoration only, grey `#5F6672` secondary text, borders `#E3E7EC`, full-pill buttons, light display headings. Dark theme uses navy-tinted surfaces. Palette, contrast table and rules: `docs/design/STYLE-GUIDE.md` and `plan/05-design-brand/01-brand-identity.md` section 11. Token source: `plan/05-design-brand/tokens.css`; this package adds the `--dir` helper and the in-app reduce-motion switch.
 
 ## Fonts
 
-Stacks fall back to system fonts, so nothing loads from a CDN. To self-host Heebo and Rubik (SIL OFL 1.1, believed; confirm and keep the license files), follow `fonts/README.md`. License is UNVERIFIED. No font files are bundled yet.
+Stacks fall back to system fonts, so nothing loads from a CDN. Display: Inter / SF-like. Body: Source Sans 3. Hebrew: Assistant, then Heebo. To self-host them (SIL OFL 1.1, believed; confirm and keep the license files), follow `fonts/README.md`. License is UNVERIFIED. No font files are bundled yet.
 
 ## Scripts
 
@@ -82,4 +89,4 @@ The gallery (`gallery/`) shows every component in he and en, light and dark (too
 `Locale`, `MessageKey`, `Theme`, `IconName`, `ButtonProps`, `InputProps`, `TableColumn<T>`, `TableProps<T>`, `StepperStep`, `StatusKind`, `RequestStepId`, `NavItem`, `FacetOption`, `AggregateCountState`, and a `*Props` type per component.
 
 ## Known gaps
-No combobox/type-ahead (SearchBox has no suggestion list yet), no table row selection, no Breadcrumb/Progress/Sheet/DropZone. Native `<select>` is used for Select. Fonts are not bundled. Color contrast is verified from the token table in plan/05 (04-accessibility.md), not by jsdom axe.
+No combobox/type-ahead (SearchBox has no suggestion list yet), no table row selection, no Breadcrumb/Progress/Sheet/DropZone. Native `<select>` is used for Select. Fonts are not bundled. Contrast is checked in Chromium by the QA scripts (`docs/qa/scripts`), not by jsdom axe.

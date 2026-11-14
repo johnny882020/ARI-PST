@@ -24,7 +24,7 @@ export function makeRequestRepo(q: Q, ctx: Ctx): RequestRepo {
     const r = await q.query(`SELECT ${COLS} FROM portal.requests WHERE id = $1`, [id]);
     if (!r.rows[0]) return null; const it = await itemsFor([id]); return reqOf(r.rows[0], it.get(id) ?? []);
   };
-  const stepOf = (s: any): RequestStepRecord => ({ stepKey: s.step_key, centerId: s.center_id, status: s.status, publicNote: s.public_note ?? null, internalNote: s.internal_note ?? null, startedAt: iso(s.started_at), completedAt: iso(s.completed_at) });
+  const stepOf = (s: any): RequestStepRecord => ({ stepKey: s.step_key, centerId: s.center_id, status: s.status, publicNote: s.public_note ?? null, internalNote: s.internal_note ?? null, accepted: s.accepted ?? null, startedAt: iso(s.started_at), completedAt: iso(s.completed_at) });
   return {
     async getDraftFor(userId) {
       const r = await q.query(`SELECT id FROM portal.requests WHERE applicant_user_id = $1 AND status = 'draft' ORDER BY created_at DESC LIMIT 1`, [userId]);
@@ -91,19 +91,31 @@ export function makeRequestRepo(q: Q, ctx: Ctx): RequestRepo {
         const t = (await q.query('SELECT portal.request_timeline($1) AS t', [id])).rows[0]?.t as { centers?: Array<{ step: StepKey; status: any; publicNote: string | null }> } | undefined;
         return (t?.centers ?? []).map((c) => ({ stepKey: c.step, centerId: null, status: c.status, publicNote: c.publicNote ?? null, startedAt: null, completedAt: null }));
       }
-      const r = await q.query('SELECT step_key::text AS step_key, center_id, status::text AS status, public_note, internal_note, started_at, completed_at FROM portal.request_steps WHERE request_id = $1 ORDER BY created_at', [id]);
+      const r = await q.query('SELECT step_key::text AS step_key, center_id, status::text AS status, accepted, public_note, internal_note, started_at, completed_at FROM portal.request_steps WHERE request_id = $1 ORDER BY created_at', [id]);
       return r.rows.map((s) => { const x = stepOf(s); if (!includeInternal) delete x.internalNote; return x; });
     },
     async updateStep(id, key, centerId, p) {
       if (key === 'center_coordination') await q.query('SELECT portal.request_center_respond($1,$2,$3,$4)', [id, centerId, p.accepted ?? false, p.publicNote ?? null]);
       else if (key === 'mta_dta') {
         if (!p.agreement) throw new DomainError('VALIDATION_FAILED', [{ field: 'agreement', rule: 'REQUIRED' }]);
-        await q.query('SELECT portal.request_record_agreement($1,$2,$3,$4)', [id, centerId, p.agreement.kind, p.agreement.docRef]);
+        const st = p.agreement.status ?? 'signed';
+        const month = p.agreement.signedMonth ?? (st === 'signed' ? new Date().toISOString().slice(0, 7) : null);
+        await q.query('SELECT portal.request_record_agreement($1,$2,$3,$4,$5,$6)', [id, centerId, p.agreement.kind, p.agreement.docRef, st, month]);
+        return { stepKey: 'mta_dta', centerId, status: st === 'signed' ? 'done' : 'in_progress', publicNote: null, startedAt: null, completedAt: null };
       } else if (key === 'delivery') await q.query('SELECT portal.request_center_delivered($1,$2)', [id, centerId]);
       else throw new DomainError('VALIDATION_FAILED', [{ field: 'stepKey', rule: 'VOCAB' }]);
-      if (p.internalNote !== undefined && key !== 'mta_dta') await q.query(`UPDATE portal.request_steps SET internal_note = $4 WHERE request_id = $1 AND step_key = $2::portal.step_key AND center_id = $3`, [id, key, centerId, p.internalNote]);
-      const r = await q.query('SELECT step_key::text AS step_key, center_id, status::text AS status, public_note, internal_note, started_at, completed_at FROM portal.request_steps WHERE request_id = $1 AND center_id = $2 ORDER BY created_at DESC LIMIT 1', [id, centerId]);
+      if (p.internalNote !== undefined) await q.query(`UPDATE portal.request_steps SET internal_note = $4 WHERE request_id = $1 AND step_key = $2::portal.step_key AND center_id = $3`, [id, key, centerId, p.internalNote]);
+      const r = await q.query('SELECT step_key::text AS step_key, center_id, status::text AS status, accepted, public_note, internal_note, started_at, completed_at FROM portal.request_steps WHERE request_id = $1 AND center_id = $2 ORDER BY created_at DESC LIMIT 1', [id, centerId]);
       return r.rows[0] ? stepOf(r.rows[0]) : { stepKey: key, centerId, status: 'done', publicNote: null, startedAt: null, completedAt: null };
+    },
+    async resolvedSamples(requestId) {
+      const r = await q.query(`SELECT ris.request_item_id, ris.sample_code, ris.center_id FROM portal.request_item_samples ris JOIN portal.request_items i ON i.id = ris.request_item_id
+        WHERE i.request_id = $1 ORDER BY ris.center_id, ris.sample_code`, [requestId]);
+      return r.rows.map((x) => ({ itemId: x.request_item_id, sampleId: x.sample_code, centerId: x.center_id }));
+    },
+    async agreements(requestId) {
+      const r = await q.query('SELECT center_id, kind, doc_ref, status, signed_month FROM portal.request_agreements WHERE request_id = $1 ORDER BY center_id, kind', [requestId]);
+      return r.rows.map((x) => ({ centerId: x.center_id, kind: x.kind, docRef: x.doc_ref, status: x.status, signedMonth: x.signed_month ?? null }));
     },
     async resolveSamples(requestId, itemId, sampleIds) {
       const own = await q.query('SELECT 1 FROM portal.request_items WHERE id = $1 AND request_id = $2', [itemId, requestId]);

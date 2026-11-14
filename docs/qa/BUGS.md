@@ -1,26 +1,32 @@
-# QA-1 bug list
+# QA bug list
 
 Severity: **High** blocks a user flow or breaks a stated requirement; **Medium** accessibility or layout defect on a supported viewport; **Low** polish or needs-decision.
-Screenshot paths are relative to the repo root. Owner is the folder that should fix it. All numbers come from `docs/qa/results/*.json`.
+Screenshot paths are relative to the repo root. All numbers come from `docs/qa/results/*.json`.
 
-| ID | Sev | Owner | Title |
-|---|---|---|---|
-| QA-001 | High | apps/api (B2), maybe db (B1) | Add to cart returns 404 on the live API |
-| QA-002 | High | apps/api (B2) / infra | Nothing calls `agg.refresh_snapshot()`, so search shows no counts |
-| QA-003 | High | apps/web (B6) | No screen to verify e-mail and set the first password |
-| QA-004 | Medium | packages/design-system | AppShell header collides at 390px and the page overflows sideways |
-| QA-005 | Medium | apps/web (B6) | `/search` records table scrolls the whole page at 390px (clinician, coordinator) |
-| QA-006 | Medium | apps/public-site (B4) | Nav and footer links are 17px tall (below the 24px target minimum) |
-| QA-007 | Medium | apps/web (B6), design-system | Small targets in the protected app (ID links 17px, brand 23px, segment buttons 36px) |
-| QA-008 | Medium | apps/web (B6) | Heading order skips a level on search, account, help, sample entry |
-| QA-009 | Medium | apps/web (B6) | Request wizard step 1 accepts identifier-like text with no error or warning |
-| QA-010 | Medium | apps/public-site (B4), infra | Portal link points to `/app/`, but the SPA is meant to live at `/` |
-| QA-011 | Low | apps/web (B6) | Two `nav` landmarks share the label "Language" / "שפה" on `/account` |
-| QA-012 | Low | apps/public-site (B4) | Form error summary prints the raw field name `consent_contact` |
-| QA-013 | Low | apps/api / apps/web | Every first load logs a red 401 for `GET /auth/session` |
-| QA-014 | Low | apps/public-site (B4) | No theme switch on the public site (follows the OS only) |
-| QA-015 | Low | docs / db | `db/README.md` and `docs/KNOWN-ISSUES.md` are referenced but missing |
-| QA-016 | Low | packages/design-system | Session timeout dialog text reads the countdown twice |
+## Status
+
+| ID | Sev | Area | Title | Status |
+|---|---|---|---|---|
+| QA-001 | High | `apps/api` | Add to cart returns 404 on the live API | Not reproduced. The cart step passes in `scripts/e2e-fullstack.mjs`; the likely cause was a hand-made QA seed |
+| QA-002 | High | `apps/api`, infra | Nothing calls `agg.refresh_snapshot()`, so search shows no counts | Fixed: job `snapshot`, cron `ari-cron-snapshot`. The free demo refreshes at start and after an import |
+| QA-003 | High | `apps/web` | No screen to verify e-mail and set the first password | Fixed: `/verify-email` and `/setup-mfa`. Password reset is not built (no API operation) |
+| QA-004 | Medium | `packages/design-system` | AppShell header collides at 390px and the page overflows sideways | Fixed |
+| QA-005 | Medium | `apps/web` | `/search` records table scrolls the whole page at 390px | Fixed |
+| QA-006 | Medium | `apps/public-site` | Nav and footer links are 17px tall | Fixed |
+| QA-007 | Medium | `apps/web`, `packages/design-system` | Small targets in the protected app | Fixed |
+| QA-008 | Medium | `apps/web` | Heading order skips a level | Fixed |
+| QA-009 | Medium | `apps/web` | Request wizard accepts identifier-like text | Fixed: blocked with the server patterns |
+| QA-010 | Medium | `apps/public-site`, infra | Portal link points to `/app/`, but the SPA lives at `/` | Fixed in `render.yaml` (`PUBLIC_PORTAL_URL`, `/app/*` redirect). The code default is still `/app/` |
+| QA-011 | Low | `apps/web` | Two `nav` landmarks share the label "Language" | Fixed |
+| QA-012 | Low | `apps/public-site` | Form error summary prints the raw field name | Fixed |
+| QA-013 | Low | `apps/api`, `apps/web` | Every first load logs a 401 for `GET /auth/session` | Open: API contract decision |
+| QA-014 | Low | `apps/public-site` | No theme switch on the public site | Open: product decision |
+| QA-015 | Low | docs | `db/README.md` and `docs/KNOWN-ISSUES.md` missing | Fixed |
+| QA-016 | Low | `packages/design-system` | Session timeout countdown read twice | By design: one text is hidden from screen readers |
+
+Open items are also tracked in [`../KNOWN-ISSUES.md`](../KNOWN-ISSUES.md). The end-to-end flow report for every role is [`flows/REPORT.md`](flows/REPORT.md).
+
+## Original findings (2026-11-13)
 
 ## QA-001 High. Add to cart returns 404 on the live API
 - Repro: seeded stack (`docs/qa/scripts/README.md`, "Full stack"), sign in as `researcher_il`, open `/search`, tick "FFPE", press "Add to request cart".
@@ -87,10 +93,10 @@ Screenshot paths are relative to the repo root. Owner is the folder that should 
 ## QA-016 Low. Countdown read twice
 - Session timeout dialog text in Hebrew reads "הזמן שנותר: 1:35הזמן שנותר: 2:00": a visible countdown plus a live region with a different value. Keep one, or have the live region announce only at intervals.
 
-## Fix verification (UI-FIX, 2026-11-13)
+## Fix evidence: UI bugs (2026-11-13)
 
 Re-run on commit 95183a4 (canonical request status: `closed` + `closeReason`, regenerated API client); all counts below are from that run.
-Scope: bugs owned by apps/web (B6), apps/public-site (B4), packages/design-system. QA-001, QA-002, QA-010 and QA-015 belong to INT-1 and are not covered here.
+Scope: bugs in `apps/web`, `apps/public-site` and `packages/design-system`. QA-001, QA-002, QA-010 and QA-015 are in the next section.
 How it was checked: the QA scripts were copied to a scratch folder and run from there, so `docs/qa/results` and `docs/qa/screenshots` still hold the first run. Web stages ran against the mock API on :3010. Nothing here was run against the real API and PostgreSQL.
 One script change was needed: on a 390px screen the language and theme switches now sit behind the menu button, so `01-gallery.mjs` (`setup`) and `03-web-sweep.mjs` (`applyLT`) must click `.ds-shell-menu` first when it is visible. The copies in the scratch run had that one line added. The scripts in `docs/qa/scripts` are unchanged and need the same line, or the gallery stage stops on a hidden button.
 
@@ -128,7 +134,7 @@ Other runs: `@ari/design-system` 114 tests, `@ari/web` 48 unit tests and 30 Play
 | QA-016 | No change, by design | The visible countdown is `aria-hidden`; the second text is a visually hidden live region that speaks in steps of 30 or 10 seconds. A screen reader hears one of them. `innerText` shows both. |
 | Web axe, 4 odd rules on `/search` (`document-title`, `html-has-lang`, `landmark-one-main`, `page-has-heading-one`) | Not reproduced | They did not come back in the re-run. The same four rules appeared once on three public pages during a re-run while another build was rewriting `dist` (the pages answered 404), and were gone on the next run. Most likely a page read during a rebuild. |
 
-## Status of the INT-1 items (checked against the code on 2026-11-14)
+## Fix evidence: integration bugs (2026-11-14)
 
 | ID | Status | Evidence |
 |---|---|---|

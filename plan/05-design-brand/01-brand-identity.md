@@ -129,3 +129,39 @@ Families may read this site on a very hard day. Design for that.
 8. Offer reading comfort: text size, calm mode (reduced motion and lower contrast intensity is NOT allowed; keep AA), print view.
 9. No tracking on the families page without consent. Analytics default off (REQ-025).
 10. Review all families copy with a clinical lead, a social worker, and a parent advisor before launch.
+
+## 11. Brand refresh 2026-11 (owner reference: `docs/design/reference-hero-mobile.jpg`)
+The owner chose a calm, airy, Apple-like style. It replaces the teal + clay palette and logo concepts A-C.
+- **Logo (concept D, "rising sun"):** thin light-grey ring, three concentric navy arcs (the middle one lighter), one small gold dot on top. Wordmark "ARI-PST": navy, bold, uppercase, letter-spacing 0.12em. Files: `logo-d-rising-sun.svg`, React `Logo` in `packages/design-system`, `apps/public-site/src/components/Logo.astro`. The lock-up never flips in RTL. "ARI-PST × Tech4Cancer" stays in the footer.
+- **Palette (light / dark):**
+
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| primary | #2C4F76 | #9DBCE0 | Headline, wordmark, filled buttons, active toggle, links |
+| heading | #2C4F76 | #C9DBEF | h1-h3 |
+| text | #1C2B3E | #E8EDF4 | Body |
+| text-muted | #5F6672 | #A9B4C3 | Lead, secondary text (reference #6B7280 darkened for margin) |
+| eyebrow | #4A6787 | #A9B4C3 | Eyebrow line, inactive segments |
+| gold | #E0B84F | #E0B84F | Eyebrow dot, logo dot. Decoration only, never text |
+| accent (warm text) | #7F5A0B | #F0C96A | Rare warm text on accent-subtle |
+| bg / surface | #FBFCFD / #FFFFFF | #0F1724 / #152033 | Page / cards |
+| hero-from | #E9EDF2 | #16233A | Hero band gradient start (to bg) |
+| border | #E3E7EC | #2A3A52 | Dividers, pill and card edges |
+| border-strong | #7C8696 | #7487A0 | Input edges (3:1) |
+
+- **Contrast (measured in Chromium, 2026-11-14):**
+
+| Pair | Light | Dark |
+|---|---|---|
+| Display headline on hero-from | 7.18 | 11.13 |
+| Eyebrow on hero-from | 4.99 | 7.49 |
+| Lead (muted) on hero-from, worst case | 4.92 | 7.49 |
+| Lead (muted) on white | 5.78 | 7.78 |
+| Primary button text | 8.44 | 8.91 |
+| Secondary button text on surface | 8.44 | 8.32 |
+| Active language segment | 8.44 | 8.91 |
+| Inactive language segment | 5.86 | 7.78 |
+| Body text on surface | 14.34 | 13.88 |
+| Input border on white (non-text) | 3.68 | 4.44 |
+
+The light-grey border of secondary buttons and pills is 1.24:1. That is allowed: the text names the control (WCAG 1.4.11 does not need a visible button edge). Inputs keep `border-strong`.

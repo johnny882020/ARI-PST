@@ -20,6 +20,7 @@
     "test:contract": "pnpm --filter @ari/api-client gen:check && pnpm --filter @ari/api exec vitest run test/authz-matrix.test.ts test/idor-contract.test.ts",
     "test:e2e:smoke": "pnpm --filter @ari/web test:e2e",
     "test:e2e:full": "node scripts/e2e-fullstack.mjs --start",
+    "test:e2e:flows": "node scripts/e2e-flows.mjs",
     "test:a11y": "pnpm --filter @ari/public-site test:a11y",
     "db:migrate": "pnpm --filter @ari/db migrate",
     "db:predeploy": "node scripts/render-predeploy.mjs",

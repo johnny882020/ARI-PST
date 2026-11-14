@@ -66,6 +66,8 @@ COPY --from=build /src/packages/contracts/openapi.yaml ./packages/contracts/open
 COPY --from=build /src/db/package.json /src/db/bootstrap.sql /src/db/migrate.mjs ./db/
 COPY --from=build /src/db/migrations ./db/migrations
 COPY --from=build /src/db/seeds ./db/seeds
+# db/lib: the synthetic seed job imports db/lib/workflow.mjs at run time (previews and staging only).
+COPY --from=build /src/db/lib ./db/lib
 COPY --from=build /src/scripts/render-predeploy.mjs ./scripts/render-predeploy.mjs
 # APP_VERSION is shown by /livez and /readyz. CI passes the git SHA; the deploy step also sets it as an env var.
 ARG APP_VERSION=dev

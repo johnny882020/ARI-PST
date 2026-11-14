@@ -47,9 +47,10 @@ export const ROUTES: RouteDef[] = [
   { id: "freshness", path: "/freshness", roles: [...CLIN, ...NC], nav: { labelKey: "nav.freshness" }, load: p(() => import("../features/center-ingestion/FreshnessPage"), "FreshnessPage") },
 
   { id: "cart", path: "/cart", roles: RIL, load: p(() => import("../features/access-requests/CartPage"), "CartPage") },
-  { id: "requests", path: "/requests", roles: [...RIL, ...NC, ...CM], nav: { labelKey: "nav.requests", prefix: "/requests" }, load: p(() => import("../features/access-requests/RequestsPage"), "RequestsPage") },
+  { id: "requests", path: "/requests", roles: [...RIL, ...CLIN, ...NC, ...CM], nav: { labelKey: "nav.requests", prefix: "/requests" }, load: p(() => import("../features/access-requests/RequestsPage"), "RequestsPage") },
   { id: "requests-new", path: "/requests/new", roles: RIL, load: p(() => import("../features/access-requests/RequestFormPage"), "RequestFormPage") },
-  { id: "request", path: "/requests/:id", roles: [...RIL, ...NC, ...CM], load: p(() => import("../features/access-requests/RequestDetailPage"), "RequestDetailPage") },
+  { id: "request", path: "/requests/:id", roles: [...RIL, ...CLIN, ...NC, ...CM], load: p(() => import("../features/access-requests/RequestDetailPage"), "RequestDetailPage") },
+  { id: "coordination", path: "/requests/:id/coordination", roles: [...CLIN, ...NC], load: p(() => import("../features/access-requests/CoordinationPage"), "CoordinationPage") },
   { id: "precheck", path: "/requests/:id/precheck", roles: NC, load: p(() => import("../features/access-requests/PrecheckPage"), "PrecheckPage") },
   { id: "decision", path: "/requests/:id/decision", roles: CM, load: p(() => import("../features/access-requests/DecisionPage"), "DecisionPage") },
   { id: "committee", path: "/committee", roles: CM, nav: { labelKey: "nav.committee" }, load: p(() => import("../features/admin-governance/CommitteePage"), "CommitteePage") },

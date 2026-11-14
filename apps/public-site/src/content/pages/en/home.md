@@ -7,14 +7,15 @@ draft: false
 updated: 2026-11-13
 noindex: false
 hero:
-  headline: Science that walks beside families
-  subline: Hospitals and researchers in Israel share knowledge so children with brain tumors get better answers sooner. The portal holds no patient identity.
+  eyebrow: "A national initiative · Paediatric oncology"
+  headline: "Advancing Israeli research in paediatric solid tumours."
+  subline: "ARI-PST connects the country's paediatric oncology centres into one national index of available tissue and clinical data — so that a discovery in one hospital becomes a trial for every child."
   cta_primary:
-    label: Research areas
-    url: /en/research/
+    label: "Enter the researcher portal"
+    url: /en/login/
   cta_secondary:
-    label: For families
-    url: /en/patients/
+    label: "The initiative"
+    url: /en/about/
 value_props:
   - icon: search
     title: Search

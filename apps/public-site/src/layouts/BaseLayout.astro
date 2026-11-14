@@ -2,7 +2,7 @@
 import '../styles/tokens.css';
 import '../styles/global.css';
 import type { Locale } from '../content/schemas';
-import { DIR, OG_LOCALE, t, LANG_NAME } from '../i18n/ui';
+import { DIR, OG_LOCALE, t, LANG_NAME, LANG_SHORT } from '../i18n/ui';
 import { path, otherLocale } from '../lib/paths';
 import { settings } from '../lib/content';
 import { abs, hreflangLinks, organizationLd, websiteLd, breadcrumbLd, ldString, type Crumb } from '../lib/seo';
@@ -32,6 +32,8 @@ const canonical = abs(path(locale, slug));
 const links = hreflangLinks(locale, slug, hasOther);
 const robots = noindex || NOINDEX_ALL ? 'noindex, nofollow' : 'index, follow';
 const switchHref = hasOther ? path(other, slug) : path(other);
+// EN | עב: English first, as in the brand reference. Direction flips the visual order in Hebrew.
+const langs = (['en', 'he'] as const).map((l) => ({ l, current: l === locale, href: l === locale ? path(locale, slug) : switchHref }));
 const jsonLd = [organizationLd('/favicon.svg'), websiteLd(locale), ...(crumbs.length ? [breadcrumbLd(crumbs)] : []), ...ld];
 const footerLinks = [
   ['privacy', t(locale, 'privacy')], ['terms', t(locale, 'terms')],
@@ -69,32 +71,48 @@ const footerLinks = [
       <div class="bar">
         <a class="brand" href={path(locale)} aria-label={`${s.site_name} - ${t(locale, 'home')}`}>
           <Logo />
-          <span>ARI-PST<small>× Tech4Cancer</small></span>
+          <span class="wordmark" lang="en">ARI-PST</span>
         </a>
-        <div class="tools">
-          <a class="btn btn-sm" href={switchHref} hreflang={other} lang={other} data-umami-event="language_switch">{LANG_NAME[other]}</a>
-          <a class="btn btn-primary btn-sm" href={PORTAL_URL} data-umami-event="login_entry_click">{t(locale, 'login')}</a>
-        </div>
         <div class="nav-wrap">
           <details class="menu">
-            <summary>{t(locale, 'menu')}</summary>
+            <summary>
+              <span class="vh">{t(locale, 'menu')}</span>
+              <svg class="menu-icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" /></svg>
+            </summary>
             <nav aria-label={t(locale, 'mainNav')}>
               <ul class="navlist">
                 {s.nav.map((n) => (
                   <li><a href={path(locale, n.slug)} aria-current={topSlug === n.slug ? 'page' : undefined}>{n.label}</a></li>
                 ))}
+                <li class="nav-login"><a href={PORTAL_URL} data-umami-event="login_entry_click">{t(locale, 'login')}</a></li>
               </ul>
             </nav>
           </details>
         </div>
+        <div class="tools">
+          <div class="lang-switch" role="group" aria-label={t(locale, 'language')}>
+            {langs.map((x) => x.current ? (
+              <a class="seg is-current" href={x.href} hreflang={x.l} lang={x.l} aria-current="true"><span aria-hidden="true">{LANG_SHORT[x.l]}</span><span class="vh">{LANG_NAME[x.l]}</span></a>
+            ) : (
+              <a class="seg" href={x.href} hreflang={x.l} lang={x.l} data-umami-event="language_switch"><span aria-hidden="true">{LANG_SHORT[x.l]}</span><span class="vh">{LANG_NAME[x.l]}</span></a>
+            ))}
+          </div>
+          <a class="btn btn-primary btn-sm header-login" href={PORTAL_URL} data-umami-event="login_entry_click">{t(locale, 'login')}</a>
+        </div>
       </div>
     </header>
     <main id="main" tabindex="-1">
-      <slot />
+      <slot name="hero" />
+      <div class="container">
+        <slot />
+      </div>
     </main>
     <footer class="site-footer">
       <div class="bar">
-        <p>{s.footer_text}</p>
+        <div class="footer-brand">
+          <span class="lockup" lang="en" dir="ltr"><Logo size={32} /><span><span class="wordmark wordmark-sm">ARI-PST</span><span class="partner">× Tech4Cancer</span></span></span>
+          <p>{s.footer_text}</p>
+        </div>
         <nav aria-label={t(locale, 'footerNav')}>
           <ul>
             {footerLinks.map(([sl, label]) => <li><a href={path(locale, sl)}>{label}</a></li>)}

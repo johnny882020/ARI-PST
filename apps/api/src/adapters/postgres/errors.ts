@@ -13,6 +13,7 @@ const BY_MESSAGE: Record<string, ErrorCode> = {
   email_not_verified: 'CONFLICT', user_closed: 'CONFLICT', admin_exists: 'CONFLICT', self_change_denied: 'SOD_VIOLATION', already_voted: 'CONFLICT',
   ethics_center_mismatch: 'VALIDATION_FAILED', donor_inconsistent: 'VALIDATION_FAILED', commit_requires_validated_dry_run: 'CONFLICT',
   invalid_import_transition: 'CONFLICT', invalid_import_status: 'CONFLICT', filter_limit: 'VALIDATION_FAILED', invalid_filters: 'VALIDATION_FAILED', unknown_facet: 'VALIDATION_FAILED',
+  signed_month_required: 'VALIDATION_FAILED', signed_month_in_future: 'VALIDATION_FAILED', invalid_agreement_status: 'VALIDATION_FAILED',
   not_found: 'NOT_FOUND',
 };
 export function mapPgError(e: unknown): unknown {
