@@ -13,7 +13,24 @@ export function onUnauthorized(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 
+/**
+ * Step-up: a sensitive call (vote, decision, role grant, k change, registration decision...) answers 401 STEP_UP_REQUIRED
+ * when the second factor is older than 5 minutes. The StepUpHost dialog registers here. Parallel refusals share one dialog.
+ */
+type StepUpHandler = () => Promise<boolean>;
+let stepUpHandler: StepUpHandler | null = null;
+let pendingStepUp: Promise<boolean> | null = null;
+export function setStepUpHandler(fn: StepUpHandler | null): void {
+  stepUpHandler = fn;
+}
+export function requestStepUp(): Promise<boolean> {
+  if (!stepUpHandler) return Promise.resolve(false);
+  if (!pendingStepUp) pendingStepUp = stepUpHandler().finally(() => { pendingStepUp = null; });
+  return pendingStepUp;
+}
+
 export const api = createApiClient({
+  onStepUpRequired: () => requestStepUp(),
   getCsrfFallback: () => csrfFallback,
   onUnauthorized: () => {
     const now = Date.now();

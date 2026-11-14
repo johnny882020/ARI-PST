@@ -242,6 +242,8 @@ Open findings: [`docs/REVIEW-2026-11.md`](docs/REVIEW-2026-11.md). Known gaps: [
 | [`docs/runbooks/`](docs/runbooks/README.md) | Incident runbooks RB-01 to RB-08 |
 | [`docs/qa/flows/REPORT.md`](docs/qa/flows/REPORT.md) | Major flows: pass/fail per step, with screenshots |
 | [`docs/planning/`](docs/planning/) | Editable development timeline to the February 2027 launch |
+| [`docs/validation/REQUIREMENTS-VALIDATION.md`](docs/validation/REQUIREMENTS-VALIDATION.md) | Status of every requirement (REQ-001 to REQ-072) with evidence |
+| [`docs/ROADMAP-IMPLEMENTATION.md`](docs/ROADMAP-IMPLEMENTATION.md) | Development plan by phase: pilot go-live, expansion, national |
 | [`docs/KNOWN-ISSUES.md`](docs/KNOWN-ISSUES.md) | Known gaps and unverified facts |
 | [`docs/REVIEW-2026-11.md`](docs/REVIEW-2026-11.md) | Code review findings |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Release history |

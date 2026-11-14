@@ -7,6 +7,10 @@ Every release uses synthetic data only.
 ## [Unreleased]
 
 ### Added
+- Requirements validation of REQ-001 to REQ-072 and the spec: [`validation/REQUIREMENTS-VALIDATION.md`](validation/REQUIREMENTS-VALIDATION.md). Implementation roadmap by phase: [`ROADMAP-IMPLEMENTATION.md`](ROADMAP-IMPLEMENTATION.md).
+- Step-up dialog in the protected app (6-digit code or recovery code). The API client sends a call refused with `STEP_UP_REQUIRED` once more after the step-up (review R-03).
+- Migration `0012`: `app_core` may execute `search.norm()` (review R-13).
+- E-mail over an HTTPS API: `MAIL_TRANSPORT=brevo` or `resend` with `MAIL_API_KEY` and `MAIL_FROM`. Use it where SMTP ports are closed (free Render plans). Setup: [`deployment.md` section 13a](deployment.md#13a-e-mail-for-the-demo). The API logs the mail transport at start.
 - Google Cloud migration guide, step by step: [`migration/google-cloud.md`](migration/google-cloud.md), with Cloud Run templates, a two-pass Cloud SQL restore script and a local restore rehearsal (PR #9).
 - Documentation index [`docs/README.md`](README.md).
 - Center coordination screen `/requests/:id/coordination` (coordinator and center clinician). The coordinator links coded samples per item, starts center coordination, answers on behalf of a center, records the MTA/DTA (type, reference, status, signed month) and moves the request to delivery. The holding clinician accepts or declines for the own center, sees the own linked samples and marks delivery. The request closes as `delivered`.
@@ -23,6 +27,9 @@ Every release uses synthetic data only.
 - `pnpm test:e2e:flows` flow f runs through the UI only (no `[api]` steps). The script always rebuilds `apps/api`.
 
 ### Fixed
+- A vote, decision, role grant, `k` change or registration decision more than 5 minutes after sign-in sent the user to "Session ended". The `401 STEP_UP_REQUIRED` answer now opens the step-up dialog and keeps the session.
+- The pre-deploy step could not load the diagnosis vocabulary without the synthetic seed, so a real-data deployment could not create or import samples. Fixed by migration `0012`.
+- Migration `0011` failed on a database that already held MTA/DTA agreements (the live demo): the backfill ran as `app_migrator`, which row-level security blocks, so the new CHECK failed. The backfill now runs as `app_core`. Render kept the previous version live.
 - "Mark coordination done" failed with a validation error because no `centerId` was sent. The coordinator now answers per center.
 - The cart showed the raw token `10_plus`. It now says "10 or more" (`lt10`: "Fewer than 10").
 - Another center's record showed "Something went wrong". It now shows a "Not available" page.

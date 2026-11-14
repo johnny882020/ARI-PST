@@ -1,6 +1,7 @@
 import { createBrowserRouter, Outlet, type RouteObject } from "react-router-dom";
 import { Skeleton } from "@ari/design-system";
 import { SessionProvider } from "../app/session";
+import { StepUpHost } from "../shared/StepUpDialog";
 import { AppLayout, PublicLayout } from "../shared/layout/AppLayout";
 import { PublicOnly, RequireEnrolmentSession, RequireSession, RoleHome } from "../shared/guards";
 import { NotFound404, RouteErrorElement } from "../shared/errors";
@@ -10,6 +11,7 @@ function Root() {
   return (
     <SessionProvider>
       <Outlet />
+      <StepUpHost />
     </SessionProvider>
   );
 }

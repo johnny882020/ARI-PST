@@ -28,6 +28,23 @@ export interface ApiClientOptions {
   /** Called once per 401 on a non-auth endpoint. The app clears state and shows the expiry flow. */
   onUnauthorized?: () => void;
   getCookieSource?: () => { cookie: string } | undefined;
+  /**
+   * Called when the API answers 401 STEP_UP_REQUIRED (sensitive action, second factor older than 5 minutes).
+   * Resolve true after a successful POST /auth/step-up: the client then sends the same call once more.
+   * Resolve false to give the caller the original problem. A step-up answer never counts as a lost session.
+   */
+  onStepUpRequired?: () => Promise<boolean>;
+}
+
+const STEP_UP_CODE = "STEP_UP_REQUIRED";
+
+async function problemCode(response: Response): Promise<string | undefined> {
+  try {
+    const b = (await response.clone().json()) as { code?: unknown };
+    return typeof b?.code === "string" ? b.code : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function createApiClient(opts: ApiClientOptions = {}) {
@@ -37,6 +54,10 @@ export function createApiClient(opts: ApiClientOptions = {}) {
     ...(opts.fetch ? { fetch: (req: Request) => opts.fetch!(req) } : {}),
   });
 
+  // Unsafe calls keep an unread copy, so a call refused for a stale second factor can be sent again after the step-up.
+  const retryCopies = new WeakMap<Request, Request>();
+  const send = (req: Request) => (opts.fetch ?? globalThis.fetch)(req);
+
   const mw: Middleware = {
     onRequest({ request }) {
       if (!SAFE.has(request.method.toUpperCase())) {
@@ -44,12 +65,22 @@ export function createApiClient(opts: ApiClientOptions = {}) {
         if (token) request.headers.set(CSRF_HEADER, token);
       }
       if (!request.headers.has("Accept")) request.headers.set("Accept", "application/json, application/problem+json");
+      if (opts.onStepUpRequired && !SAFE.has(request.method.toUpperCase())) retryCopies.set(request, request.clone());
       return request;
     },
-    onResponse({ response, request }) {
-      if (response.status === 401 && !new URL(request.url, "http://x").pathname.includes("/auth/")) {
-        opts.onUnauthorized?.();
+    async onResponse({ response, request }) {
+      const isAuthPath = new URL(request.url, "http://x").pathname.includes("/auth/");
+      if (response.status === 401 && !isAuthPath) {
+        if ((await problemCode(response)) === STEP_UP_CODE) {
+          // Not a lost session: ask for the second factor, then retry once. Never fire onUnauthorized here.
+          const copy = retryCopies.get(request);
+          retryCopies.delete(request);
+          if (copy && opts.onStepUpRequired && (await opts.onStepUpRequired())) response = await send(copy);
+        } else {
+          opts.onUnauthorized?.();
+        }
       }
+      retryCopies.delete(request);
       // 2xx with no body and no content type (e.g. a bare 202): treat as 204 so the parser does not choke.
       if (response.ok && response.status !== 204 && !response.headers.get("content-type")) {
         return new Response(null, { status: 204, headers: response.headers });

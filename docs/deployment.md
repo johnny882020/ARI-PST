@@ -81,6 +81,7 @@ Typed in the Dashboard (all optional while data is synthetic). Never put these i
 |---|---|---|
 | `PUBLIC_ORIGIN` | `ari-api` | Empty means Render's URL (`RENDER_EXTERNAL_URL`). Set it for a custom domain. |
 | `SMTP_URL`, `MAIL_FROM`, `CONTACT_INBOX` | `ari-api` | Empty means no e-mail is sent. Keep a fallback provider (RT-14). |
+| `MAIL_TRANSPORT`, `MAIL_API_KEY` | `ari-api` | HTTPS mail API instead of SMTP. `MAIL_TRANSPORT` is `brevo` (default when `MAIL_API_KEY` is set) or `resend`. Needs `MAIL_FROM`. See [section 13a](#13a-e-mail-for-the-demo). |
 | `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | `ari-api`, `ari-cron-export` | S3-compatible bucket in the EU. Empty means uploads stay in memory per instance. |
 | `DATABASE_URL_BREAKGLASS` | `ari-cron-export` | Only for an approved break-glass window. |
 | `HEARTBEAT_URL_<JOB>` | Crons | Outside monitor, pinged after a successful run. |
@@ -216,11 +217,38 @@ Render added the suffix `-7teo` to the names in the file.
 | All cron jobs | Cron jobs are paid. The snapshot is refreshed at every start and after a coordinator import |
 | Second instance, zero-downtime deploys | One free instance. It sleeps when idle; the first request after a pause is slow |
 | Backups and point-in-time recovery | Free Postgres has none. Render deletes it after the free period (UNVERIFIED: 30 days) |
-| E-mail and object store | Invites are not delivered. Uploads are lost on restart |
+| Object store | Uploads are lost on restart |
+| E-mail, until you do [section 13a](#13a-e-mail-for-the-demo) | Verification and invitation e-mails are not delivered |
 | PR previews, staging, approval gate | Deploy by hand |
 
 `DEMO_MODE=true` is set. `/livez` reports it (`checks.demo = "on"`). The SPA shows no demo banner yet.
 Because the pre-deploy step runs at every start, the owner connection string and the migrator password stay in the service environment (same residual risk as [section 4](#4-variables)).
+
+## 13a. E-mail for the demo
+
+Without a mail service, the API logs `mail transport is console` at start and sends no e-mail. Sign-up verification links then never arrive.
+Free Render services may block outbound SMTP ports (UNVERIFIED). So the API can send through an HTTPS mail API: Brevo or Resend.
+
+| Provider | Without your own domain | Note |
+|---|---|---|
+| Brevo (recommended) | Sends to any address from one verified sender address | Free tier, EU company. `MAIL_TRANSPORT=brevo` |
+| Resend | Sends only to the account owner's address | Add and verify a domain to send to others. `MAIL_TRANSPORT=resend` |
+
+**Set up Brevo**
+1. Create a Brevo account.
+2. Brevo, Senders, Domains & Dedicated IPs, Senders: add a sender address that you own. Open the confirmation e-mail and confirm it.
+3. Brevo, SMTP & API, API Keys: create an API key. Copy it. Do not put it in Git, chat or tickets.
+4. Render Dashboard, `ari-demo-api-7teo`, Environment. Set:
+   - `MAIL_API_KEY` = the key.
+   - `MAIL_FROM` = `ARI-PST Portal <the verified sender address>`.
+   - `MAIL_TRANSPORT` = `brevo` (optional; it is the default when `MAIL_API_KEY` is set).
+5. Save, rebuild and deploy.
+6. Logs: look for `mail transport ready` with `mailTransport: "brevo"`.
+7. Register a test account with an address you own. The verification e-mail arrives within a few minutes. Look in the spam folder too.
+
+If the provider rejects a message, the outbox worker logs a warning with the HTTP status (no address, no body, no key) and tries again later.
+If `MAIL_API_KEY` is set and `MAIL_FROM` is empty, the API does not start. The log names the missing variable.
+Needs legal review: a mail provider processes the recipient address. Check the provider's DPA before real users.
 
 ## 14. Moving off Render
 

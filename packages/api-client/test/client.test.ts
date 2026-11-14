@@ -43,4 +43,37 @@ describe("api client", () => {
     expect(r.error).toBeUndefined();
     expect(r.response.ok).toBe(true);
   });
+
+  it("STEP_UP_REQUIRED: asks for step-up, retries the same call once, never fires onUnauthorized", async () => {
+    const stepUp = { title: "x", status: 401, code: "STEP_UP_REQUIRED", traceId: "t" };
+    const bodies: string[] = [];
+    let n = 0;
+    const f = vi.fn(async (req: Request) => {
+      bodies.push(await req.text());
+      n += 1;
+      return n === 1
+        ? new Response(JSON.stringify(stepUp), { status: 401, headers: { "content-type": "application/problem+json" } })
+        : new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "content-type": "application/json" } });
+    });
+    const onUnauthorized = vi.fn();
+    const onStepUpRequired = vi.fn(async () => true);
+    const c = createApiClient({ baseUrl: "http://t.test/api/v1", fetch: f as unknown as typeof fetch, onUnauthorized, onStepUpRequired, getCookieSource: () => ({ cookie: "__Host-csrf=abc" }) });
+    const r = await c.PUT("/requests/{requestId}/votes", { params: { path: { requestId: "req_1" } }, body: { vote: "approve" } as never });
+    expect(r.response.status).toBe(200);
+    expect(onStepUpRequired).toHaveBeenCalledTimes(1);
+    expect(onUnauthorized).not.toHaveBeenCalled();
+    expect(f).toHaveBeenCalledTimes(2);
+    expect(bodies[1]).toBe(bodies[0]);
+    expect(f.mock.calls[1]![0].headers.get("X-CSRF-Token")).toBe("abc");
+  });
+
+  it("STEP_UP_REQUIRED: a cancelled step-up returns the original problem and does not sign out", async () => {
+    const f = mkFetch(401, { title: "x", status: 401, code: "STEP_UP_REQUIRED", traceId: "t" }, "application/problem+json");
+    const onUnauthorized = vi.fn();
+    const onStepUpRequired = vi.fn(async () => false);
+    const c = createApiClient({ baseUrl: "http://t.test/api/v1", fetch: f as unknown as typeof fetch, onUnauthorized, onStepUpRequired });
+    await expect(unwrap(c.POST("/governance/k", { body: {} as never }))).rejects.toMatchObject({ code: "STEP_UP_REQUIRED", status: 401 });
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
 });

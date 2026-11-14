@@ -82,3 +82,9 @@ services:
         value: "5"
       - key: ARGON_MEMORY_KIB
         value: "19456"
+      # E-mail over an HTTPS API (free plans may block SMTP ports). Optional: empty = no e-mail is sent.
+      # Type the values in the Dashboard (Environment). Never put them in Git or chat. See docs/deployment.md section 13a.
+      - key: MAIL_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false

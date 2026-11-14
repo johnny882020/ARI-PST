@@ -212,6 +212,8 @@ services:
       # --- optional until real data. Empty = e-mail is not sent (console mailer) and uploads stay in memory.
       - key: SMTP_URL
         sync: false
+      - key: MAIL_API_KEY          # alternative to SMTP_URL: HTTPS mail API, with MAIL_TRANSPORT=brevo or resend
+        sync: false
       - key: MAIL_FROM
         sync: false
       - key: CONTACT_INBOX
