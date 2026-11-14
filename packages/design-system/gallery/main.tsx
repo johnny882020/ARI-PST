@@ -6,6 +6,7 @@ import {
   ErrorState, FacetFilter, Field, Icon, IconButton, Input, LanguageSwitch, Ltr, Pagination, RadioGroup, SearchBox, Select,
   SessionTimeoutDialog, Skeleton, StatusPill, Stepper, SuppressionNotice, Switch, Table, Tabs, Textarea, ThemeToggle,
   ToastProvider, Tooltip, useRequestSteps, useToast, DesignSystemProvider, type Locale, type StatusKind,
+  Logo, Eyebrow, DisplayHeading, buttonClass, ButtonArrow,
 } from "../src/index";
 
 const rows = [
@@ -41,14 +42,32 @@ function Gallery({ locale }: { locale: Locale }) {
   const [radio, setRadio] = useState("a");
   return (
     <>
+      <Section title="Brand">
+        <Logo />
+        <Logo size={32} className="ds-logo-sm" />
+        <Logo partner />
+        <div className="ds-hero" style={{ inlineSize: "100%", borderRadius: "var(--radius-xl)" }}>
+          <Eyebrow>{locale === "he" ? "יוזמה לאומית · אונקולוגיה ילדים" : "A national initiative · Paediatric oncology"}</Eyebrow>
+          <DisplayHeading level={2}>{locale === "he" ? "מקדמים מחקר ישראלי בגידולים מוצקים בילדים." : "Advancing Israeli research in paediatric solid tumours."}</DisplayHeading>
+          <p className="ds-lead">{locale === "he" ? "טקסט פתיחה לדוגמה." : "Sample intro paragraph in the lead style."}</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
+            <a className={buttonClass({ variant: "primary", size: "lg", arrow: true })} href="#portal"><span className="ds-btn-label">{locale === "he" ? "כניסה לפורטל החוקרים" : "Enter the researcher portal"}</span><ButtonArrow /></a>
+            <a className={buttonClass({ variant: "secondary", size: "lg" })} href="#about"><span className="ds-btn-label">{locale === "he" ? "על היוזמה" : "The initiative"}</span></a>
+          </div>
+        </div>
+      </Section>
       <Section title="Buttons">
         <Button variant="primary">Primary</Button>
+        <Button variant="primary" arrow>With arrow</Button>
+        <Button variant="primary" size="lg" arrow>Large</Button>
         <Button>Secondary</Button>
+        <Button size="sm">Small</Button>
         <Button variant="quiet">Quiet</Button>
         <Button variant="danger">Danger</Button>
         <Button loading>Loading</Button>
         <Button disabled>Disabled</Button>
         <IconButton label="Search"><Icon name="search" /></IconButton>
+        <IconButton label="Menu" variant="outline"><Icon name="menu" /></IconButton>
         <Chip onRemove={() => {}}>Medulloblastoma</Chip>
         <Badge tone="success">Badge</Badge>
         <ToastDemo />
@@ -134,12 +153,12 @@ function App() {
     <DesignSystemProvider locale={locale} syncDocument>
       <ToastProvider>
         <AppShell
-          brand="ARI-PST × Tech4Cancer"
+          brand={<a href="#" style={{ textDecoration: "none" }}><Logo /></a>}
           nav={[{ id: "g", label: locale === "he" ? "גלריה" : "Gallery", href: "#", current: true, icon: "filter" }, { id: "s", label: locale === "he" ? "חיפוש" : "Search", href: "#s", icon: "search" }]}
           headerActions={<><LanguageSwitch value={locale} onChange={setLocale} /><ThemeToggle /></>}
           footer="Synthetic data only"
         >
-          <h1 style={{ fontFamily: "var(--font-display)" }}>{locale === "he" ? "גלריית רכיבים" : "Component gallery"}</h1>
+          <DisplayHeading size="title">{locale === "he" ? "גלריית רכיבים" : "Component gallery"}</DisplayHeading>
           <Gallery locale={locale} />
         </AppShell>
       </ToastProvider>

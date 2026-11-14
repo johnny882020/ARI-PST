@@ -5,6 +5,7 @@ import {
   ErrorState, FacetFilter, Field, IconButton, Icon, Input, LanguageSwitch, Pagination, Radio, RadioGroup,
   SearchBox, Select, SessionTimeoutDialog, Skeleton, StatusPill, Stepper, Switch, Table, Tabs, Textarea,
   ThemeToggle, ToastProvider, Tooltip, SuppressionNotice, SuppressedCell, Bdi, Ltr, useRequestSteps,
+  Logo, Eyebrow, DisplayHeading, buttonClass, ButtonArrow,
 } from "../index";
 import { axe, LOCALES, renderIn } from "./helpers";
 
@@ -96,6 +97,18 @@ const FIXTURES: Record<string, () => ReactElement> = {
     </AppShell>
   ),
   LanguageSwitch: () => <LanguageSwitch value="he" />,
+  LanguageSwitchLinks: () => <LanguageSwitch value="en" options={[{ locale: "en", label: "English", short: "EN", href: "/en/" }, { locale: "he", label: "עברית", short: "עב", href: "/he/" }]} />,
+  Brand: () => (
+    <div>
+      <a href="/"><Logo /></a>
+      <Logo partner />
+      <Eyebrow>A national initiative · Paediatric oncology</Eyebrow>
+      <DisplayHeading>Advancing research.</DisplayHeading>
+      <a className={buttonClass({ variant: "primary", size: "lg", arrow: true })} href="/portal"><span className="ds-btn-label">Enter</span><ButtonArrow /></a>
+      <Button arrow variant="primary">Next</Button>
+      <IconButton label="Menu" variant="outline"><Icon name="menu" /></IconButton>
+    </div>
+  ),
   ThemeToggle: () => <ThemeToggle value="system" onChange={() => {}} />,
   AggregateCountTile: () => (
     <div>

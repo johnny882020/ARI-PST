@@ -6,6 +6,7 @@ import {
   AggregateCountTile, Button, Checkbox, ConsentBanner, Dialog, FacetFilter, IconButton, Icon, Input, LanguageSwitch,
   Pagination, SessionTimeoutDialog, Stepper, Table, Tabs, ThemeToggle, ToastProvider, useToast, buildRequestSteps,
   REQUEST_STEP_IDS, DesignSystemProvider, Tooltip, Chip, Bdi, StatusPill, Select, AppShell,
+  Logo, Eyebrow, DisplayHeading, buttonClass,
 } from "../index";
 import { renderIn } from "./helpers";
 
@@ -310,6 +311,29 @@ describe("QA fixes: shell, language switch, facet heading, target sizes", () => 
     unmount();
     renderIn(<LanguageSwitch value="he" options={[{ locale: "he", label: "עברית", href: "/he/" }, { locale: "en", label: "English", href: "/en/" }]} />);
     expect(screen.getByRole("navigation")).toHaveAccessibleName();
+  });
+  it("LanguageSwitch: short visible codes keep the full endonym as the accessible name", () => {
+    renderIn(<LanguageSwitch value="en" />);
+    const en = screen.getByRole("button", { name: "English" });
+    expect(en).toHaveTextContent("EN");
+    expect(en).toHaveClass("ds-selected");
+    expect(screen.getByRole("button", { name: "עברית" })).toHaveTextContent("עב");
+  });
+  it("Logo: wordmark is the name, mark is hidden; DisplayHeading level; Button arrow mirrors", () => {
+    const { container } = renderIn(
+      <>
+        <a href="/"><Logo partner /></a>
+        <DisplayHeading level={2}>Title</DisplayHeading>
+        <Eyebrow>Kicker</Eyebrow>
+        <Button arrow variant="primary">Go</Button>
+      </>,
+    );
+    expect(screen.getByRole("link")).toHaveAccessibleName("ARI-PST × Tech4Cancer");
+    expect(container.querySelector(".ds-logo-mark")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByRole("heading", { level: 2, name: "Title" })).toHaveClass("ds-display");
+    expect(container.querySelector(".ds-eyebrow-dot")).toHaveAttribute("aria-hidden", "true");
+    expect(container.querySelector(".ds-btn-arrow")).toHaveClass("ds-icon-mirror");
+    expect(buttonClass({ variant: "secondary", size: "lg" })).toBe("ds-btn ds-btn-secondary ds-btn-lg");
   });
   it("FacetFilter: collapsible heading level follows the prop (default 3)", () => {
     const opts = [{ value: "a", label: "A", count: 3 }];
