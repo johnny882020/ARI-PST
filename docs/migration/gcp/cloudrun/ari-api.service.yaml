@@ -1,0 +1,112 @@
+# Cloud Run service for ari-api (API at /api/v1 + protected SPA at /). docs/migration/google-cloud.md section 4.5.
+# Apply:  sed -e "s/PROJECT_ID/$PROJECT_ID/g" -e "s/REGION/$REGION/g" -e "s#IMAGE_DIGEST#$IMAGE#g" -e "s/GIT_SHA/$SHA/g" \
+#           docs/migration/gcp/cloudrun/ari-api.service.yaml > /tmp/ari-api.yaml
+#         gcloud run services replace /tmp/ari-api.yaml --region "$REGION"
+# The CI workflow (github/deploy-gcp.yml) uses "gcloud run deploy" flags instead; keep both in step.
+# Placeholders: PROJECT_ID, REGION, IMAGE_DIGEST (REGION-docker.pkg.dev/PROJECT_ID/ari/ari-api@sha256:...), GIT_SHA,
+#               DB_PRIVATE_IP, PORTAL_HOST (e.g. portal.ari-pst.example), SITE_HOST (e.g. www.ari-pst.example).
+# Synthetic data only: DATA_CLASSIFICATION=synthetic until GATE-PROD-DATA closes.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ari-api
+  labels:
+    cloud.googleapis.com/location: REGION
+    app: ari-pst
+  annotations:
+    # Only the HTTPS load balancer (with Cloud Armor) may reach the service. The *.run.app URL is closed.
+    run.googleapis.com/ingress: internal-and-cloud-load-balancing
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      labels:
+        app: ari-pst
+      annotations:
+        # Two warm instances = the Render "numInstances: 2" (C-04) and zero-downtime revision switches.
+        autoscaling.knative.dev/minScale: "2"
+        autoscaling.knative.dev/maxScale: "6"
+        # The outbox worker runs inside the process every OUTBOX_INTERVAL_MS. It needs CPU between requests.
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/execution-environment: gen2
+        # Direct VPC egress to reach Cloud SQL on its private IP. Internet egress (SMTP, heartbeats) stays direct.
+        run.googleapis.com/network-interfaces: '[{"network":"ari-vpc","subnetwork":"ari-run-REGION","tags":["ari-api"]}]'
+        run.googleapis.com/vpc-access-egress: private-ranges-only
+    spec:
+      serviceAccountName: ari-api@PROJECT_ID.iam.gserviceaccount.com
+      containerConcurrency: 40
+      timeoutSeconds: 60
+      containers:
+        - name: api
+          image: IMAGE_DIGEST
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          # Startup probe on /readyz: a new revision gets traffic only when the DB is reachable AND the migration level
+          # matches the build (C-05). This is the Render healthCheckPath gate. /readyz needs no session.
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 36
+          # Liveness on /livez only: a short DB outage must not restart every instance.
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: 8080
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 4
+          # Optional (Preview at last check, UNVERIFIED if GA): readinessProbe on /readyz takes an instance out of
+          # rotation while its DB link is down, without a restart. Add it when your gcloud/API version accepts it.
+          env:
+            - { name: NODE_ENV, value: production }
+            - { name: LOG_FORMAT, value: json }
+            - { name: DATA_CLASSIFICATION, value: synthetic }
+            - { name: REGION_PIN, value: REGION }
+            - { name: APP_VERSION, value: GIT_SHA }
+            - { name: PUBLIC_ORIGIN, value: "https://PORTAL_HOST" }
+            - { name: PUBLIC_SITE_ORIGIN, value: "https://SITE_HOST" }
+            - { name: WEB_DIST_DIR, value: /app/apps/web/dist }
+            - { name: DB_HOST, value: DB_PRIVATE_IP }
+            - { name: DB_PORT, value: "5432" }
+            - { name: DB_NAME, value: ari_portal }
+            # Phase 1 (synthetic): encrypted, server not verified. Before GATE-PROD-DATA use DATABASE_URL with
+            # sslmode=verify-ca&uselibpqcompat=true&sslrootcert=/etc/ari/db-ca/server-ca.pem (section 4.2.6).
+            - { name: DB_SSLMODE, value: no-verify }
+            - { name: DB_POOL_MAX, value: "10" }
+            - { name: OUTBOX_INTERVAL_MS, value: "15000" }
+            - { name: MAIL_FROM, value: "ARI-PST Portal <no-reply@PORTAL_HOST>" }
+            - { name: CONTACT_INBOX, value: "contact@PORTAL_HOST" }
+            # Object store: Cloud Storage through its S3-compatible XML API (the existing S3 adapter).
+            - { name: OBJECT_STORE, value: s3 }
+            - { name: S3_BUCKET, value: PROJECT_ID-ari-objects }
+            - { name: S3_ENDPOINT, value: "https://storage.googleapis.com" }
+            - { name: S3_REGION, value: auto }
+            - { name: S3_FORCE_PATH_STYLE, value: "true" }
+            - { name: AWS_REQUEST_CHECKSUM_CALCULATION, value: WHEN_REQUIRED }
+            - { name: AWS_RESPONSE_CHECKSUM_VALIDATION, value: WHEN_REQUIRED }
+            # Secrets: Secret Manager, pinned versions in production (a rotation is a reviewed change).
+            - name: DB_PASSWORD_RUNTIME
+              valueFrom: { secretKeyRef: { name: ari-db-password-runtime, key: "1" } }
+            - name: IP_HASH_SALT
+              valueFrom: { secretKeyRef: { name: ari-ip-hash-salt, key: "1" } }
+            - name: SECRETS_KEY
+              valueFrom: { secretKeyRef: { name: ari-secrets-key, key: "1" } }
+            - name: SMTP_URL
+              valueFrom: { secretKeyRef: { name: ari-smtp-url, key: latest } }
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom: { secretKeyRef: { name: ari-gcs-hmac-id, key: latest } }
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom: { secretKeyRef: { name: ari-gcs-hmac-secret, key: latest } }
+  traffic:
+    - latestRevision: true
+      percent: 100

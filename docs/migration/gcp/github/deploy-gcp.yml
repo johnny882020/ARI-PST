@@ -1,0 +1,152 @@
+# EXAMPLE workflow (not active here). Copy to .github/workflows/deploy-gcp.yml only after the GCP cutover is approved.
+# It is the Google Cloud twin of .github/workflows/deploy-protected.yml. docs/migration/google-cloud.md section 4.10.
+#
+# Gate 1: ci-gate green on the exact commit (workflow_run of "ci").
+# Gate 2: the same image digest runs on staging and passes smoke.
+# Gate 3: manual approval in GitHub Environment "production-protected" (2 required reviewers, no self-review).
+# Build once, promote the SAME digest. No service-account keys: Workload Identity Federation only.
+#
+# Repo/environment variables (not secrets; WIF needs none):
+#   GCP_WIF_PROVIDER     projects/<shared-project-number>/locations/global/workloadIdentityPools/github/providers/ari-repo
+#   GCP_BUILD_SA         ari-ci-builder@<shared-project>.iam.gserviceaccount.com
+#   GCP_AR_IMAGE         <region>-docker.pkg.dev/<shared-project>/ari/ari-api
+#   GCP_REGION           e.g. europe-west3 (GATE-REGION default) or me-west1
+#   per environment (staging / production-protected):
+#     GCP_PROJECT        ari-pst-stg | ari-pst-prod
+#     GCP_DEPLOY_SA      ari-deployer@<project>.iam.gserviceaccount.com
+#     BASE_URL           https://portal-stg.<domain> | https://portal.<domain>
+#     CANARY_PERCENT     0 (off) or e.g. 10, production only
+#   DEPLOY_PAUSED        "true" stops before approval (same switch as today)
+name: deploy-gcp
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-gcp
+  cancel-in-progress: false
+env:
+  CRON_JOBS: ari-job-staleness ari-job-audit-verify ari-job-purge ari-job-export ari-job-snapshot
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      sha: ${{ steps.s.outputs.sha }}
+      image: ${{ steps.push.outputs.image }}
+    steps:
+      - name: Pause switch
+        env: { PAUSED: "${{ vars.DEPLOY_PAUSED }}" }
+        run: '[ "$PAUSED" != "true" ] || { echo "DEPLOY_PAUSED=true"; exit 1; }'
+      - id: s
+        env:
+          WR_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_SHA: ${{ github.sha }}
+        run: echo "sha=${WR_SHA:-$GH_SHA}" >> "$GITHUB_OUTPUT"
+      # Pin every action to a full commit SHA before use (scripts/pin-actions-report.py).
+      - uses: actions/checkout@v4
+        with: { ref: "${{ steps.s.outputs.sha }}", persist-credentials: false }
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_BUILD_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Docker login to Artifact Registry
+        env: { REGION: "${{ vars.GCP_REGION }}" }
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+      - uses: docker/setup-buildx-action@v3
+      - id: push
+        name: Build and push (runtime + ops targets)
+        env:
+          IMAGE: ${{ vars.GCP_AR_IMAGE }}
+          SHA: ${{ steps.s.outputs.sha }}
+        run: |
+          docker buildx build -f docs/migration/gcp/Dockerfile --target runtime --build-arg APP_VERSION="$SHA" \
+            -t "$IMAGE:$SHA" --push --metadata-file meta.json .
+          digest=$(python3 -c "import json;print(json.load(open('meta.json'))['containerimage.digest'])")
+          docker buildx build -f docs/migration/gcp/Dockerfile --target ops -t "${IMAGE%/*}/ari-ops:$SHA" --push .
+          echo "image=$IMAGE@$digest" >> "$GITHUB_OUTPUT"
+          echo "built $IMAGE@$digest"
+
+  staging:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment:
+      name: staging
+      url: ${{ vars.BASE_URL }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ needs.build.outputs.sha }}", persist-credentials: false }
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Deploy (jobs, predeploy, service)
+        env:
+          PROJECT: ${{ vars.GCP_PROJECT }}
+          REGION: ${{ vars.GCP_REGION }}
+          IMAGE: ${{ needs.build.outputs.image }}
+          SHA: ${{ needs.build.outputs.sha }}
+        run: bash docs/migration/gcp/github/rollout.sh
+      - name: Smoke (version must match)
+        env: { BASE_URL: "${{ vars.BASE_URL }}" }
+        run: bash scripts/smoke.sh --wait 120 --expect-sha "${{ needs.build.outputs.sha }}"
+
+  production:
+    needs: [build, staging]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment:
+      name: production-protected
+      url: ${{ vars.BASE_URL }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ needs.build.outputs.sha }}", persist-credentials: false }
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - id: prev
+        name: Remember the serving revision (rollback target)
+        env: { PROJECT: "${{ vars.GCP_PROJECT }}", REGION: "${{ vars.GCP_REGION }}" }
+        run: |
+          rev=$(gcloud run services describe ari-api --project "$PROJECT" --region "$REGION" \
+                 --format='value(status.traffic[0].revisionName)')
+          echo "revision=$rev" >> "$GITHUB_OUTPUT"; echo "serving before deploy: $rev"
+      - name: Deploy (jobs, predeploy, service; optional canary)
+        env:
+          PROJECT: ${{ vars.GCP_PROJECT }}
+          REGION: ${{ vars.GCP_REGION }}
+          IMAGE: ${{ needs.build.outputs.image }}
+          SHA: ${{ needs.build.outputs.sha }}
+          CANARY_PERCENT: ${{ vars.CANARY_PERCENT }}
+          BASE_URL: ${{ vars.BASE_URL }}
+        run: bash docs/migration/gcp/github/rollout.sh
+      - name: Post-deploy smoke
+        env: { BASE_URL: "${{ vars.BASE_URL }}" }
+        run: bash scripts/smoke.sh --wait 60 --expect-sha "${{ needs.build.outputs.sha }}"
+      - name: Roll back traffic on failure (RB-01). The database is never rolled back.
+        if: failure() && steps.prev.outputs.revision != ''
+        env:
+          PROJECT: ${{ vars.GCP_PROJECT }}
+          REGION: ${{ vars.GCP_REGION }}
+          PREV: ${{ steps.prev.outputs.revision }}
+        run: |
+          gcloud run services update-traffic ari-api --project "$PROJECT" --region "$REGION" --to-revisions "$PREV=100"
+          echo "traffic is back on $PREV. Cron jobs keep the new image: re-run rollout.sh with the old digest if needed."

@@ -1,0 +1,63 @@
+# Cloud Run job: ari-job-predeploy. Runs scripts/render-predeploy.mjs (roles, bootstrap, migrations, optional seed)
+# BEFORE traffic moves to a new revision. docs/migration/google-cloud.md sections 4.6 and 4.10.
+# Apply:  sed ... (same placeholders as ari-api.service.yaml) > /tmp/job.yaml && gcloud run jobs replace /tmp/job.yaml --region "$REGION"
+# Run:    gcloud run jobs execute ari-job-predeploy --region "$REGION" --wait
+# The owner URL (Cloud SQL "postgres" user) and the migrator password live ONLY on this job, never on ari-api.
+# That closes the Render residual risk in docs/deployment.md section 4 (owner string readable on the API service).
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  name: ari-job-predeploy
+  labels:
+    cloud.googleapis.com/location: REGION
+    app: ari-pst
+  annotations:
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/network-interfaces: '[{"network":"ari-vpc","subnetwork":"ari-run-REGION","tags":["ari-jobs"]}]'
+        run.googleapis.com/vpc-access-egress: private-ranges-only
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      parallelism: 1
+      taskCount: 1
+      template:
+        spec:
+          serviceAccountName: ari-migrator@PROJECT_ID.iam.gserviceaccount.com
+          maxRetries: 0
+          timeoutSeconds: 1800
+          containers:
+            - name: predeploy
+              image: IMAGE_DIGEST
+              command: ["node"]
+              args: ["scripts/render-predeploy.mjs"]
+              resources:
+                limits: { cpu: "1", memory: 1Gi }
+              env:
+                - { name: NODE_ENV, value: production }
+                - { name: DATA_CLASSIFICATION, value: synthetic }
+                - { name: PUBLIC_ORIGIN, value: "https://PORTAL_HOST" }   # read by loadConfig() in the seed step
+                # Staging and previews only. Remove by ADR when GATE-PROD-DATA closes.
+                - { name: SEED_SYNTHETIC, value: "true" }
+                - { name: SEED_PROFILE, value: preview }
+                - { name: DB_HOST, value: DB_PRIVATE_IP }
+                - { name: DB_PORT, value: "5432" }
+                - { name: DB_NAME, value: ari_portal }
+                - { name: DB_SSLMODE, value: no-verify }
+                # postgres://postgres:<pw>@DB_PRIVATE_IP:5432/ari_portal?sslmode=no-verify (whole URL is one secret)
+                - name: DATABASE_URL_OWNER
+                  valueFrom: { secretKeyRef: { name: ari-db-url-owner, key: latest } }
+                - name: DB_PASSWORD_MIGRATOR
+                  valueFrom: { secretKeyRef: { name: ari-db-password-migrator, key: "1" } }
+                - name: DB_PASSWORD_RUNTIME
+                  valueFrom: { secretKeyRef: { name: ari-db-password-runtime, key: "1" } }
+                - name: DB_PASSWORD_BG
+                  valueFrom: { secretKeyRef: { name: ari-db-password-bg, key: "1" } }
+                - name: SEED_USER_PASSWORD
+                  valueFrom: { secretKeyRef: { name: ari-seed-user-password, key: latest } }
+                - name: IP_HASH_SALT
+                  valueFrom: { secretKeyRef: { name: ari-ip-hash-salt, key: "1" } }
+                - name: SECRETS_KEY
+                  valueFrom: { secretKeyRef: { name: ari-secrets-key, key: "1" } }
