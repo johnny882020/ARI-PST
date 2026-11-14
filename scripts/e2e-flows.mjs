@@ -95,7 +95,7 @@ const ID_PATTERNS = [
 ];
 async function noIdentifiers(page, scope = 'main') {
   const text = await page.locator(scope).first().innerText();
-  for (const [what, re] of ID_PATTERNS) expect(!re.test(text), `${what} on screen: "${text.match(re)[0]}"`);
+  for (const [what, re] of ID_PATTERNS) { const m = text.match(re); expect(!m, `${what} on screen: "${m?.[0]}"`); }
 }
 async function shot(page, flow, stepName, locale, opts = {}) {
   shotNo++;
@@ -215,13 +215,24 @@ async function api(page, method, url, body, headers = {}) {
 /** Read-only lookups that only plan the test (which codes exist). They do not count as UI work. */
 async function lookup(page, method, url, body) { const was = current?.api; const r = await api(page, method, url, body); if (current) current.api = was; return r; }
 const must = (r, status, what) => { expect(r.status === status, `${what}: expected ${status}, got ${r.status} ${r.text}`); return r.json; };
+// Role/text based selectors only (the visual theme may change).
+const tracker = (page) => page.getByRole('list', { name: /התקדמות הבקשה|Request progress/ });
 async function trackerSteps(page) {
-  const lis = page.locator('ol.ds-stepper > li');
+  const lis = tracker(page).getByRole('listitem');
   const n = await lis.count();
-  const cur = await page.locator('ol.ds-stepper > li[aria-current=step] .ds-step-title').first().innerText().catch(() => null);
-  const done = await page.locator('ol.ds-stepper > li.ds-step-done').count();
-  return { n, cur, done };
+  const cur = await tracker(page).locator('li[aria-current=step]').first().innerText().catch(() => null);
+  return { n, cur: cur?.split('\n')[0] ?? null };
 }
+const totalTile = (page) => page.locator('main [data-state]').filter({ hasText: /דגימות תואמות|Samples that match/ }).first();
+const tileState = (page, want) => totalTile(page).and(page.locator(`[data-state=${want}]`)).waitFor({ timeout: 10000 });
+const tileNumber = async (page, label) => Number((await page.locator('main [data-state]').filter({ hasText: label }).first().innerText()).replace(label, '').replace(/[^0-9]/g, ''));
+const facetGroup = (page, legend) => page.getByRole('group', { name: legend, exact: true });
+async function openFacet(page, legend) {
+  const toggle = page.getByRole('button', { name: legend, exact: true });
+  if (await toggle.count() && (await toggle.first().getAttribute('aria-expanded')) === 'false') await toggle.first().click();
+}
+const AGE_ORDER = ['0_lt1', '1_lt3', '3_lt6', '6_lt10', '10_lt15', '15_lt18'];
+async function ageBox(page, legend, band) { await openFacet(page, legend); return facetGroup(page, legend).getByRole('checkbox').nth(AGE_ORDER.indexOf(band)); }
 async function signOut(page) {
   await page.getByRole('button', { name: /Sign out|התנתקות/ }).first().click();
   await page.waitForURL((u) => /\/login|\/session-ended/.test(u.pathname), { timeout: 10000 });
@@ -232,6 +243,7 @@ const S = {};   // shared state between flows
 async function main() {
   mkdirSync(SHOTS, { recursive: true });
   for (const f of (await import('node:fs')).readdirSync(SHOTS)) if (f.endsWith('.png')) rmSync(path.join(SHOTS, f));
+  if (process.argv.includes('--serve')) { console.log(await startStack()); console.log(`serving ${BASE} and ${SITE}; Ctrl+C to stop`); await new Promise((r) => { process.on('SIGINT', r); process.on('SIGTERM', r); }); return; }
   const up = await step('setup', 'start Render-like DB, predeploy with synthetic seed, API (production build), public site', startStack);
   if (!up) return;
   browser = await chromium.launch();
@@ -275,7 +287,7 @@ async function main() {
     await signIn(res, U('researcher.a'), 'he');
     await res.getByRole('link', { name: 'חיפוש' }).first().click();
     await res.waitForURL(/\/search/);
-    await res.locator('.ds-tile[data-state=value]').first().waitFor({ timeout: 15000 });
+    await tileState(res, 'value');
     await shot(res, 'b-search', 'start', 'he');
     checkClean(res);
   });
@@ -302,33 +314,26 @@ async function main() {
     return `diagnosis ${pick.code} + FFPE = ${pick.count}; adding age band ${pick.band} is suppressed`;
   });
   const facet = async (page, legend, option) => {
-    const toggle = page.locator('button.ds-facet-toggle', { hasText: legend });
-    if (await toggle.count() && (await toggle.first().getAttribute('aria-expanded')) === 'false') await toggle.first().click();
-    await page.locator('.ds-facet').filter({ hasText: legend }).getByRole('checkbox', { name: option }).first().check();
+    await openFacet(page, legend);
+    await facetGroup(page, legend).getByRole('checkbox', { name: option }).first().check();
     await page.waitForTimeout(600); await page.waitForLoadState('networkidle');
   };
-  const ageLabel = { he: { '0_lt1': /מתחת לשנה|0/, }, en: {} };
-  void ageLabel;
   await step('b-search', 'filter diagnosis + sample type FFPE: count tile shows a number', async () => {
     await facet(res, 'אבחנה', S.search.he);
     await facet(res, 'סוג דגימה', /FFPE/);
-    await res.waitForFunction(() => document.querySelector('.ds-tile')?.getAttribute('data-state') === 'value', null, { timeout: 10000 });
-    const v = await res.locator('.ds-tile .ds-tile-value').first().innerText();
-    expect(Number(v.replace(/[^0-9]/g, '')) === S.search.count, `tile shows ${v}, API said ${S.search.count}`);
+    await tileState(res, 'value');
+    const v = String(await tileNumber(res, 'דגימות תואמות'));
+    expect(Number(v) === S.search.count, `tile shows ${v}, API said ${S.search.count}`);
     expect(new URL(res.url()).searchParams.get('dx') === S.search.code, 'filter not in URL');
     await shot(res, 'b-search', 'filtered-count', 'he');
     checkClean(res);
     return `tile ${v}`;
   });
   await step('b-search', 'add an age band: tile shows "Too few to show", no number, add-to-cart disabled', async () => {
-    const ageToggle = res.locator('button.ds-facet-toggle', { hasText: 'גיל' }).first();
-    if ((await ageToggle.getAttribute('aria-expanded')) === 'false') await ageToggle.click();
-    const ageBox = res.locator('.ds-facet').filter({ hasText: 'גיל' }).getByRole('checkbox');
     // The age bands are listed in ENUM order: 0_lt1 1_lt3 3_lt6 6_lt10 10_lt15 15_lt18
-    const order = ['0_lt1', '1_lt3', '3_lt6', '6_lt10', '10_lt15', '15_lt18'];
-    await ageBox.nth(order.indexOf(S.search.band)).check();
-    await res.waitForFunction(() => document.querySelector('.ds-tile')?.getAttribute('data-state') === 'suppressed', null, { timeout: 10000 });
-    const tile = await res.locator('.ds-tile').first().innerText();
+    await (await ageBox(res, 'גיל באבחנה', S.search.band)).check();
+    await tileState(res, 'suppressed');
+    const tile = (await totalTile(res).innerText()).replace('דגימות תואמות', '');
     expect(/מעט מדי להצגה/.test(tile), 'suppressed label missing: ' + tile);
     expect(!/[0-9]/.test(tile), 'suppressed tile prints a number: ' + tile);
     expect(await res.getByRole('button', { name: 'הוספה לסל הבקשה' }).isDisabled(), 'add-to-cart is enabled on a suppressed count');
@@ -337,9 +342,9 @@ async function main() {
     await shot(res, 'b-search', 'suppressed-too-few', 'he');
     checkClean(res);
   });
-  await step('b-search', 'remove the age band chip, add the search to the request cart', async () => {
-    await res.locator('.chips').getByRole('button').filter({ hasNotText: /ניקוי/ }).last().click();
-    await res.waitForFunction(() => document.querySelector('.ds-tile')?.getAttribute('data-state') === 'value', null, { timeout: 10000 });
+  await step('b-search', 'clear the age band again, add the search to the request cart', async () => {
+    await (await ageBox(res, 'גיל באבחנה', S.search.band)).uncheck();
+    await tileState(res, 'value');
     await res.getByRole('button', { name: 'הוספה לסל הבקשה' }).click();
     await res.getByRole('status').filter({ hasText: 'נוסף לסל הבקשה' }).waitFor({ timeout: 10000 });
     await shot(res, 'b-search', 'added-to-cart', 'he');
@@ -348,15 +353,15 @@ async function main() {
   });
   await step('b-search', 'English: same search shows the count and the suppressed tile', async () => {
     await setLang(res, 'en');
-    await res.waitForFunction(() => document.querySelector('.ds-tile')?.getAttribute('data-state') === 'value', null, { timeout: 10000 });
+    await tileState(res, 'value');
     await shot(res, 'b-search', 'filtered-count', 'en');
-    const ageToggle = res.locator('button.ds-facet-toggle', { hasText: /Age/ }).first();
-    if ((await ageToggle.getAttribute('aria-expanded')) === 'false') await ageToggle.click();
-    const order = ['0_lt1', '1_lt3', '3_lt6', '6_lt10', '10_lt15', '15_lt18'];
-    await res.locator('.ds-facet').filter({ hasText: /Age/ }).getByRole('checkbox').nth(order.indexOf(S.search.band)).check();
-    await res.waitForFunction(() => document.querySelector('.ds-tile')?.getAttribute('data-state') === 'suppressed', null, { timeout: 10000 });
-    expect(/Too few to show/.test(await res.locator('.ds-tile').first().innerText()), 'English suppressed label missing');
+    const box = await ageBox(res, 'Age at diagnosis', S.search.band);
+    await box.check();
+    await tileState(res, 'suppressed');
+    expect(/Too few to show/.test(await totalTile(res).innerText()), 'English suppressed label missing');
     await shot(res, 'b-search', 'suppressed-too-few', 'en');
+    await box.uncheck();
+    await tileState(res, 'value');
     await setLang(res, 'he');
     checkClean(res);
   });
@@ -364,7 +369,7 @@ async function main() {
     const m = await newPage('he', MOBILE);
     await signIn(m, U('researcher.c'), 'he');
     await m.goto(`${BASE}/search?dx=${S.search.code}&type=ffpe`, { waitUntil: 'networkidle' });
-    await m.locator('.ds-tile[data-state=value]').first().waitFor({ timeout: 15000 });
+    await tileState(m, 'value');
     const sw = await m.evaluate(() => document.documentElement.scrollWidth);
     expect(sw <= 390, `horizontal scroll on mobile: scrollWidth ${sw}`);
     await shot(m, 'b-search-mobile', 'filtered-count', 'he');
@@ -428,7 +433,7 @@ async function main() {
     await shot(res, 'c-request', 'sent', 'he');
     await res.getByRole('button', { name: 'מעקב אחרי הבקשה' }).click();
     await res.waitForURL(new RegExp(`/requests/${S.reqId}$`));
-    await res.locator('ol.ds-stepper').waitFor();
+    await tracker(res).waitFor();
     const tr = await trackerSteps(res);
     expect(tr.n === 8, `tracker has ${tr.n} steps`);
     await noIdentifiers(res);
@@ -452,7 +457,7 @@ async function main() {
     await coord.locator(`main a[href="/requests/${S.reqId}"]`).first().click();
     await coord.waitForURL(new RegExp(`/requests/${S.reqId}$`));
     await shot(coord, 'd-precheck', 'request-detail', 'he');
-    const link = coord.getByRole('link', { name: /בדיקה מקדימה|פתיחת/ }).filter({ has: coord.locator('.ds-btn-label') });
+    const link = coord.getByRole('link', { name: 'התחלת בדיקה מקדימה' });
     if (await link.count()) await link.first().click();
     else {
       note('UI GAP: no pre-check button on the request page (status "submitted"); opened /requests/:id/precheck by URL');
@@ -522,7 +527,7 @@ async function main() {
     allow(coord, /PATCH \/api\/v1\/requests\/.*\/steps\//);
     await coord.getByRole('button', { name: 'סימון תיאום כהושלם' }).click();
     await coord.waitForTimeout(1500);
-    const alert = await coord.locator('main [role=alert], main .ds-alert-danger').allInnerTexts();
+    const alert = await coord.locator('main [role=alert]').allInnerTexts();
     await shot(coord, 'f-delivery', 'coordination-button', 'he');
     const st = (await lookup(coord, 'GET', `/api/v1/requests/${S.reqId}`)).json?.status;
     checkClean(coord);
@@ -558,7 +563,7 @@ async function main() {
     await waitMain(res, /נמסרה\./);
     const tr = await trackerSteps(res);
     expect(tr.n === 8, 'tracker not 8 steps');
-    expect(tr.done >= 7, `only ${tr.done} steps done`);
+    expect(/סגורה/.test(tr.cur ?? ''), `current step is "${tr.cur}", not Closed`);
     await noIdentifiers(res);
     await shot(res, 'f-delivery', 'tracker-closed', 'he');
     await setLang(res, 'en');
@@ -566,7 +571,7 @@ async function main() {
     await shot(res, 'f-delivery', 'tracker-closed', 'en');
     await setLang(res, 'he');
     checkClean(res);
-    return `${tr.done} of ${tr.n} steps done, current "${tr.cur}"`;
+    return `${tr.n} steps, current "${tr.cur}"`;
   });
   await step('f-delivery', 'mobile 390x844: researcher tracker at "Closed" (he)', async () => {
     const m = await newPage('he', MOBILE);
@@ -582,7 +587,7 @@ async function main() {
   await step('g-clinician', 'clinician lands on samples: own center only, coded records', async () => {
     await clin.goto(BASE + '/samples', { waitUntil: 'networkidle' });
     await waitMain(clin, /בלבד/);
-    const centerName = (await clin.locator('main .ds-alert').first().innerText()).replace(/^.*מוצג\s*|\s*בלבד.*$/gs, '').trim();
+    const centerName = (await clin.locator('main').getByText(/^מוצג .* בלבד$/).first().innerText()).replace(/^מוצג\s*|\s*בלבד$/g, '').trim();
     const centerCells = await clin.locator('main table tbody tr td:nth-child(6)').allInnerTexts();
     expect(centerCells.length > 0, 'no rows');
     expect(centerCells.every((c) => c.trim() === centerName), `rows from other centers: ${[...new Set(centerCells)].join(', ')}`);
@@ -649,12 +654,13 @@ async function main() {
     await shot(coord, 'h-ingest', 'import-upload', 'he');
     await coord.locator('main form button[type=submit]').click();
     await coord.waitForURL(/\/import\/imp_|\/import\/[a-z]+_/, { timeout: 15000 });
-    await coord.waitForFunction(() => /\d/.test(document.querySelectorAll('.ds-tile .ds-tile-value')[3]?.textContent ?? ''), null, { timeout: 20000 });
-    const tiles = await coord.locator('.ds-tile .ds-tile-value').allInnerTexts();
+    await waitMain(coord, /הורדת דוח דחיות|נדחו/, 20000);
     await coord.waitForLoadState('networkidle');
+    const tiles = [];
+    for (const l of ['שורות', 'התקבלו', 'אזהרות', 'נדחו']) tiles.push(await tileNumber(coord, l));
     const t = await mainText(coord);
     expect(Number(tiles[3]) >= 2, `rejected rows ${tiles[3]}`);
-    expect(/הורד|דוח/.test(t), 'no rejection report link');
+    expect(t.includes('הורדת דוח דחיות'), 'no rejection report link');
     await shot(coord, 'h-ingest', 'import-dry-run-report', 'he');
     checkClean(coord);
     return `total ${tiles[0]}, accepted ${tiles[1]}, warnings ${tiles[2]}, rejected ${tiles[3]} (dry run, not committed)`;
@@ -669,7 +675,7 @@ async function main() {
     checkClean(adm);
   });
   await step('i-admin', 'audit log lists the events of this flow; chain verification says intact', async () => {
-    await adm.getByRole('link', { name: 'ביקורת' }).first().click();
+    await adm.getByRole('link', { name: 'יומן ביקורת' }).first().click();
     await adm.waitForURL(/\/audit/);
     await adm.locator('main table tbody tr').first().waitFor();
     await adm.getByRole('button', { name: 'בדיקת שלמות' }).click();
@@ -685,7 +691,7 @@ async function main() {
   });
   await step('i-admin', 'admin cannot open sample data (UI 403 page, and API 403)', async () => {
     await adm.goto(BASE + '/samples', { waitUntil: 'networkidle' });
-    await waitMain(adm, /אין אפשרות לפתוח את הדף|לא ניתן לפתוח|You cannot open/);
+    await waitMain(adm, /אין הרשאה לפתוח את הדף הזה/);
     await shot(adm, 'i-admin', 'samples-forbidden', 'he');
     checkClean(adm);
     allow(adm, /^403 GET \/api\/v1\/samples/);

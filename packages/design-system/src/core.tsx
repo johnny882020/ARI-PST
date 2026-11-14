@@ -108,13 +108,14 @@ export type IconName =
   | "chevron-end"
   | "arrow-up"
   | "arrow-down"
+  | "arrow-end"
   | "sort"
   | "filter"
   | "menu"
   | "copy"
   | "dash";
 
-const MIRROR: ReadonlySet<IconName> = new Set(["chevron-start", "chevron-end"]);
+const MIRROR: ReadonlySet<IconName> = new Set(["chevron-start", "chevron-end", "arrow-end"]);
 
 const PATHS: Record<IconName, ReactNode> = {
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
@@ -160,6 +161,7 @@ const PATHS: Record<IconName, ReactNode> = {
   "chevron-end": <path d="M9 5l7 7-7 7" />,
   "arrow-up": <path d="M12 19V5M6 11l6-6 6 6" />,
   "arrow-down": <path d="M12 5v14M6 13l6 6 6-6" />,
+  "arrow-end": <path d="M4.5 12h15M13 5.5l6.5 6.5-6.5 6.5" />,
   sort: <path d="M8 9l4-4 4 4M8 15l4 4 4-4" />,
   filter: <path d="M4 6h16l-6 7v5l-4 2v-7z" />,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,

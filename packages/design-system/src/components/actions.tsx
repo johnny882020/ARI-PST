@@ -3,10 +3,24 @@ import { cx, Icon, Spinner, useDesignSystem, useTheme, type Locale, type Theme }
 import { Tooltip } from "./tooltip";
 
 export type ButtonVariant = "primary" | "secondary" | "quiet" | "danger";
+export type ButtonSize = "sm" | "md" | "lg";
+
+/** Class names for a button look on another element (router Link, plain <a>). */
+export function buttonClass({ variant = "secondary", size = "md", arrow = false }: { variant?: ButtonVariant; size?: ButtonSize; arrow?: boolean } = {}): string {
+  return cx("ds-btn", `ds-btn-${variant}`, size !== "md" && `ds-btn-${size}`, arrow && "ds-btn-with-arrow");
+}
+
+/** Trailing arrow for "go forward" buttons and links. Points to the inline end, so it mirrors in RTL. */
+export function ButtonArrow() {
+  return <Icon name="arrow-end" size={20} className="ds-btn-arrow" />;
+}
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
-  size?: "md" | "sm";
+  /** sm 44 px, md 48 px, lg 56 px (hero). All sizes are full pills. */
+  size?: ButtonSize;
+  /** Trailing arrow (mirrored in RTL). Use for one "go forward" action per view. */
+  arrow?: boolean;
   /** Keeps width, shows spinner, blocks clicks, keeps focus. */
   loading?: boolean;
   iconStart?: ReactNode;
@@ -14,7 +28,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "secondary", size = "md", loading, iconStart, iconEnd, className, children, onClick, type = "button", disabled, ...rest },
+  { variant = "secondary", size = "md", arrow = false, loading, iconStart, iconEnd, className, children, onClick, type = "button", disabled, ...rest },
   ref,
 ) {
   const { t } = useDesignSystem();
@@ -26,7 +40,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={disabled}
       aria-disabled={loading || undefined}
       aria-busy={loading || undefined}
-      className={cx("ds-btn", `ds-btn-${variant}`, size === "sm" && "ds-btn-sm", loading && "ds-loading", className)}
+      className={cx(buttonClass({ variant, size, arrow }), loading && "ds-loading", className)}
       onClick={(e) => {
         if (loading) {
           e.preventDefault();
@@ -38,6 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {loading ? <Spinner /> : iconStart}
       <span className="ds-btn-label">{children}</span>
       {iconEnd}
+      {arrow && !loading ? <ButtonArrow /> : null}
       {loading ? <span className="ds-vh">{t("common.loading")}</span> : null}
     </button>
   );
@@ -46,7 +61,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 export interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> {
   /** Required accessible name. Also shown as a tooltip. */
   label: string;
-  variant?: "quiet" | "secondary" | "primary" | "danger";
+  /** "outline" is the round, light-bordered button (menu, close in headers). */
+  variant?: "quiet" | "secondary" | "primary" | "danger" | "outline";
   children: ReactNode;
   noTooltip?: boolean;
 }
@@ -97,15 +113,17 @@ export function Chip({ children, name, onRemove, tone = "neutral", className }: 
 /* ---------- LanguageSwitch ---------- */
 export interface LanguageOption {
   locale: Locale;
-  /** Endonym: "עברית", "English" */
+  /** Endonym: "עברית", "English". This is the accessible name. */
   label: string;
+  /** Short visible label, e.g. "EN", "עב". Must be part of the label (WCAG 2.5.3 label in name). */
+  short?: string;
   /** When set, renders a link with hreflang (public site). Otherwise a button. */
   href?: string;
 }
 
 const DEFAULT_LANGS: LanguageOption[] = [
-  { locale: "he", label: "עברית" },
-  { locale: "en", label: "English" },
+  { locale: "en", label: "English", short: "EN" },
+  { locale: "he", label: "עברית", short: "עב" },
 ];
 
 export interface LanguageSwitchProps {
@@ -122,9 +140,17 @@ export function LanguageSwitch({ value, onChange, options = DEFAULT_LANGS, class
   const asNav = options.some((o) => o.href);
   const Tag = asNav ? "nav" : "div";
   return (
-    <Tag className={cx("ds-segmented", className)} role={asNav ? undefined : "group"} aria-label={t("lang.label")}>
-      <Icon name="globe" size={18} className="ds-segmented-icon" />
+    <Tag className={cx("ds-segmented ds-langswitch", className)} role={asNav ? undefined : "group"} aria-label={t("lang.label")}>
       {options.map((o) => {
+        // Visible short code, full endonym as the accessible name ("EN" is inside "English").
+        const text = o.short ? (
+          <>
+            <span aria-hidden="true">{o.short}</span>
+            <span className="ds-vh">{o.label}</span>
+          </>
+        ) : (
+          o.label
+        );
         const current = o.locale === value;
         const common = {
           lang: o.locale,
@@ -134,11 +160,11 @@ export function LanguageSwitch({ value, onChange, options = DEFAULT_LANGS, class
         };
         return o.href ? (
           <a key={o.locale} {...common} href={o.href} hrefLang={o.locale} onClick={() => onChange?.(o.locale)}>
-            {o.label}
+            {text}
           </a>
         ) : (
           <button key={o.locale} type="button" {...common} aria-pressed={current} onClick={() => onChange?.(o.locale)}>
-            {o.label}
+            {text}
           </button>
         );
       })}

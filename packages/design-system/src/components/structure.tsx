@@ -411,8 +411,11 @@ export function AppShell({ brand, nav, navLabel, renderLink, headerActions, head
         {t("nav.skip")}
       </a>
       <header className="ds-shell-header">
+        <div className="ds-shell-brand">{brand}</div>
+        {headerPinned ? <div className="ds-shell-pinned">{headerPinned}</div> : null}
         <IconButton
           label={t("nav.menu")}
+          variant="outline"
           className="ds-shell-menu"
           aria-expanded={open}
           aria-controls={navId}
@@ -421,8 +424,6 @@ export function AppShell({ brand, nav, navLabel, renderLink, headerActions, head
         >
           <Icon name="menu" />
         </IconButton>
-        <div className="ds-shell-brand">{brand}</div>
-        {headerPinned ? <div className="ds-shell-pinned">{headerPinned}</div> : null}
         {headerActions ? (
           <div className="ds-shell-actions" data-open={open ? "true" : "false"}>
             {headerActions}

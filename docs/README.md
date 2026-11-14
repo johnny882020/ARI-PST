@@ -67,3 +67,6 @@ The `plan/` folder holds the design-time records. Two plan files stay binding: [
 - Mark facts that were not checked as UNVERIFIED.
 - Mark legal and regulatory statements as "needs legal review".
 - Use synthetic examples only. Never add personal data or secrets.
+
+## Planning
+- [Development timeline to the Feb 2027 symposium](planning/ARI_PST_2027_Development_Timeline.xlsx): remaining tasks, owners, dates, gates.
