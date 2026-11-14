@@ -226,7 +226,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: pnpm --filter @ari/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @ari/public-site exec playwright install --with-deps chromium   # same Playwright version as the test runner
       - run: pnpm run test:a11y           # axe on the built public site, he + en. Protected SPA: NOT YET ENFORCED
 
   ci-gate:

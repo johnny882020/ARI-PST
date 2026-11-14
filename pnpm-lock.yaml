@@ -104,8 +104,8 @@ importers:
         specifier: ^3.17.3
         version: 3.17.3(@types/hoist-non-react-statics@3.3.7(@types/react@19.3.0))(@types/node@22.20.5)(@types/react@19.3.0)(common-tags@1.8.2)(decap-cms-lib-util@3.9.2(common-tags@1.8.2)(immutable@4.3.9)(lodash@4.18.1))(graphql@15.11.0)(immer@10.2.0)(immutable@4.3.9)(lodash@4.18.1)(scheduler@0.28.0)(use-sync-external-store@1.4.0(react@19.3.1))(uuid@8.3.2)(webpack@5.112.2(esbuild@0.28.2)(lightningcss@1.33.0))
       playwright:
-        specifier: ^1.63.0
-        version: 1.65.0
+        specifier: 1.63.0
+        version: 1.63.0
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
@@ -5516,11 +5516,6 @@ packages:
 
   playwright@1.63.0:
     resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
-    engines: {node: '>=20'}
-    hasBin: true
-
-  playwright@1.65.0:
-    resolution: {integrity: sha512-F3AMWcR44qMBt4kq+6Kb6mX7bjGXshktKFOPULd7reED6ZJWevjbNRqysP7q+AATE9kdPEZBibex1BYsvpVoeA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -13281,10 +13276,6 @@ snapshots:
   playwright@1.63.0:
     dependencies:
       playwright-core: 1.63.0
-
-  playwright@1.65.0:
-    dependencies:
-      playwright-core: 1.65.0
 
   pluralize@8.0.0: {}
 
