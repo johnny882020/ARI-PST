@@ -127,6 +127,15 @@ describe('session timeouts (C-02) and step-up', () => {
     const l3 = await b2.req('POST', '/api/v1/auth/login', { email: u.email, password: u.password });
     expect((await b2.req('POST', '/api/v1/auth/mfa/verify', { challengeToken: l3.json.challengeToken, recoveryCode: rc })).status).toBe(401);
   });
+  it('adding a factor to an enrolled account needs a fresh step-up', async () => {
+    const old = await h.session(f.coord, { mfaAgeMs: 10 * 60_000 });
+    for (const path of ['/api/v1/auth/enrol/totp', '/api/v1/auth/enrol/totp/confirm', '/api/v1/auth/enrol/webauthn/options']) {
+      const r = await h.call(old, 'POST', path, path.endsWith('confirm') ? { body: { code: '123456' } } : {});
+      expect(r.status, path).toBe(401); expect(r.json.code, path).toBe('STEP_UP_REQUIRED');
+    }
+    const fresh = await h.session(f.coord);
+    expect((await h.call(fresh, 'POST', '/api/v1/auth/enrol/webauthn/options')).status).toBe(200);
+  });
   it('passkey registration options are issued for the signed-in user', async () => {
     const s = await h.session(f.coord);
     const r = await h.call(s, 'POST', '/api/v1/auth/enrol/webauthn/options');

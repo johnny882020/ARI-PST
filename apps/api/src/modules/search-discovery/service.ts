@@ -91,7 +91,7 @@ export class SearchService {
     const k = await this.repo.tx(ctx, (tx) => tx.search.k());
     const res = emptyText ? { count: null, suppressed: true, k } : await this.cached(ctx, 't:' + key, () => this.repo.tx(ctx, (tx) => tx.search.total(filters)));
     await this.repo.tx(ctx, (tx) => tx.audit.record(ctx, { action: 'search.aggregate', outcome: 'success', details: { hash: key.slice(0, 32), masked: res.suppressed ? 1 : 0, predicates: predicateCount(filters), role: this.roleClass(ctx) } }));
-    return { count: res.suppressed ? null : res.count, suppressed: res.suppressed, label: res.suppressed ? 'too_few' : res.count === null ? (res.band ?? 'lt10') : String(res.count), ...(ctx.actor.role === 'national_coordinator' ? { k: res.k } : {}), resolvedFilters: filters };
+    return { count: res.suppressed ? null : res.count, suppressed: res.suppressed, label: res.suppressed ? 'too_few' : res.count === null ? (res.band ?? 'lt10') : String(res.count), ...(ctx.actor.role === 'national_coordinator' ? { k } : {}), resolvedFilters: filters };   // k from the policy, not the cached count
   }
   async facets(ctx: Ctx, input: SearchInput & { facets: string[] }) {
     const { filters, emptyText } = await this.resolve(ctx, input);

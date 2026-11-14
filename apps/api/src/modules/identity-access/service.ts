@@ -129,23 +129,32 @@ export class IdentityService {
     await this.auth.stepUpSession(s.id, this.clock.now().getTime());
     return (await this.auth.getSession(s.id)) ?? s;
   }
+  /** Adding a factor to an account that already has one needs a fresh step-up. Otherwise a stolen, older session could
+   *  replace the TOTP secret or add its own passkey and keep access. The first factor (enrolment-only session) needs none. */
+  private async requireStepUpIfEnrolled(s: SessionRecord): Promise<boolean> {
+    const first = (await this.auth.mfaFactorsFor(s.userId)).length === 0;
+    if (!first && !stepUpFresh(s.mfaAt, this.clock.now().getTime())) throw new DomainError('STEP_UP_REQUIRED');
+    return first;
+  }
   async enrollTotpStart(s: SessionRecord) {
+    await this.requireStepUpIfEnrolled(s);
     const p = await this.auth.profileFor(s.userId); if (!p) throw new DomainError('NOT_FOUND');
     return this.auth.totpBegin(s.userId, p.email);
   }
   async enrollTotpConfirm(s: SessionRecord, code: string, traceId: string): Promise<{ recoveryCodes: string[] }> {
-    const first = (await this.auth.mfaFactorsFor(s.userId)).length === 0;
+    const first = await this.requireStepUpIfEnrolled(s);
     if (!(await this.auth.totpConfirm(s.userId, code))) throw new DomainError('UNAUTHENTICATED');
     await this.auth.stepUpSession(s.id, this.clock.now().getTime());
     await this.repo.auditStandalone({ ...this.sys(traceId, null), actor: { ...ANON_ACTOR, userId: s.userId } }, { action: 'auth.mfa.enroll', outcome: 'success', details: { factor: 'totp' } });
     return { recoveryCodes: first ? await this.auth.issueRecoveryCodes(s.userId) : [] };
   }
   async webauthnRegisterOptions(s: SessionRecord) {
+    await this.requireStepUpIfEnrolled(s);
     const p = await this.auth.profileFor(s.userId); if (!p) throw new DomainError('NOT_FOUND');
     return this.auth.webauthnRegistrationOptions(s.userId, p.email);
   }
   async webauthnRegisterVerify(s: SessionRecord, response: unknown, name: string, traceId: string): Promise<{ recoveryCodes: string[] }> {
-    const first = (await this.auth.mfaFactorsFor(s.userId)).length === 0;
+    const first = await this.requireStepUpIfEnrolled(s);
     if (!(await this.auth.webauthnRegistrationVerify(s.userId, response, name))) throw new DomainError('UNAUTHENTICATED');
     await this.auth.stepUpSession(s.id, this.clock.now().getTime());
     await this.repo.auditStandalone({ ...this.sys(traceId, null), actor: { ...ANON_ACTOR, userId: s.userId } }, { action: 'auth.mfa.enroll', outcome: 'success', details: { factor: 'webauthn' } });

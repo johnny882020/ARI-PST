@@ -96,6 +96,8 @@ describe('web-facing endpoints', () => {
     expect(ch.json.pendingChange).toMatchObject({ proposedK: 6, proposedByUserId: f.admin1.id });
     expect((await h.call(a1, 'POST', `/api/v1/k-policy-changes/${ch.json.pendingChange.id}/approve`)).status).toBe(403);   // proposer is not the committee approver role
     const ok = await h.call(cm, 'POST', `/api/v1/k-policy-changes/${ch.json.pendingChange.id}/approve`); expect(ok.status, ok.body).toBe(200); expect(ok.json.k).toBe(6);
+    const kSeen = await h.call(co, 'POST', '/api/v1/search/aggregate', { body: { filters: { diagnosis: ['mb_shh'] } } });   // coordinator sees the policy k
+    expect(kSeen.status, kSeen.body).toBe(200); expect(kSeen.json.k).toBe(6);
     const back2 = await h.call(a1, 'POST', '/api/v1/k-policies/default/changes', { body: { k: 5, reason: 'restore' } });
     expect((await h.call(await h.session(f.committee[1]!), 'POST', `/api/v1/k-policy-changes/${back2.json.pendingChange.id}/approve`)).status).toBe(200);
 
