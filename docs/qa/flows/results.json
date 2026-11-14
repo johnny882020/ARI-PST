@@ -1,10 +1,11 @@
 {
-  "when": "2026-11-14T09:46:31.894Z",
+  "when": "2026-11-14T09:48:49.734Z",
   "base": "http://localhost:18100",
   "site": "http://localhost:18101",
-  "passed": 34,
-  "failed": 5,
-  "screenshots": 49,
+  "passed": 38,
+  "gaps": 1,
+  "failed": 0,
+  "screenshots": 53,
   "steps": [
     {
       "flow": "setup",
@@ -15,7 +16,8 @@
       ],
       "shots": [],
       "api": false,
-      "ms": 14345
+      "ms": 12065,
+      "status": "pass"
     },
     {
       "flow": "setup",
@@ -26,7 +28,8 @@
       ],
       "shots": [],
       "api": false,
-      "ms": 2935
+      "ms": 2771,
+      "status": "pass"
     },
     {
       "flow": "a-signin",
@@ -39,7 +42,8 @@
         "03-a-signin-home-he.png"
       ],
       "api": false,
-      "ms": 2274
+      "ms": 2241,
+      "status": "pass"
     },
     {
       "flow": "a-signin",
@@ -50,7 +54,8 @@
         "04-a-signin-signed-out-he.png"
       ],
       "api": false,
-      "ms": 1008
+      "ms": 1007,
+      "status": "pass"
     },
     {
       "flow": "a-signin",
@@ -63,7 +68,8 @@
         "07-a-signin-home-en.png"
       ],
       "api": false,
-      "ms": 2285
+      "ms": 2280,
+      "status": "pass"
     },
     {
       "flow": "a-signin",
@@ -76,7 +82,8 @@
         "10-a-signin-mobile-home-he.png"
       ],
       "api": false,
-      "ms": 2003
+      "ms": 1970,
+      "status": "pass"
     },
     {
       "flow": "b-search",
@@ -87,7 +94,8 @@
         "11-b-search-start-he.png"
       ],
       "api": false,
-      "ms": 4036
+      "ms": 18566,
+      "status": "pass"
     },
     {
       "flow": "b-search",
@@ -98,7 +106,8 @@
       ],
       "shots": [],
       "api": false,
-      "ms": 54
+      "ms": 53,
+      "status": "pass"
     },
     {
       "flow": "b-search",
@@ -111,7 +120,8 @@
         "12-b-search-filtered-count-he.png"
       ],
       "api": false,
-      "ms": 1876
+      "ms": 1875,
+      "status": "pass"
     },
     {
       "flow": "b-search",
@@ -122,7 +132,8 @@
         "13-b-search-suppressed-too-few-he.png"
       ],
       "api": false,
-      "ms": 1414
+      "ms": 1449,
+      "status": "pass"
     },
     {
       "flow": "b-search",
@@ -133,7 +144,8 @@
         "14-b-search-added-to-cart-he.png"
       ],
       "api": false,
-      "ms": 1511
+      "ms": 1500,
+      "status": "pass"
     },
     {
       "flow": "b-search",
@@ -145,7 +157,8 @@
         "16-b-search-suppressed-too-few-en.png"
       ],
       "api": false,
-      "ms": 2914
+      "ms": 2949,
+      "status": "pass"
     },
     {
       "flow": "b-search",
@@ -156,20 +169,22 @@
         "17-b-search-mobile-filtered-count-he.png"
       ],
       "api": false,
-      "ms": 1980
+      "ms": 2160,
+      "status": "pass"
     },
     {
       "flow": "c-request",
       "name": "open the cart and start a request",
       "ok": true,
       "notes": [
-        "req_01M7CQ3YPFM5W20HM9P89FKQY0"
+        "req_01M7CQ90E3BED798Z8ZEPNX7JY"
       ],
       "shots": [
         "18-c-request-cart-he.png"
       ],
       "api": false,
-      "ms": 1165
+      "ms": 1184,
+      "status": "pass"
     },
     {
       "flow": "c-request",
@@ -182,7 +197,8 @@
         "19-c-request-identifier-refused-he.png"
       ],
       "api": false,
-      "ms": 542
+      "ms": 562,
+      "status": "pass"
     },
     {
       "flow": "c-request",
@@ -194,21 +210,23 @@
         "21-c-request-review-he.png"
       ],
       "api": false,
-      "ms": 1170
+      "ms": 1252,
+      "status": "pass"
     },
     {
       "flow": "c-request",
       "name": "submit; confirmation; the tracker shows 8 steps",
       "ok": true,
       "notes": [
-        "status precheck, current step \"3\""
+        "status precheck, current step \"3 בדיקה מקדימה השלב הנוכחי רכז/ת בודק/ת שהבקשה שלמה.\""
       ],
       "shots": [
         "22-c-request-sent-he.png",
         "23-c-request-tracker-submitted-he.png"
       ],
       "api": false,
-      "ms": 1105
+      "ms": 1086,
+      "status": "pass"
     },
     {
       "flow": "d-precheck",
@@ -219,7 +237,8 @@
         "24-d-precheck-home-he.png"
       ],
       "api": false,
-      "ms": 1322
+      "ms": 1324,
+      "status": "pass"
     },
     {
       "flow": "d-precheck",
@@ -230,7 +249,8 @@
         "25-d-precheck-request-detail-he.png"
       ],
       "api": false,
-      "ms": 730
+      "ms": 741,
+      "status": "pass"
     },
     {
       "flow": "d-precheck",
@@ -242,7 +262,8 @@
         "27-d-precheck-forwarded-he.png"
       ],
       "api": false,
-      "ms": 1119
+      "ms": 1175,
+      "status": "pass"
     },
     {
       "flow": "e-committee",
@@ -256,7 +277,8 @@
         "29-e-committee-vote1-after-he.png"
       ],
       "api": false,
-      "ms": 2110
+      "ms": 2159,
+      "status": "pass"
     },
     {
       "flow": "e-committee",
@@ -271,7 +293,8 @@
         "32-e-committee-queue-after-en.png"
       ],
       "api": false,
-      "ms": 2672
+      "ms": 2716,
+      "status": "pass"
     },
     {
       "flow": "e-committee",
@@ -282,7 +305,8 @@
         "33-e-committee-tracker-approved-he.png"
       ],
       "api": false,
-      "ms": 1103
+      "ms": 1096,
+      "status": "pass"
     },
     {
       "flow": "f-delivery",
@@ -294,17 +318,20 @@
       ],
       "api": false,
       "error": "UI GAP: the button does not move the request (status still \"approved\"; alert: חלק מהשדות דורשים תשומת לב). No UI exists to resolve samples, start center coordination, record an MTA/DTA or mark delivery; the clinician cannot open /requests",
-      "ms": 2742
+      "ms": 2760,
+      "status": "gap"
     },
     {
       "flow": "f-delivery",
       "name": "[api] coordinator resolves samples and starts center coordination (no screen for this)",
-      "ok": false,
+      "ok": true,
       "notes": [],
-      "shots": [],
+      "shots": [
+        "35-f-delivery-tracker-coordination-he.png"
+      ],
       "api": true,
-      "error": "tracker not at coordination",
-      "ms": 1650
+      "ms": 2187,
+      "status": "pass"
     },
     {
       "flow": "f-delivery",
@@ -312,21 +339,27 @@
       "ok": true,
       "notes": [],
       "shots": [
-        "35-f-delivery-tracker-agreements-he.png",
-        "36-f-delivery-tracker-delivery-he.png"
+        "36-f-delivery-tracker-agreements-he.png",
+        "37-f-delivery-tracker-delivery-he.png"
       ],
       "api": true,
-      "ms": 2248
+      "ms": 2377,
+      "status": "pass"
     },
     {
       "flow": "f-delivery",
       "name": "[api] clinician confirms delivery; researcher tracker shows \"Closed\" (delivered)",
-      "ok": false,
-      "notes": [],
-      "shots": [],
+      "ok": true,
+      "notes": [
+        "8 steps; last step \"סגורה הושלם הבקשה הושלמה.\""
+      ],
+      "shots": [
+        "38-f-delivery-tracker-closed-he.png",
+        "39-f-delivery-tracker-closed-en.png"
+      ],
       "api": true,
-      "error": "current step is \"null\", not Closed",
-      "ms": 30633
+      "ms": 1732,
+      "status": "pass"
     },
     {
       "flow": "f-delivery",
@@ -334,10 +367,11 @@
       "ok": true,
       "notes": [],
       "shots": [
-        "37-f-delivery-mobile-tracker-closed-he.png"
+        "40-f-delivery-mobile-tracker-closed-he.png"
       ],
       "api": false,
-      "ms": 1157
+      "ms": 1206,
+      "status": "pass"
     },
     {
       "flow": "g-clinician",
@@ -347,10 +381,11 @@
         "10 rows, all \"מרכז סינתטי א\""
       ],
       "shots": [
-        "38-g-clinician-samples-own-center-he.png"
+        "41-g-clinician-samples-own-center-he.png"
       ],
       "api": false,
-      "ms": 1282
+      "ms": 1376,
+      "status": "pass"
     },
     {
       "flow": "g-clinician",
@@ -360,10 +395,11 @@
         "Link-out to the center system is a text pointer, not a hyperlink (no URL per center in the index)"
       ],
       "shots": [
-        "39-g-clinician-sample-detail-he.png"
+        "42-g-clinician-sample-detail-he.png"
       ],
       "api": false,
-      "ms": 571
+      "ms": 565,
+      "status": "pass"
     },
     {
       "flow": "g-clinician",
@@ -373,36 +409,41 @@
         "משהו השתבש / "
       ],
       "shots": [
-        "40-g-clinician-other-center-hidden-he.png"
+        "43-g-clinician-other-center-hidden-he.png"
       ],
       "api": false,
-      "ms": 2237
+      "ms": 2233,
+      "status": "pass"
     },
     {
       "flow": "h-ingest",
       "name": "coordinator adds one coded record through the form",
       "ok": true,
       "notes": [
-        "smp_01M7CQ6CEJR5YEERYW17VAE0X0"
+        "smp_01M7CQB1A79RNN625RXMPG0WEZ"
       ],
       "shots": [
-        "41-h-ingest-sample-entry-he.png",
-        "42-h-ingest-sample-created-he.png"
+        "44-h-ingest-sample-entry-he.png",
+        "45-h-ingest-sample-created-he.png"
       ],
       "api": false,
-      "ms": 1828
+      "ms": 1864,
+      "status": "pass"
     },
     {
       "flow": "h-ingest",
       "name": "CSV import dry-run: good and bad rows, rejection report",
-      "ok": false,
-      "notes": [],
+      "ok": true,
+      "notes": [
+        "total 4, accepted 0, warnings 1, rejected 3 (dry run, not committed)"
+      ],
       "shots": [
-        "43-h-ingest-import-upload-he.png"
+        "46-h-ingest-import-upload-he.png",
+        "47-h-ingest-import-dry-run-report-he.png"
       ],
       "api": false,
-      "error": "page.waitForURL: Timeout 15000ms exceeded.",
-      "ms": 16112
+      "ms": 1651,
+      "status": "pass"
     },
     {
       "flow": "i-admin",
@@ -410,22 +451,25 @@
       "ok": true,
       "notes": [],
       "shots": [
-        "44-i-admin-home-he.png"
+        "48-i-admin-home-he.png"
       ],
       "api": false,
-      "ms": 1347
+      "ms": 1349,
+      "status": "pass"
     },
     {
       "flow": "i-admin",
       "name": "audit log lists the events of this flow; chain verification says intact",
-      "ok": false,
-      "notes": [],
+      "ok": true,
+      "notes": [
+        "50 rows read; flow actions seen: request.deliver, request.state_changed, request.vote"
+      ],
       "shots": [
-        "45-i-admin-audit-verified-he.png"
+        "49-i-admin-audit-verified-he.png"
       ],
       "api": false,
-      "error": "missing on page 1: request.vote (seen: auth.login.success, sample.create, sample.view, request.view, request.state_changed, request.deliver, request.mta_status, request.center_response)",
-      "ms": 757
+      "ms": 837,
+      "status": "pass"
     },
     {
       "flow": "i-admin",
@@ -433,10 +477,11 @@
       "ok": true,
       "notes": [],
       "shots": [
-        "46-i-admin-samples-forbidden-he.png"
+        "50-i-admin-samples-forbidden-he.png"
       ],
       "api": true,
-      "ms": 1001
+      "ms": 1024,
+      "status": "pass"
     },
     {
       "flow": "j-public",
@@ -444,10 +489,11 @@
       "ok": true,
       "notes": [],
       "shots": [
-        "47-j-public-home-he.png"
+        "51-j-public-home-he.png"
       ],
       "api": false,
-      "ms": 1500
+      "ms": 1235,
+      "status": "pass"
     },
     {
       "flow": "j-public",
@@ -455,10 +501,11 @@
       "ok": true,
       "notes": [],
       "shots": [
-        "48-j-public-home-en.png"
+        "52-j-public-home-en.png"
       ],
       "api": false,
-      "ms": 1360
+      "ms": 1308,
+      "status": "pass"
     },
     {
       "flow": "j-public",
@@ -466,10 +513,11 @@
       "ok": true,
       "notes": [],
       "shots": [
-        "49-j-public-mobile-home-he.png"
+        "53-j-public-mobile-home-he.png"
       ],
       "api": false,
-      "ms": 1149
+      "ms": 1112,
+      "status": "pass"
     }
   ]
 }
