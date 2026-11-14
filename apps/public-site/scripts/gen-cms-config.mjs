@@ -49,7 +49,7 @@ const pageFields = [
   ...base({ widget: 'select', options: ['home', 'about', 'research-index', 'community', 'infrastructure', 'partners-index', 'news-index', 'patients', 'join', 'contact', 'login-entry'] }),
   bool('needs_review', 'Needs clinical/legal review (shows a notice)'),
   txt('intro', 'Intro', { required: false }),
-  { name: 'hero', label: 'Hero (home)', widget: 'object', required: false, ...T, fields: [str('headline', 'Headline'), txt('subline', 'Subline'), { name: 'cta_primary', label: 'Primary CTA', widget: 'object', ...T, fields: link }, { name: 'cta_secondary', label: 'Secondary CTA', widget: 'object', required: false, ...T, fields: link }] },
+  { name: 'hero', label: 'Hero (home)', widget: 'object', required: false, ...T, fields: [str('eyebrow', 'Eyebrow (small caps line above the headline)', { required: false }), str('headline', 'Headline'), txt('subline', 'Subline'), { name: 'cta_primary', label: 'Primary CTA', widget: 'object', ...T, fields: link }, { name: 'cta_secondary', label: 'Secondary CTA', widget: 'object', required: false, ...T, fields: link }] },
   list('value_props', 'Value props (3)', [str('icon', 'Icon name'), str('title', 'Title'), txt('text', 'Text')], { required: false, max: 6 }),
   slugList('featured_partners', 'Featured partners (slugs)'),
   slugList('featured_news', 'Featured news (slugs)'),

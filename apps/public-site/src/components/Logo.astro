@@ -1,10 +1,16 @@
 ---
-// Concept C "Sprout" (plan 05 recommends C for the public site). The lock-up never flips in RTL.
+// Brand refresh 2026-11: ring + three navy arcs (rising sun) + gold dot. Same drawing as
+// packages/design-system LogoMark. Colours come from tokens via classes (light, dark, forced colors).
+// The lock-up never flips in RTL.
+interface Props { size?: number }
+const { size = 44 } = Astro.props;
 ---
-<svg class="logo-mark" width="40" height="40" viewBox="4 8 96 96" aria-hidden="true" focusable="false">
-  <circle cx="52" cy="60" r="44" fill="none" stroke="#0b5c73" stroke-width="4" />
-  <path d="M52 90 V58" stroke="#0b5c73" stroke-width="5" stroke-linecap="round" fill="none" />
-  <path d="M52 62 C52 46 40 40 28 42 C28 56 38 64 52 62Z" fill="#0b5c73" />
-  <path d="M52 54 C52 38 64 32 76 34 C76 48 66 56 52 54Z" fill="#a8461f" />
-  <circle cx="52" cy="94" r="3" fill="#f2b84b" />
+<svg class="logo-mark" width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+  <circle class="logo-ring" cx="24" cy="24" r="22.75" fill="none" stroke-width="1.5" />
+  <g class="logo-arcs" fill="none" stroke-width="2.25" stroke-linecap="round">
+    <path d="M10.4 23.7A15 15 0 0 1 37.6 23.7" />
+    <path d="M15.4 24A10.5 10.5 0 0 1 32.6 24" />
+    <path d="M20.1 25.4A6 6 0 0 1 27.9 25.4" />
+  </g>
+  <circle class="logo-dot" cx="24" cy="15" r="2.4" />
 </svg>

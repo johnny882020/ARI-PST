@@ -145,6 +145,11 @@ collections:
         required: false
         i18n: true
         fields:
+          - name: eyebrow
+            label: Eyebrow (small caps line above the headline)
+            widget: string
+            i18n: true
+            required: false
           - name: headline
             label: Headline
             widget: string

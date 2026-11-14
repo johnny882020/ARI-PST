@@ -3,6 +3,8 @@ import type { Locale } from '../content/schemas';
 export const DIR: Record<Locale, 'rtl' | 'ltr'> = { he: 'rtl', en: 'ltr' };
 export const OG_LOCALE: Record<Locale, string> = { he: 'he_IL', en: 'en_US' };
 export const LANG_NAME: Record<Locale, string> = { he: 'עברית', en: 'English' };
+/** Short visible codes for the EN | עב switch. Each is part of LANG_NAME, so the accessible name contains the visible text. */
+export const LANG_SHORT: Record<Locale, string> = { he: 'עב', en: 'EN' };
 
 type Dict = Record<string, string>;
 
@@ -11,6 +13,7 @@ export const ui: Record<Locale, Dict> = {
   he: {
     skip: 'דלג לתוכן הראשי',
     menu: 'תפריט',
+    language: 'שפה',
     mainNav: 'ניווט ראשי',
     footerNav: 'קישורים בתחתית העמוד',
     breadcrumb: 'פירורי לחם',
@@ -113,6 +116,7 @@ export const ui: Record<Locale, Dict> = {
   en: {
     skip: 'Skip to main content',
     menu: 'Menu',
+    language: 'Language',
     mainNav: 'Main navigation',
     footerNav: 'Footer links',
     breadcrumb: 'Breadcrumb',
