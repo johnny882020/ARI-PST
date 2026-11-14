@@ -30,7 +30,7 @@ export async function registerCore(app: FastifyInstance, deps: Deps): Promise<vo
   const limiter = new Limiter();
 
   app.addContentTypeParser('application/merge-patch+json', { parseAs: 'string' }, (_req, body, done) => {
-    try { done(null, body ? JSON.parse(body as string) : undefined); } catch { done(new DomainError('VALIDATION_FAILED', [{ field: '$', rule: 'FORMAT' }]), undefined); }
+    try { done(null, body ? JSON.parse(body as string) : undefined); } catch { done(new HttpProblem('MALFORMED_REQUEST'), undefined); }
   });
   for (const ct of ['application/csp-report', 'application/reports+json']) {
     app.addContentTypeParser(ct, { parseAs: 'string' }, (_req, body, done) => {
@@ -105,6 +105,11 @@ export async function registerCore(app: FastifyInstance, deps: Deps): Promise<vo
       if (err instanceof HttpProblem) Object.assign(headers, err.headers);
     } else if ((err as { statusCode?: number }).statusCode === 413) {
       const p = problemFor('IMPORT_FILE_TOO_LARGE', traceId); status = 413; body = p;
+    } else if ((err as { statusCode?: number }).statusCode === 400) {
+      // R-10: Fastify parser errors (bad JSON, empty JSON body, bad content length) get their own code, not 422.
+      const p = problemFor('MALFORMED_REQUEST', traceId); status = 400; body = p;
+    } else if ((err as { statusCode?: number }).statusCode === 415) {
+      const p = problemFor('UNSUPPORTED_MEDIA_TYPE', traceId); status = 415; body = p;
     } else if ((err as { statusCode?: number }).statusCode && (err as { statusCode: number }).statusCode < 500) {
       const p = problemFor('VALIDATION_FAILED', traceId, [{ field: '$', rule: 'FORMAT' }]); status = 422; body = p;
     } else {
@@ -115,9 +120,6 @@ export async function registerCore(app: FastifyInstance, deps: Deps): Promise<vo
       if (config.env === 'test') reply.header('X-Debug-Error', `${err.name}: ${String(err.message).slice(0, 300)}`);
     }
     for (const [k, v] of Object.entries(headers)) reply.header(k, v);
-    if (status === 401 || status === 403 || status === 429 || status === 409 || status === 422) {
-      // handled below by logging hook
-    }
     return reply.code(status).type('application/problem+json').send(body);
   });
   app.setNotFoundHandler(async (req, reply) => {

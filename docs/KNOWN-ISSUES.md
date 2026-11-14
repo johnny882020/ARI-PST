@@ -28,7 +28,7 @@ Severity:
 | M-4 | `render.yaml` hard-codes the hosts `ari-api.onrender.com` and `ari-public.onrender.com`. If Render assigns other names, public forms and the sign-in link break until five places are changed ([`deployment.md`](deployment.md#3-production-blueprint-step-by-step), step 4). | DevOps |
 | M-5 | `ari-cron-export` fails daily by design until a break-glass window is open. Output is plain NDJSON; the code does not read `BACKUP_AGE_PUBLIC_KEY`. Suspend the cron until the export design is done. | Backend, DevOps |
 | M-6 | `SECRETS_KEY` (TOTP encryption) has no rotation tool. A new value locks out every TOTP user. The audit chain key has no rotation function either. | Backend |
-| M-7 | The per-address rate limit trusts the left-most `X-Forwarded-For` value (`trustProxy: true`). It can be bypassed. The account lock-out still holds. Review R-04. | Backend |
+| M-7 | The per-address rate limit trusts the left-most `X-Forwarded-For` value (`trustProxy: true`). It can be bypassed. The account lock-out still holds. Review R-04. `TRUST_PROXY_HOPS` can now set a hop count ([`deployment.md`](deployment.md#trusted-proxy-hops-trust_proxy_hops)), but the hop count of the platform is UNVERIFIED and the default is unchanged. | Backend, DevOps |
 | M-8 | No database role can take a full logical dump (no superuser, `FORCE ROW LEVEL SECURITY`, no audit read grant for `app_migrator`). `scripts/backup-export.sh` and the offsite dump path of RB-02 do not work on managed hosts; only the provider's own backup has full rights. Finding F-1 in [`migration/google-cloud.md`](migration/google-cloud.md#56-findings-that-need-a-decision). | Data, DevOps |
 
 ## Low
@@ -38,13 +38,13 @@ Severity:
 | L-1 | Fixed: migration `0012` lets `app_core` execute `search.norm()`, so the pre-deploy step loads the vocabulary without the synthetic seed (validation F-2). Kept here for one release. | Data |
 | L-2 | Rate limits, the search cache and the query budget cache are in process memory, so they are per instance. Accepted for Phase 1. | Backend |
 | L-3 | `/livez` reports `DEMO_MODE` (`checks.demo`), but the SPA shows no demo banner. | Frontend |
-| L-4 | `ALERT_WEBHOOK_URL` is not implemented. A failed cron is visible only in Render. | Backend |
+| L-4 | Fixed: `ALERT_WEBHOOK_URL` gets a small JSON `POST` when a job fails ([`deployment.md`](deployment.md#failure-alert-alert_webhook_url)). Set it on each cron service. Kept here for one release. | DevOps |
 | L-5 | Synthetic users share one password (`SEED_USER_PASSWORD`) with TOTP secrets derived from it. Acceptable for synthetic data only. The seed must be off before `GATE-PROD-DATA` closes. | Owner |
 | L-6 | `db/seed.mjs` needs a role that bypasses RLS, so it cannot run on Render. The API job `seed-synthetic` seeds there. | Data |
 | L-7 | Every first load logs a 401 for `GET /auth/session` (QA-013). Changing it is an API contract decision. | Backend |
 | L-8 | The public site has no theme switch; it follows the OS (QA-014). Needs a product decision. | Product |
 | L-9 | The old hand-made Render service `ARI-PST` (start command `T4C`) still exists and fails on every push to `main`. Delete it ([`deployment.md`](deployment.md#2-before-you-start)). | Owner |
-| L-10 | Other open code review findings (R-05 to R-12): [`REVIEW-2026-11.md`](REVIEW-2026-11.md#open-findings). | Backend, Frontend |
+| L-10 | Open code review finding R-09 (the access log writes the internal user id; privacy lead decides). R-05 to R-08 and R-10 to R-12 are fixed: [`REVIEW-2026-11.md`](REVIEW-2026-11.md#fixed-in-the-security-hardening-unreleased). | Privacy lead |
 
 ## CI gates not yet enforced
 

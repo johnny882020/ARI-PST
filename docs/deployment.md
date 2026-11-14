@@ -85,8 +85,44 @@ Typed in the Dashboard (all optional while data is synthetic). Never put these i
 | `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | `ari-api`, `ari-cron-export` | S3-compatible bucket in the EU. Empty means uploads stay in memory per instance. |
 | `DATABASE_URL_BREAKGLASS` | `ari-cron-export` | Only for an approved break-glass window. |
 | `HEARTBEAT_URL_<JOB>` | Crons | Outside monitor, pinged after a successful run. |
+| `ALERT_WEBHOOK_URL` | Crons | Failure alert. See [Failure alert](#failure-alert-alert_webhook_url) below. Empty means no alert. |
+| `TRUST_PROXY_HOPS` | `ari-api` | Number of reverse-proxy hops in front of the API. See [Trusted proxy hops](#trusted-proxy-hops-trust_proxy_hops) below. Empty keeps today's behaviour. |
 
 With data that is not synthetic, the API refuses to start unless `GATE_PROD_DATA_CLOSED=true`. Then `SMTP_URL` and `S3_BUCKET` are mandatory.
+
+### Failure alert (`ALERT_WEBHOOK_URL`)
+
+Each job in `apps/api/src/jobs/` (`staleness`, `audit-verify`, `purge`, `snapshot`, `export`, `seed-synthetic`) sends one alert when a run fails.
+
+1. Set `ALERT_WEBHOOK_URL` on each cron service to an HTTPS endpoint that accepts a JSON `POST` (for example a chat or paging webhook).
+2. When a run fails, the job sends this body with `content-type: application/json`:
+   ```json
+   { "job": "purge", "ok": false, "error": "42501", "at": "2026-11-14T03:00:00.000Z" }
+   ```
+3. `error` is the error name or the database error code only. The body holds no message text, no row values and no identifiers.
+4. The `POST` times out after 5 seconds. Redirects are refused. A failed `POST` writes one log line (`"alert": "failed"`) and does not change the result of the job. The job still exits with a non-zero code, so Render also shows the failure.
+5. Test the endpoint: run a job once with a wrong database URL. Expect one alert.
+
+`HEARTBEAT_URL_<JOB>` is the opposite signal: a ping after a successful run. Use both if your monitor supports it.
+
+### Trusted proxy hops (`TRUST_PROXY_HOPS`)
+
+The per-address rate limit (login, registration, MFA, public forms) uses the client address that Fastify reads from `X-Forwarded-For`.
+
+| Value | Fastify `trustProxy` | Effect |
+|---|---|---|
+| Not set or empty (default) | `true` | Trusts every hop. The left-most address counts. The client can set it, so the per-address limit can be bypassed (review R-04, known issue M-7). This is the behaviour before the variable existed. |
+| A whole number `n` (`0`, `1`, `2`, ...) | `n` | Trusts only the last `n` hops. The address that the `n`-th proxy saw counts. A client-set address on the left is ignored. |
+
+Any other value stops the API at start.
+
+1. Find the number of proxies between the client and the API on the platform. On Render this number is UNVERIFIED. On Google Cloud it depends on the load balancer.
+2. Set `TRUST_PROXY_HOPS` to that number on the demo or a test site.
+3. Send more than `RATE_TIGHT_PER_MIN` (default 20) `POST /api/v1/auth/login` requests within one minute. Give each request a different made-up `X-Forwarded-For` value.
+4. Expect `429` after the limit. If no `429` comes, the number is too high. If all users behind one proxy share one limit, the number is too low.
+5. Set the same number in production only after this check.
+
+Setting the variable does not close M-7 by itself. M-7 stays open until the hop count is verified on the platform.
 
 Residual risk: Render runs the pre-deploy step with the environment of `ari-api`. So that service holds the owner connection string and the migrator password. The API deletes them from its own process at start, but they stay readable in the Dashboard.
 

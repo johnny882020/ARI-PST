@@ -58,7 +58,8 @@ export interface Page<T> { items: T[]; nextCursor: string | null }
 export interface SampleListQuery { centerId?: string; diagnosisCode?: string; sampleType?: string; availability?: string; staleness?: Staleness; cursor?: string; limit: number }
 export interface DiagnosisTermRecord { diagnosisCode: string; parentCode: string | null; level: 'group' | 'family' | 'type'; icdo3Morph: string | null; labelHe: string; labelEn: string }
 export interface Bucket { bucket: string; level: string; count: number | null; suppressed: boolean; band?: string }
-export interface AggregateCount { count: number | null; suppressed: boolean; k: number; band?: string | null }
+/** Never carries the k threshold (R-12): callers that may see k read it from the policy (SearchRepo.k). */
+export interface AggregateCount { count: number | null; suppressed: boolean; band?: string | null }
 
 export interface RequestItemRecord { createdAt?: string; id: string; criteria: Filters; requestedCount: number | null; shownCountBucket: string | null }
 export interface RequestStepRecord { stepKey: StepKey; centerId: string | null; status: 'pending' | 'in_progress' | 'done' | 'skipped' | 'blocked'; publicNote: string | null; internalNote?: string | null; accepted?: boolean | null; startedAt: string | null; completedAt: string | null }
@@ -167,7 +168,7 @@ export interface RequestRepo {
   tally(requestId: string, userId: string): Promise<{ approve: number; reject: number; abstain: number; myVote: VoteValue | null; conflictDeclared: boolean } | null>;
   committeeConfig(): Promise<CommitteeConfig>;
   latestDecision(requestId: string): Promise<DecisionRecord | null>;
-  decisions(requestId: string, applicantView: boolean): Promise<DecisionRecord[]>;
+  decisions(requestId: string): Promise<DecisionRecord[]>;
   countsByStatus(): Promise<Record<string, number>>;
 }
 export interface ImportRepo {
@@ -221,6 +222,9 @@ export interface SessionRecord {
   roles: RoleAssignmentRecord[]; displayName: string; locale: 'he' | 'en';
 }
 export type MfaFactor = 'totp' | 'webauthn';
+/** Purpose of a one-use e-mail token. The auth adapter stores it as the token kind (R-08). */
+export type EmailTokenPurpose = 'invite' | 'verify' | 'password_reset';
+export const EMAIL_TOKEN_PURPOSES: readonly EmailTokenPurpose[] = ['invite', 'verify', 'password_reset'];
 export interface AuthPort {
   hashPassword(pw: string): Promise<string>;
   /** Constant-time. Returns null for unknown user and wrong password alike. Applies lockout. */
@@ -260,9 +264,9 @@ export interface AuthPort {
   storePasswordHash(userId: string, hash: string): Promise<void>;
   mfaFactorsFor(userId: string): Promise<MfaFactor[]>;
   recordLoginSuccess(userId: string): Promise<void>;
-  /** Email verification tokens. */
-  issueEmailToken(userId: string, purpose: 'verify_email' | 'invite'): Promise<string>;
-  consumeEmailToken(token: string, purpose: 'verify_email' | 'invite'): Promise<string | null>;
+  /** One-use e-mail tokens. The adapter stores the purpose; a token consumes only for the purpose it was issued for. */
+  issueEmailToken(userId: string, purpose: EmailTokenPurpose): Promise<string>;
+  consumeEmailToken(token: string, purpose: EmailTokenPurpose): Promise<string | null>;
 }
 
 // ---------- Object store ----------

@@ -1,14 +1,23 @@
 // Shared job runner. Jobs log counts only (no identifiers) and exit non-zero on failure so the scheduler alerts.
 import pg from 'pg';
 import { roleUrl } from '../lib/db-url.js';
+import { safeErrorName, sendFailureAlert } from './alert.js';
+
+/** Ends a failed job: one log line, the ALERT_WEBHOOK_URL alert (best effort, 5 s timeout), then a non-zero exit. */
+export async function failJob(name: string, error: string, exitCode = 1, extra: Record<string, unknown> = {}): Promise<never> {
+  console.error(JSON.stringify({ job: name, ok: false, error, ...extra }));
+  await sendFailureAlert(name, error);
+  process.exit(exitCode);
+}
+
 export async function runJob(name: string, urlVar: string, fn: (c: pg.Client) => Promise<Record<string, unknown>>): Promise<void> {
   // Explicit URL first; else built for app_readonly_bg from DB_HOST/DB_NAME/DB_PASSWORD_BG (Render). Break-glass has no derived URL.
   const url = process.env[urlVar] || (urlVar === 'DATABASE_URL_BREAKGLASS' ? undefined : roleUrl(process.env, 'app_readonly_bg', 'DATABASE_URL_BG'));
-  if (!url) { console.error(JSON.stringify({ job: name, ok: false, error: `${urlVar} missing` })); process.exit(2); }
+  if (!url) { await failJob(name, 'ConfigMissing', 2, { missing: urlVar }); return; }
   const c = new pg.Client({ connectionString: url });
   const t0 = Date.now();
   try { await c.connect(); const res = await fn(c); console.log(JSON.stringify({ job: name, ok: true, ms: Date.now() - t0, ...res })); await c.end(); await heartbeat(name); }
-  catch (e) { console.error(JSON.stringify({ job: name, ok: false, error: (e as { code?: string }).code ?? (e as Error).name })); try { await c.end(); } catch { /* ignore */ } process.exit(1); }
+  catch (e) { try { await c.end(); } catch { /* ignore */ } await failJob(name, safeErrorName(e)); }
 }
 
 /** Optional outside monitor: HEARTBEAT_URL_<JOB> (e.g. HEARTBEAT_URL_AUDIT_VERIFY) is pinged after a successful run. Failures of the ping are ignored. */

@@ -7,6 +7,10 @@ Every release uses synthetic data only.
 ## [Unreleased]
 
 ### Added
+- `ALERT_WEBHOOK_URL`: each scheduled job POSTs `{job, ok:false, error, at}` when a run fails. 5-second timeout; a failed POST never crashes the job ([`deployment.md` section 4](deployment.md#failure-alert-alert_webhook_url), L-4).
+- `TRUST_PROXY_HOPS` sets Fastify `trustProxy` to a hop count. The default keeps today's behaviour, so M-7 stays open ([`deployment.md` section 4](deployment.md#trusted-proxy-hops-trust_proxy_hops)).
+- Contract: `Session.mfaEnrolled` (required) and `Session.stepUpFresh`; responses `Problem400` and `Problem415` (review R-06, R-10).
+- Migration `0016`: e-mail token kinds `verify` and `password_reset` (review R-08).
 - Requirements validation of REQ-001 to REQ-072 and the spec: [`validation/REQUIREMENTS-VALIDATION.md`](validation/REQUIREMENTS-VALIDATION.md). Implementation roadmap by phase: [`ROADMAP-IMPLEMENTATION.md`](ROADMAP-IMPLEMENTATION.md).
 - Step-up dialog in the protected app (6-digit code or recovery code). The API client sends a call refused with `STEP_UP_REQUIRED` once more after the step-up (review R-03).
 - Migration `0012`: `app_core` may execute `search.norm()` (review R-13).
@@ -27,6 +31,11 @@ Every release uses synthetic data only.
 - `pnpm test:e2e:flows` flow f runs through the UI only (no `[api]` steps). The script always rebuilds `apps/api`.
 
 ### Fixed
+- A locked account answers 401, like an unknown address, so the answer does not show that the address exists. The lock-out stays internal and audited (review R-07).
+- One password step creates at most one session, also with parallel requests that carry two valid factors (review R-05).
+- An e-mail token is valid only for the purpose it was issued for (review R-08).
+- Bad JSON answers 400 `MALFORMED_REQUEST` and an unknown content type answers 415 `UNSUPPORTED_MEDIA_TYPE`, not 422 (review R-10).
+- Removed dead code and the unused `k` of `AggregateCount` (review R-11, R-12).
 - A vote, decision, role grant, `k` change or registration decision more than 5 minutes after sign-in sent the user to "Session ended". The `401 STEP_UP_REQUIRED` answer now opens the step-up dialog and keeps the session.
 - The pre-deploy step could not load the diagnosis vocabulary without the synthetic seed, so a real-data deployment could not create or import samples. Fixed by migration `0012`.
 - Migration `0011` failed on a database that already held MTA/DTA agreements (the live demo): the backfill ran as `app_migrator`, which row-level security blocks, so the new CHECK failed. The backfill now runs as `app_core`. Render kept the previous version live.

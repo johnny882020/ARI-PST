@@ -18,9 +18,13 @@ import { loadConfig } from '../config.js';
 import { PgAuth } from '../adapters/auth-local/index.js';
 import { base32Encode } from '../adapters/auth-local/totp.js';
 import { systemClock } from '../adapters/clock/index.js';
+import { safeErrorName } from './alert.js';
+import { failJob } from './run.js';
 
 const out = (o: Record<string, unknown>) => console.log(JSON.stringify({ job: 'seed-synthetic', ...o }));
-const fail = (error: string, code = 1): never => { console.error(JSON.stringify({ job: 'seed-synthetic', ok: false, error })); process.exit(code); };
+/** A refusal ends the run with a fixed reason text (no values). main().catch logs it, sends the failure alert and exits. */
+class SeedRefused extends Error { constructor(readonly reason: string, readonly exitCode: number) { super(reason); this.name = 'SeedRefused'; } }
+const fail = (error: string, code = 1): never => { throw new SeedRefused(error, code); };
 /** Deterministic per-user TOTP secret (base32, 160 bit). Same formula in scripts/seed-credentials.mjs. */
 export const seedTotpSecret = (password: string, email: string): string => base32Encode(createHmac('sha256', password).update('ari-pst-seed-totp:' + email).digest().subarray(0, 20));
 
@@ -80,4 +84,7 @@ async function main(): Promise<void> {
     out({ ok: true, profile, firstRun, centers: ds.centers.length, users: ds.users.length, samples: ds.samples.length, requests, snapshotEpoch: epoch });
   } finally { await m.end().catch(() => undefined); await runtime.end().catch(() => undefined); }
 }
-main().catch((e) => fail(String((e as { code?: string }).code ?? (e as Error).name)));
+main().catch(async (e) => {
+  if (e instanceof SeedRefused) await failJob('seed-synthetic', e.name, e.exitCode, { reason: e.reason });
+  else await failJob('seed-synthetic', safeErrorName(e));
+});

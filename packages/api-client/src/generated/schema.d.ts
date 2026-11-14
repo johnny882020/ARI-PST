@@ -1967,6 +1967,10 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
             csrfToken: string;
+            /** @description False for an enrolment-only session (password step done */
+            mfaEnrolled: boolean;
+            /** @description True when the last second-factor check is no older than 5 minutes (C-02). */
+            stepUpFresh?: boolean;
         };
         Accepted: {
             accepted: boolean;
@@ -2228,6 +2232,24 @@ export interface components {
         };
     };
     responses: {
+        /** @description Malformed request body (MALFORMED_REQUEST). */
+        Problem400: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Unsupported media type (UNSUPPORTED_MEDIA_TYPE). */
+        Problem415: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description Not authenticated. */
         Problem401: {
             headers: {

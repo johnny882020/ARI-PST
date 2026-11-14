@@ -1,6 +1,6 @@
 import {
   DomainError, QUERY_LIMITS, TokenBucket, canonicalizeFilters, evaluateBudget, predicateCount, queryCost, stableStringify, validateFilterShape,
-  type Clock, type Ctx, type Filters, type Repository, type DiagnosisTermRecord,
+  type AggregateCount, type Clock, type Ctx, type Filters, type Repository, type DiagnosisTermRecord,
 } from '@ari/domain';
 import { sha256Hex } from '../../lib/crypto.js';
 import { institutionOf } from '../../lib/util.js';
@@ -89,7 +89,7 @@ export class SearchService {
     const key = sha256Hex(stableStringify({ f: filters, t: input.q?.trim().toLowerCase() ?? null, rc: this.roleClass(ctx) }));
     await this.charge(ctx, key, queryCost(filters));
     const k = await this.repo.tx(ctx, (tx) => tx.search.k());
-    const res = emptyText ? { count: null, suppressed: true, k } : await this.cached(ctx, 't:' + key, () => this.repo.tx(ctx, (tx) => tx.search.total(filters)));
+    const res: AggregateCount = emptyText ? { count: null, suppressed: true } : await this.cached(ctx, 't:' + key, () => this.repo.tx(ctx, (tx) => tx.search.total(filters)));
     await this.repo.tx(ctx, (tx) => tx.audit.record(ctx, { action: 'search.aggregate', outcome: 'success', details: { hash: key.slice(0, 32), masked: res.suppressed ? 1 : 0, predicates: predicateCount(filters), role: this.roleClass(ctx) } }));
     return { count: res.suppressed ? null : res.count, suppressed: res.suppressed, label: res.suppressed ? 'too_few' : res.count === null ? (res.band ?? 'lt10') : String(res.count), ...(ctx.actor.role === 'national_coordinator' ? { k } : {}), resolvedFilters: filters };   // k from the policy, not the cached count
   }

@@ -55,8 +55,6 @@ export function registerContractRoutes(app: FastifyInstance, deps: Deps, handler
     const queryParams: Array<{ name: string; required?: boolean; schema: any }> = (op.op.parameters ?? [])
       .map((p: any) => (p.$ref ? contract.doc.components.parameters[p.$ref.split('/').pop()] : p))
       .filter((p: any) => p.in === 'query');
-    const pathItemParams = (contract.doc.paths[op.path].parameters ?? []);
-    void pathItemParams;
 
     app.route({
       method: op.method as 'GET', url, config: { operationId: op.operationId },
