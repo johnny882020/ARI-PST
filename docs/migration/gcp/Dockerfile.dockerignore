@@ -1,0 +1,18 @@
+# BuildKit reads this file because it sits next to docs/migration/gcp/Dockerfile and has its name + ".dockerignore".
+# It keeps local builds, dependencies, secrets and VCS data out of the build context.
+**/node_modules
+**/dist
+**/.astro
+**/.turbo
+**/coverage
+**/playwright-report
+**/test-results
+.git
+.github
+**/.env
+**/.env.*
+!apps/api/.env.example
+**/*.pem
+**/*.key
+backups
+docs/drills
