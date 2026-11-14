@@ -6,10 +6,10 @@ Synthetic data only until GATE-PROD-DATA. Canonical decisions (`plan/11-integrat
 ## Layout
 | Path | Purpose |
 |---|---|
-| `bootstrap.sql` | Run ONCE by an admin: creates roles (C-06), database ownership, grants. Idempotent. |
+| `bootstrap.sql` | Run ONCE by an admin (on Render: by `scripts/render-predeploy.mjs` as the Render user): creates roles (C-06), database ownership, grants. Grants `USAGE, CREATE` on schema `public` to `app_migrator` and `USAGE` to `app_core`, because a managed host may make its own user the owner of `public`. Idempotent. |
 | `migrations/0001..0010` | Plain SQL, one transaction each, recorded in `public.schema_migrations(version,name,checksum,applied_at)`. |
-| `migrate.mjs` | Runner: `DATABASE_URL_MIGRATOR=... node db/migrate.mjs [--dry-run] [--dir d]`. Checksums, advisory lock, rollback on error, refuses superuser. |
-| `seed.mjs`, `seeds/` | Vocabulary + synthetic dataset (`packages/synthetic-data`) + requests driven through the real functions. Needs `DATABASE_URL_ADMIN` (bypasses RLS) and `DATABASE_URL_RUNTIME`. Refuses when `GATE_PROD_DATA_CLOSED=true` or non-synthetic samples exist. |
+| `migrate.mjs` | Runner: `DATABASE_URL_MIGRATOR=... node db/migrate.mjs [--dry-run] [--dir d]`. Checksums, advisory lock, rollback on error, refuses superuser. Grants `SELECT` on `public.schema_migrations` to `app_core` (needed by `portal.migration_level()`). |
+| `seed.mjs`, `seeds/` | Local and CI only. Vocabulary + synthetic dataset (`packages/synthetic-data`) + requests driven through the real functions. Needs `DATABASE_URL_ADMIN` (bypasses RLS) and `DATABASE_URL_RUNTIME`. Refuses when `GATE_PROD_DATA_CLOSED=true` or non-synthetic samples exist. |
 | `export.mjs` / `import.mjs` | NDJSON per table + `manifest.json` (sha256, counts, audit chain heads). `--include-keys` adds `audit.chain_key` (ops only). |
 | `scripts/test-db.sh` | Starts PG16 on port 55432 (data `/tmp/ari-pst-pg`, trust auth), bootstraps, migrates, runs vitest. Extra args go to vitest. |
 | `tests/` | 10 files, 134 tests. `lib/session.mjs` is the reference for the API adapter. |
@@ -80,7 +80,7 @@ Chain: 8 lanes, each a gapless HMAC-SHA256 chain with a key held only in the DB 
 **Notifications**: `ops.outbox_enqueue(id, template, to_role, to_user, to_email, locale, params)` (needs a session), `ops.outbox_claim(limit)` / `ops.outbox_mark(id, ok, give_up)` (worker only: refused while a user session is active), `ops.outbox_list(limit)` (admin). `ops.metrics()`.
 
 ## /readyz
-`SELECT portal.migration_level()` returns the highest applied migration number (`'0010'` now). `/readyz` = query succeeds AND the value equals (or is >=) the level compiled into the API. Works for any session and for `app_readonly_bg`.
+`SELECT portal.migration_level()` returns the highest applied migration number (`'0010'` now). `/readyz` = query succeeds AND the value is >= the level compiled into the API. Works for any session and for `app_readonly_bg`. The function is `SECURITY DEFINER` owned by `app_core`, so `app_core` needs `USAGE` on schema `public` (`bootstrap.sql`) and `SELECT` on `public.schema_migrations` (`migrate.mjs`).
 
 ## Privacy engine summary (RT-01, RT-02, RT-28, C-08, C-09)
 Counts are distinct donors from the epoch snapshot `agg.snapshot` / `agg.donor_snapshot`. A cell is shown only if donors >= k (k >= 5, CHECK) and no displayable neighbour query (drop a filter, parent diagnosis, remove one OR value, tight single-dimension cover of the cell's donors in sex/age/center/diagnosis) differs by 1..k-1 donors. Small or unsafe cells are merged up the diagnosis hierarchy, then into one `other` cell; if that is small or unsafe the smallest shown cell is pulled in. Pairs where both answers are banded (< 10) are not comparable and are ignored. The test `privacy.test.mjs` brute-forces ~250 queries and all shown facet cells against the raw data and fails on any pair with a 1..4 difference.
@@ -94,7 +94,8 @@ Request free text wiped 24 months after close, record purged after 7 years, soft
 - `begin_session` trusts the caller for authentication and step-up age (DB cannot verify MFA). A compromised API can impersonate users; the DB still stops privilege escalation, SoD violations and direct state changes.
 - Audit chain key lives in the DB (not an external KMS). Daily external anchor is a job outside the DB (`audit.anchor()` provides the material). No key rotation function yet (`key_version` column is ready).
 - Denial events are written by the API in a new transaction; there is no DB-side rate limit on `audit.record_denial`.
-- Seeding needs a role that bypasses RLS (superuser or BYPASSRLS). Render preview databases may not allow this: use the API bootstrap instead (not built).
+- `seed.mjs` needs a role that bypasses RLS (superuser or BYPASSRLS). Render does not allow this. On Render the API job `apps/api/src/jobs/seed-synthetic.ts` seeds instead (run by `scripts/render-predeploy.mjs`).
+- `app_core` has no `EXECUTE` on `search.norm()`, so the pre-deploy step cannot load the vocabulary as `app_core`; the synthetic seed loads it (`plan/requests/INT-to-B1.md`, item 1).
 - xlsx import files and the importer itself are not part of B1. `makeImportFile` produces CSV corpus only. No `diagnosis_map` table.
 - Export signature (detached `manifest.json.sig`) and `docs/data-dictionary.md` generation are not built. `authn.*`, `ops.*` and `agg.*` are excluded from export by design.
 - Needs legal review: all retention periods, break-glass governance, and the whole coded-data regime.
