@@ -19,7 +19,7 @@
 - QA fixes from `qa/BUGS.md`, section "Fix verification": QA-003 to QA-009, QA-011, QA-012. Request status in `apps/web` uses the canonical enum (`closed` + `closeReason`).
 
 ### Test counts (local run, 2026-11-14)
-`pnpm -r --if-present test`: 455 tests pass (api 55, db 134, design-system 114, public-site 50, web 48, domain 35, synthetic-data 9, api-client 5, i18n 5).
+`pnpm -r --if-present test`: 454 tests pass (api 54, db 134, design-system 114, public-site 50, web 48, domain 35, synthetic-data 9, api-client 5, i18n 5).
 
 ## Phase 1 build (2026-11-13), synthetic data only
 
