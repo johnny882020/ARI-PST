@@ -19,6 +19,8 @@ const TITLES: Record<ErrorCode, { slug: string; title: string; detail: string }>
   STEP_UP_REQUIRED: { slug: 'step-up-required', title: 'Re-authentication required', detail: 'Confirm your second factor to continue.' },
   CSRF_INVALID: { slug: 'csrf-invalid', title: 'Request rejected', detail: 'The request failed a cross-site check.' },
   SECOND_APPROVER_REQUIRED: { slug: 'second-approver-required', title: 'Second approver required', detail: 'A different administrator must approve this change.' },
+  MALFORMED_REQUEST: { slug: 'malformed-request', title: 'Malformed request', detail: 'The request body cannot be read.' },
+  UNSUPPORTED_MEDIA_TYPE: { slug: 'unsupported-media-type', title: 'Unsupported media type', detail: 'The content type of the request is not accepted.' },
   INTERNAL: { slug: 'internal', title: 'Internal error', detail: 'Something went wrong. Quote the trace id to support.' },
 };
 export interface Problem { type: string; title: string; status: number; detail: string; code: ErrorCode; traceId: string; instance?: string; errors?: FieldIssue[] }

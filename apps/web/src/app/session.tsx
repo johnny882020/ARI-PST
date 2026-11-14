@@ -13,10 +13,10 @@ export type SessionState =
 
 /**
  * True for an enrolment-only session: signed in with a password, no second factor yet.
- * The API (SessionView.mfaEnrolled) lets such a session add a factor and sign out, nothing else.
+ * The API (`Session.mfaEnrolled` in the contract) lets such a session add a factor and sign out, nothing else.
  */
 export function needsMfaSetup(s: Session): boolean {
-  return (s as Session & { mfaEnrolled?: boolean }).mfaEnrolled === false;
+  return s.mfaEnrolled === false;
 }
 
 const Ctx = createContext<{

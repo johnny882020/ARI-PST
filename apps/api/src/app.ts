@@ -39,7 +39,7 @@ export async function buildApp(deps: Deps, opts: { logger?: boolean } = {}): Pro
       serializers: { req: (r: { method: string; routeOptions?: { url?: string } }) => ({ method: r.method, route: r.routeOptions?.url }) },
       redact: { paths: ['req.headers.cookie', 'req.headers.authorization', 'req.headers["x-csrf-token"]', '*.password', '*.email', '*.token'], censor: '[redacted]' },
     },
-    genReqId: () => randomUUID(), trustProxy: true, bodyLimit: 1_048_576, routerOptions: { ignoreTrailingSlash: true },
+    genReqId: () => randomUUID(), trustProxy: config.trustProxy, bodyLimit: 1_048_576, routerOptions: { ignoreTrailingSlash: true },
   } as never) as unknown as FastifyInstance;
   registerSecurityHeaders(app, config);
   await registerCore(app, deps);

@@ -65,7 +65,62 @@ describe('login, MFA, cookies, CSRF', () => {
     expect(unknown.status).toBe(401);
     for (let i = 0; i < 5; i++) await b.req('POST', '/api/v1/auth/login', { email: u.email, password: 'wrong-password-value' });
     const locked = await b.req('POST', '/api/v1/auth/login', { email: u.email, password: u.password });
-    expect(locked.status).toBe(429);
+    // R-07: a locked account answers like an unknown address. The lock-out stays internal and audited.
+    expect(locked.status).toBe(401);
+    expect(locked.res.headers['content-type']).toMatch(/application\/problem\+json/);
+    const strip = (j: Record<string, unknown>) => { const { traceId: _t, ...rest } = j; return rest; };
+    expect(strip(locked.json)).toEqual(strip(unknown.json));
+    expect(locked.res.headers['retry-after']).toBeUndefined();
+    const audit = await h.admin.query(`SELECT count(*)::int AS n FROM audit.audit_events WHERE action = 'auth.login.fail' AND details->>'reason' = 'locked' AND trace_id = $1`, [locked.res.headers['x-trace-id']]);
+    expect(audit.rows[0].n).toBe(1);
+  });
+  it('one password step creates one session, even with two parallel valid factors (R-05)', async () => {
+    const u = await h.seedUser('researcher_il', null, 'race'); await resetReplay(u);
+    const [rc1, rc2] = await h.auth.issueRecoveryCodes(u.id);
+    const b = browser(); await bootstrap(b);
+    const l = await b.req('POST', '/api/v1/auth/login', { email: u.email, password: u.password });
+    expect(l.status).toBe(200);
+    const tries = await Promise.all([
+      b.req('POST', '/api/v1/auth/mfa/verify', { challengeToken: l.json.challengeToken, recoveryCode: rc1 }),
+      b.req('POST', '/api/v1/auth/mfa/verify', { challengeToken: l.json.challengeToken, recoveryCode: rc2 }),
+      b.req('POST', '/api/v1/auth/mfa/verify', { challengeToken: l.json.challengeToken, totpCode: code(u) }),
+    ]);
+    expect(tries.filter((t) => t.status === 200)).toHaveLength(1);
+    expect(tries.filter((t) => t.status === 401)).toHaveLength(2);
+    const n = await h.admin.query('SELECT count(*)::int AS n FROM authn.sessions WHERE user_id = $1', [u.id]);
+    expect(n.rows[0].n).toBe(1);
+  });
+  it('the session lists mfaEnrolled (R-06)', async () => {
+    const s = await h.session(f.resIl);
+    const r = await h.call(s, 'GET', '/api/v1/session');
+    expect(r.status, r.body).toBe(200); expect(r.json.mfaEnrolled).toBe(true);
+  });
+  it('an e-mail token is valid only for its own purpose (R-08)', async () => {
+    const u = await h.seedUser('researcher_il', null, 'purpose');
+    const reset = await h.auth.issueEmailToken(u.id, 'password_reset');
+    expect(await h.auth.consumeEmailToken(reset, 'invite')).toBeNull();
+    expect(await h.auth.consumeEmailToken(reset, 'verify')).toBeNull();
+    expect(await h.auth.consumeEmailToken(reset, 'password_reset')).toBe(u.id);
+    expect(await h.auth.consumeEmailToken(reset, 'password_reset')).toBeNull();     // one use only
+    const invite = await h.auth.issueEmailToken(u.id, 'invite');
+    expect(await h.auth.consumeEmailToken(invite, 'password_reset')).toBeNull();
+    expect(await h.auth.consumeEmailToken(invite, 'invite')).toBe(u.id);
+    const verify = await h.auth.issueEmailToken(u.id, 'verify');
+    expect(await h.auth.consumeEmailToken(verify, 'verify')).toBe(u.id);
+    // the login challenge path does not accept an e-mail token
+    const other = await h.auth.issueEmailToken(u.id, 'invite');
+    expect(await h.auth.consumeChallenge(other)).toBeNull();
+  });
+  it('malformed JSON is 400 and an unknown media type is 415, both problem+json (R-10)', async () => {
+    const b = browser(); await bootstrap(b);
+    const bad = await h.app.inject({ method: 'POST', url: '/api/v1/auth/login', headers: { origin: ORIGIN, cookie: `__Host-csrf=${b.csrf}`, 'x-csrf-token': b.csrf, 'content-type': 'application/json' }, payload: '{"email":' });
+    expect(bad.statusCode).toBe(400); expect(bad.headers['content-type']).toMatch(/application\/problem\+json/);
+    expect(JSON.parse(bad.body)).toMatchObject({ status: 400, code: 'MALFORMED_REQUEST', type: '/problems/malformed-request' });
+    const media = await h.app.inject({ method: 'POST', url: '/api/v1/auth/login', headers: { origin: ORIGIN, cookie: `__Host-csrf=${b.csrf}`, 'x-csrf-token': b.csrf, 'content-type': 'text/x-unknown' }, payload: 'email' });
+    expect(media.statusCode).toBe(415); expect(media.headers['content-type']).toMatch(/application\/problem\+json/);
+    expect(JSON.parse(media.body)).toMatchObject({ status: 415, code: 'UNSUPPORTED_MEDIA_TYPE', type: '/problems/unsupported-media-type' });
+    const patch = await h.call(await h.session(f.resIl), 'PATCH', '/api/v1/me', { raw: '{"displayName":', headers: { 'content-type': 'application/merge-patch+json' } });
+    expect(patch.status).toBe(400); expect(patch.json.code).toBe('MALFORMED_REQUEST');
   });
   it('TOTP codes cannot be replayed (step-up)', async () => {
     const u = await h.seedUser('national_coordinator', null, 'replay'); await resetReplay(u);

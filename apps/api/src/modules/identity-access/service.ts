@@ -16,8 +16,9 @@ export class IdentityService {
     const norm = email.trim().toLowerCase();
     const r = await this.auth.verifyPassword(norm, password);
     if (!r || 'locked' in r && r.locked && !('userId' in r)) {
+      // R-07: a locked account answers exactly like an unknown address or a wrong password (401), so the answer
+      // does not tell that the address exists. The lock-out stays internal; the audit event records the reason.
       await this.repo.auditStandalone(ctx, { action: 'auth.login.fail', outcome: 'denied', details: { reason: r ? 'locked' : 'credentials' } });
-      if (r) throw new DomainError('RATE_LIMITED');
       throw new DomainError('UNAUTHENTICATED');
     }
     const ok = r as { userId: string; mfaFactors: ('totp' | 'webauthn')[]; locked: boolean };
@@ -45,7 +46,13 @@ export class IdentityService {
       await this.repo.auditStandalone({ ...ctx, actor: { ...ANON_ACTOR, userId: c.userId } }, { action: 'auth.mfa.fail', outcome: 'denied' });
       throw new DomainError('UNAUTHENTICATED');
     }
-    await this.auth.consumeChallenge(b.challengeToken);
+    // R-05: consume the challenge atomically. Only the request whose DELETE returns the row may create a session,
+    // so parallel requests with two valid factors cannot turn one password step into two sessions.
+    const won = await this.auth.consumeChallenge(b.challengeToken);
+    if (!won || won.userId !== c.userId) {
+      await this.repo.auditStandalone({ ...ctx, actor: { ...ANON_ACTOR, userId: c.userId } }, { action: 'auth.mfa.fail', outcome: 'denied', details: { reason: 'challenge_used' } });
+      throw new DomainError('UNAUTHENTICATED');
+    }
     const roles = await this.auth.activeRolesFor(c.userId);
     if (roles.length === 0) throw new DomainError('UNAUTHENTICATED');
     const u = await this.auth.profileFor(c.userId);

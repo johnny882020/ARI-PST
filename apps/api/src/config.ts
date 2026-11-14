@@ -24,6 +24,13 @@ export interface Config {
   dataClassification: string;          // 'synthetic' until GATE-PROD-DATA closes
   demoMode: boolean;                    // DEMO_MODE=true: free-plan demo, the UI shows a banner
   publicSiteOrigin: string | null;      // the ONLY cross-origin caller, and only for POST /api/v1/public/forms/* (no credentials)
+  trustProxy: true | number;            // Fastify trustProxy. TRUST_PROXY_HOPS=<n> trusts only the last n hops; unset = trust all (R-04)
+}
+/** TRUST_PROXY_HOPS: number of reverse-proxy hops in front of the API. Unset or empty keeps trustProxy: true (today's behaviour). */
+function trustProxyHops(v: string | undefined): true | number {
+  if (v === undefined || v.trim() === '') return true;
+  if (!/^\d+$/.test(v.trim())) throw new Error('TRUST_PROXY_HOPS must be a whole number of proxy hops (0 or more)');
+  return Number(v.trim());
 }
 const bool = (v: string | undefined, d: boolean) => (v === undefined ? d : ['1', 'true', 'yes'].includes(v.toLowerCase()));
 
@@ -77,5 +84,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     appVersion: env.RENDER_GIT_COMMIT || env.APP_VERSION || '0.1.0',
     dataClassification, demoMode: bool(env.DEMO_MODE, false),
     publicSiteOrigin: originOf(env.PUBLIC_SITE_ORIGIN),
+    trustProxy: trustProxyHops(env.TRUST_PROXY_HOPS),
   };
 }

@@ -9,6 +9,10 @@ info:
     - Base path is /api/v1. Breaking change means a new major path (/api/v2).
     - JSON is camelCase. Dates are ISO 8601 UTC. Collection month is YYYY-MM.
     - Errors use RFC 9457 Problem Details with media type application/problem+json.
+    - Any operation that takes a request body can also answer 400 MALFORMED_REQUEST (the body is not valid JSON) or
+      415 UNSUPPORTED_MEDIA_TYPE (the content type is not accepted). These come from the body parser, before the
+      operation runs, so the operations do not list them one by one. See components.responses Problem400 and Problem415.
+      422 VALIDATION_FAILED stays the answer for a readable body that breaks the schema or a rule.
     - No patient identifiers in any request, response or error. Synthetic data only until GATE-PROD-DATA.
     - External roles never receive sample rows. They get aggregate resources only.
   license:
@@ -1588,6 +1592,8 @@ components:
       required: true
       schema: { type: string, pattern: '^imp_[0-9A-HJKMNP-TV-Z]{26}$' }
   responses:
+    Problem400: { description: Malformed request body (MALFORMED_REQUEST)., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Problem415: { description: Unsupported media type (UNSUPPORTED_MEDIA_TYPE)., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
     Problem401: { description: Not authenticated., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
     Problem403: { description: Role not allowed., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
     Problem404: { description: Not found or not visible to this role., content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
@@ -2108,7 +2114,7 @@ components:
         webauthnAssertion: { type: object, additionalProperties: true }
     Session:
       type: object
-      required: [userId, roles, expiresAt, csrfToken]
+      required: [userId, roles, expiresAt, csrfToken, mfaEnrolled]
       properties:
         userId: { type: string }
         displayName: { type: string }
@@ -2120,6 +2126,8 @@ components:
         centerId: { type: [string, 'null'], description: Same as activeCenterId. Own center of a center_clinician. }
         expiresAt: { type: string, format: date-time }
         csrfToken: { type: string }
+        mfaEnrolled: { type: boolean, description: False for an enrolment-only session (password step done, no second factor yet). Such a session may only add a factor and sign out. }
+        stepUpFresh: { type: boolean, description: True when the last second-factor check is no older than 5 minutes (C-02). }
     Accepted: { type: object, required: [accepted], properties: { accepted: { type: boolean } } }
     CsrfToken: { type: object, required: [csrfToken], properties: { csrfToken: { type: string } } }
     Health:

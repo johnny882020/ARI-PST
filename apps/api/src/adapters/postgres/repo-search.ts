@@ -8,8 +8,8 @@ export function makeSearchRepo(q: Q, ctx: Ctx): SearchRepo {
   return {
     async total(f: Filters) {
       const r = await q.query('SELECT n, band, masked FROM agg.total_count($1::jsonb)', [JSON.stringify(f)]);
-      const x = r.rows[0]; const k = 5;
-      return x.masked ? { count: null, suppressed: true, k } : { count: x.n ?? null, suppressed: false, k, band: x.band ?? null };
+      const x = r.rows[0];     // no k here (R-12): the threshold never travels with a count
+      return x.masked ? { count: null, suppressed: true } : { count: x.n ?? null, suppressed: false, band: x.band ?? null };
     },
     async facet(f, facet) {
       const r = await q.query('SELECT bucket, bucket_level, n, band, masked FROM agg.facet_counts($1::jsonb, $2)', [JSON.stringify(f), facet]);

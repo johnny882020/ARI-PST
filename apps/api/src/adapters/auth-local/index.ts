@@ -5,7 +5,7 @@ import type pg from 'pg';
 import {
   generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse,
 } from '@simplewebauthn/server';
-import type { AuthPort, Clock, MfaFactor, RoleAssignmentRecord, SessionRecord } from '@ari/domain';
+import { EMAIL_TOKEN_PURPOSES, type AuthPort, type Clock, type EmailTokenPurpose, type MfaFactor, type RoleAssignmentRecord, type SessionRecord } from '@ari/domain';
 import { randomToken, sha256Buf } from '../../lib/crypto.js';
 import { PasswordHasher, passwordPolicy } from './password.js';
 import { newTotpSecret, otpauthUri, totpVerify } from './totp.js';
@@ -13,6 +13,11 @@ import { newTotpSecret, otpauthUri, totpVerify } from './totp.js';
 export interface AuthOptions { rpId: string; rpName: string; origin: string; secretsKey: string; argon: { memoryCost: number; timeCost: number; parallelism: number } }
 const MAX_FAILS = 5; const LOCK_MS = 15 * 60_000; const CHALLENGE_MS = 5 * 60_000; const INVITE_MS = 7 * 86_400_000;
 const DUMMY_HASH_PW = 'dummy-password-for-constant-time';
+/** authn.challenges.kind for an e-mail token. The kind equals the purpose; an unknown purpose throws (never a silent default). */
+function emailKind(purpose: EmailTokenPurpose): EmailTokenPurpose {
+  if (!EMAIL_TOKEN_PURPOSES.includes(purpose)) throw new Error('unknown e-mail token purpose');
+  return purpose;
+}
 
 export class PgAuth implements AuthPort {
   private hasher: PasswordHasher; private key: Buffer; private dummy: Promise<string>;
@@ -147,8 +152,13 @@ export class PgAuth implements AuthPort {
     return r.rows[0] ? { userId: r.rows[0].user_id as string, attempts: r.rows[0].attempts as number } : null;
   }
   async failChallenge(token: string) { await this.q(`UPDATE authn.challenges SET attempts = attempts + 1 WHERE token_hash = $1`, [sha256Buf(token)]); }
-  async issueEmailToken(userId: string, purpose: 'verify_email' | 'invite') { void purpose; const t = randomToken(24); await this.putChallenge(t, userId, 'invite', null, INVITE_MS); return t; }
-  async consumeEmailToken(token: string, purpose: 'verify_email' | 'invite') { void purpose; const r = await this.q(`DELETE FROM authn.challenges WHERE token_hash = $1 AND kind = 'invite' AND expires_at > now() RETURNING user_id`, [sha256Buf(token)]); return (r.rows[0]?.user_id as string) ?? null; }
+  /** R-08: the purpose is the stored kind, and consume matches it. A token issued for one purpose never consumes for another.
+   *  Kinds 'verify' and 'password_reset' need migration 0016 (CHECK on authn.challenges.kind). */
+  async issueEmailToken(userId: string, purpose: EmailTokenPurpose) { const t = randomToken(24); await this.putChallenge(t, userId, emailKind(purpose), null, INVITE_MS); return t; }
+  async consumeEmailToken(token: string, purpose: EmailTokenPurpose) {
+    const r = await this.q(`DELETE FROM authn.challenges WHERE token_hash = $1 AND kind = $2 AND expires_at > now() RETURNING user_id`, [sha256Buf(token), emailKind(purpose)]);
+    return (r.rows[0]?.user_id as string) ?? null;
+  }
   // ----- sessions -----
   async createSession(userId: string, o: { mfaAt: number | null; ipHash: string | null; roles: RoleAssignmentRecord[]; displayName: string; locale: 'he' | 'en' }): Promise<SessionRecord> {
     const id = randomToken(32); const csrf = randomToken(24); const now = this.now();

@@ -119,3 +119,12 @@ describe('outbox, budget, metrics', () => {
     expect(lvl >= '0010').toBe(true);
   });
 });
+
+describe('0016 e-mail token purpose is the challenge kind (R-08)', () => {
+  it('runtime can store the purposes invite, verify and password_reset; any other kind is refused', async () => {
+    const put = (kind) => noSession(`INSERT INTO authn.challenges (token_hash, user_id, kind, expires_at) VALUES (sha256(convert_to($1 || random()::text, 'UTF8')), 'usr_synthetic_0016', $1, now() + interval '1 minute')`, [kind]);
+    for (const k of ['login', 'invite', 'verify', 'password_reset']) await put(k);
+    await fails(put('reset'), '23514');
+    await noSession(`DELETE FROM authn.challenges WHERE user_id = 'usr_synthetic_0016'`);
+  });
+});

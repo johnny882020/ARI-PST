@@ -27,7 +27,7 @@ Fastify API of the ARI-PST Portal. It serves `/api/v1`, `/livez`, `/readyz` and 
 | `src/http/` | Routing from the OpenAPI file, CSRF and origin checks, problem+json errors |
 | `src/modules/` | Ten modules, one per bounded context |
 | `src/adapters/` | `postgres`, `auth-local` (Argon2id, passkeys, TOTP), `objectstore`, `email`, `clock` |
-| `src/jobs/` | Cron jobs: `staleness`, `audit-verify`, `purge`, `export`, `snapshot`, `seed-synthetic` |
+| `src/jobs/` | Cron jobs: `staleness`, `audit-verify`, `purge`, `export`, `snapshot`, `seed-synthetic`. A failed run POSTs a small alert to `ALERT_WEBHOOK_URL` (`alert.ts`) |
 | `test/` | Authz matrix (from `x-roles`), IDOR and contract tests, request flow, auth, import |
 
 Architecture rule: only `src/adapters/` may import platform libraries. `pnpm arch` checks this.

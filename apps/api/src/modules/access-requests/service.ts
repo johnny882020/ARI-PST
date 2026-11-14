@@ -249,7 +249,7 @@ export class RequestService {
     });
   }
   async decisions(ctx: Ctx, id: string) {
-    return this.repo.tx(ctx, async (tx) => { if (!(await tx.requests.get(id))) throw notFound(); return tx.requests.decisions(id, ctx.actor.role === 'researcher_il'); });
+    return this.repo.tx(ctx, async (tx) => { if (!(await tx.requests.get(id))) throw notFound(); return tx.requests.decisions(id); });
   }
 }
 

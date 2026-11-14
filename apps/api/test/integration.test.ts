@@ -33,6 +33,32 @@ describe('config', () => {
   });
 });
 
+describe('trusted proxy hops (TRUST_PROXY_HOPS, review R-04)', () => {
+  it('unset keeps today\'s behaviour (trust every hop); a number must be a whole number of hops', () => {
+    expect(loadConfig(prod).trustProxy).toBe(true);
+    expect(loadConfig({ ...prod, TRUST_PROXY_HOPS: '' }).trustProxy).toBe(true);
+    expect(loadConfig({ ...prod, TRUST_PROXY_HOPS: '1' }).trustProxy).toBe(1);
+    expect(loadConfig({ ...prod, TRUST_PROXY_HOPS: '0' }).trustProxy).toBe(0);
+    for (const bad of ['-1', '1.5', 'all', 'true']) expect(() => loadConfig({ ...prod, TRUST_PROXY_HOPS: bad }), bad).toThrow(/TRUST_PROXY_HOPS/);
+  });
+  const spoofed = async (h: Harness) => {
+    let limited = 0;
+    for (let i = 0; i < 6; i++) {
+      const r = await h.app.inject({ method: 'POST', url: '/api/v1/auth/login', headers: { origin: ORIGIN, 'x-forwarded-for': `198.51.100.${i + 1}, 203.0.113.7` } });
+      if (r.statusCode === 429) limited++;
+    }
+    return limited;
+  };
+  it('with TRUST_PROXY_HOPS=1 a client-set left-most X-Forwarded-For does not reset the per-address limit', async () => {
+    const h = await startHarness({ TRUST_PROXY_HOPS: '1', RATE_TIGHT_PER_MIN: '3' });
+    try { expect(await spoofed(h)).toBeGreaterThan(0); } finally { await h.close(); }
+  });
+  it('without it (default) every hop is trusted, as before', async () => {
+    const h = await startHarness({ RATE_TIGHT_PER_MIN: '3' });
+    try { expect(await spoofed(h)).toBe(0); } finally { await h.close(); }
+  });
+});
+
 describe('public-form CORS rule and health', () => {
   let h: Harness;
   beforeAll(async () => { h = await startHarness({ PUBLIC_SITE_ORIGIN: SITE + '/', RENDER_GIT_COMMIT: 'sha-test', RATE_TIGHT_PER_MIN: '20' }); });
