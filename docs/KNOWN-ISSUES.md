@@ -1,66 +1,85 @@
-# Known issues and unverified items
+# Known issues
 
-Honest list as of 2026-11-14 (Phase 1 build, synthetic data only). Owners are suggestions. Severity: B = blocks first deploy or CI, G = gap in a feature, U = unverified fact, L = needs legal review.
+Current gaps of the Phase 1 system (synthetic data only). Owners are suggestions.
+Code review findings with file and line references: [`REVIEW-2026-11.md`](REVIEW-2026-11.md). QA bugs: [`qa/BUGS.md`](qa/BUGS.md).
 
-## Build and deploy
-Closed by the integration pass (INT-1), verified locally with `pnpm test:e2e:full`: root scripts for CI (old #1), `DATABASE_URL_MIGRATOR` and role bootstrap on Render (#2, #3), API tables in `db/migrations/0010` (#4), env var names (#5), preview seeding and the `DATA_CLASSIFICATION` guard (#6), CORS for the public forms (#7), heartbeat pings after cron runs (#8), `db/README.md` (#9). Also fixed: stale `pnpm-lock.yaml`, API crash with a relative `WEB_DIST_DIR`, `/readyz` did not compare migration levels, no job refreshed the privacy snapshot (QA-002), portal link on the public site (QA-010).
-Closed on 2026-11-14: `/readyz` failed on Render because Render makes its database user the owner of schema `public` (fixed in `db/bootstrap.sql` and `db/migrate.mjs`, see `docs/deployment.md` section 3a); high-severity dependency advisories (nodemailer, `@fastify/static`, zod 4 in `apps/web` with `z.config({ jitless: true })` so the CSP keeps no `unsafe-eval`); AES-GCM without a fixed tag length in `apps/api/src/adapters/auth-local` (now `authTagLength: 16`); CI jobs `cms-guard`, container scan (trivy image), SBOM (`--ignore-npm-errors`) and licence check (per app, `--excludePrivatePackages`).
+Severity:
 
-| # | Sev | Issue | Owner |
-|---|---|---|---|
-| 1 | U | The Render database user must have `CREATEROLE` for `scripts/render-predeploy.mjs`. Verified only on a local PostgreSQL 16 that simulates it. Fallback: `docs/deployment.md` section 3a. | DevOps, owner |
-| 2 | U | `render.yaml` hard-codes the hosts `ari-api.onrender.com` and `ari-public.onrender.com` (Blueprints have no variables). If Render assigns other names, public forms and the sign-in link break until the five places are changed (`docs/deployment.md` section 3, step 6). | DevOps, owner |
-| 3 | G | `app_core` cannot execute `search.norm()`, so the vocabulary cannot be loaded by the pre-deploy step. The synthetic seed loads it through a coordinator session. Without the seed the diagnosis list is empty. `plan/requests/INT-to-B1.md`. | Data |
-| 4 | G | The service `ari-api` holds the owner connection string and the migrator password in its environment (Render runs the pre-deploy step there). The API deletes them from its process at start. A separate one-off job would be cleaner. | DevOps |
-| 5 | G | No object store or SMTP is configured in the Blueprint. Uploads live in memory per instance (2 instances: an import staged on one instance cannot be committed on the other). No e-mail is sent: invitations and e-mail verification cannot complete on a deployed stack. | Owner (provide bucket and SMTP) |
-| 6 | G | `ari-cron-export` fails daily by design until a break-glass window is opened. Output is plain NDJSON; `BACKUP_AGE_PUBLIC_KEY` is not read by the code. Suspend the cron until the export design is done. | Backend, DevOps |
-| 7 | G | Rate limits, the search result cache and the "seen query" budget cache are in process memory. With 2 instances they are per instance (stricter budget, looser rate limit). | Backend |
-| 8 | G | Rotation of `SECRETS_KEY` (TOTP encryption) has no tool. Changing the value locks out every TOTP user. | Backend |
-| 9 | G | `DEMO_MODE=true` is reported by `/livez` (`checks.demo`). The SPA shows no banner yet (UI files were owned by another agent in this pass). | Frontend |
-| 10 | G | `ALERT_WEBHOOK_URL` is not implemented. A failed cron is visible only in Render. | Backend |
-| 11 | G | Synthetic users share one password (`SEED_USER_PASSWORD`) and have TOTP secrets derived from it. Acceptable for synthetic data only. The seed must be off before GATE-PROD-DATA closes. | Owner |
-| 12 | G | QA-001 (add to cart returned 404 on QA's dev stack) did not reproduce on the production-like stack: the cart step passes in `scripts/e2e-fullstack.mjs`. Likely cause was QA's hand-made seed. QA-013 (401 on first `GET /auth/session`) is unchanged. | QA, Backend |
-| 13 | G | `db/seed.mjs` needs a superuser and cannot run on Render. The API job `seed-synthetic` replaces it there. | Data |
-| 14 | G | The free demo (`infra/render.free.yaml`, service `ari-demo-api-7teo`) runs the pre-deploy step in its start command at every start, because free services have no `preDeployCommand` (UNVERIFIED). So the owner connection string and the migrator password stay in that service's environment, and every restart re-runs roles, migrations and seed. | DevOps |
-| 15 | G | The old hand-made Render service `ARI-PST` (build `yarn`, start `T4C`, auto-deploy from `main`) is still in the workspace and fails on every push to `main`. The owner will delete it (`docs/deployment.md` section 3, step 1). | Owner |
-| 16 | G | The SPA has no step-up dialog. Operations that need a second factor younger than 5 minutes (votes, role grants, k changes, registration decisions, adding a second factor) show "Confirm your second factor" and the user must sign in again. `docs/REVIEW-2026-11.md` R-03. | Frontend |
-| 17 | G | Code review findings that are not fixed yet: `docs/REVIEW-2026-11.md`. | Backend, Frontend |
+| Level | Meaning |
+|---|---|
+| High | Blocks a production deploy or a core user flow on a deployed stack |
+| Medium | A feature or control is weaker than the plan, or an operation needs manual work |
+| Low | Polish, hardening or a decision that is still open |
+
+## High
+
+| # | Issue | Owner |
+|---|---|---|
+| H-1 | No object store and no SMTP are configured. Uploads live in memory per instance: with 2 instances, an import staged on one instance cannot be committed on the other. No e-mail is sent, so invitations and e-mail verification cannot complete on a deployed stack. | Owner (provide bucket and SMTP) |
+| H-2 | The production Blueprint `render.yaml` is not applied. Plan slugs, `CREATEROLE` for the Render database user and the PITR window are UNVERIFIED (see [Unverified](#unverified)). | Owner, DevOps |
+
+## Medium
+
+| # | Issue | Owner |
+|---|---|---|
+| M-1 | The SPA has no step-up dialog. Votes, role grants, `k` changes, registration decisions and adding a second factor fail when the sign-in is older than 5 minutes. The user must sign in again. Review R-03. | Frontend |
+| M-2 | Not built in the protected app: invite accept page (`/invite/:token`), password reset (no API operation), change-password form, recovery-code page, sample edit page, request coordination page, audit export page, user detail, committee settings, content admin, admin health page, notifications, metrics dashboards. Re-check the Phase 1 acceptance checklist ([`plan/04-product-workflow/07-phase1-acceptance-checklist.md`](../plan/04-product-workflow/07-phase1-acceptance-checklist.md)) against this list. | Frontend, product |
+| M-3 | `ari-api` holds the owner connection string and the migrator password in its environment, because Render runs the pre-deploy step there. The free demo keeps them too, because its start command runs the step at every start. The API deletes them from its process at start. A separate one-off job would be cleaner. | DevOps |
+| M-4 | `render.yaml` hard-codes the hosts `ari-api.onrender.com` and `ari-public.onrender.com`. If Render assigns other names, public forms and the sign-in link break until five places are changed ([`deployment.md`](deployment.md#3-production-blueprint-step-by-step), step 4). | DevOps |
+| M-5 | `ari-cron-export` fails daily by design until a break-glass window is open. Output is plain NDJSON; the code does not read `BACKUP_AGE_PUBLIC_KEY`. Suspend the cron until the export design is done. | Backend, DevOps |
+| M-6 | `SECRETS_KEY` (TOTP encryption) has no rotation tool. A new value locks out every TOTP user. The audit chain key has no rotation function either. | Backend |
+| M-7 | The per-address rate limit trusts the left-most `X-Forwarded-For` value (`trustProxy: true`). It can be bypassed. The account lock-out still holds. Review R-04. | Backend |
+| M-8 | No database role can take a full logical dump (no superuser, `FORCE ROW LEVEL SECURITY`, no audit read grant for `app_migrator`). `scripts/backup-export.sh` and the offsite dump path of RB-02 do not work on managed hosts; only the provider's own backup has full rights. Finding F-1 in [`migration/google-cloud.md`](migration/google-cloud.md#56-findings-that-need-a-decision). | Data, DevOps |
+
+## Low
+
+| # | Issue | Owner |
+|---|---|---|
+| L-1 | `app_core` cannot execute `search.norm()`, so the pre-deploy step cannot load the vocabulary as `app_core`. The synthetic seed loads it. Fix: migration 0011 (review R-13). | Data |
+| L-2 | Rate limits, the search cache and the query budget cache are in process memory, so they are per instance. Accepted for Phase 1. | Backend |
+| L-3 | `/livez` reports `DEMO_MODE` (`checks.demo`), but the SPA shows no demo banner. | Frontend |
+| L-4 | `ALERT_WEBHOOK_URL` is not implemented. A failed cron is visible only in Render. | Backend |
+| L-5 | Synthetic users share one password (`SEED_USER_PASSWORD`) with TOTP secrets derived from it. Acceptable for synthetic data only. The seed must be off before `GATE-PROD-DATA` closes. | Owner |
+| L-6 | `db/seed.mjs` needs a role that bypasses RLS, so it cannot run on Render. The API job `seed-synthetic` seeds there. | Data |
+| L-7 | Every first load logs a 401 for `GET /auth/session` (QA-013). Changing it is an API contract decision. | Backend |
+| L-8 | The public site has no theme switch; it follows the OS (QA-014). Needs a product decision. | Product |
+| L-9 | The old hand-made Render service `ARI-PST` (start command `T4C`) still exists and fails on every push to `main`. Delete it ([`deployment.md`](deployment.md#2-before-you-start)). | Owner |
+| L-10 | Other open code review findings (R-05 to R-12): [`REVIEW-2026-11.md`](REVIEW-2026-11.md#open-findings). | Backend, Frontend |
 
 ## CI gates not yet enforced
-`ci.yml` calls only scripts that exist and do real work. These planned gates have no tool or test yet and are NOT enforced. The workflow says so in comments.
-| Gate | Today |
+
+`ci-gate` is green, and every job it needs runs a real check. These planned gates have no tool or test yet. The workflow says so in comments.
+
+| Planned gate | What CI runs today |
 |---|---|
-| Spectral ruleset on OpenAPI | `lint:openapi` only checks that the generated client matches the spec |
-| fast-check property tests | `test:property` runs the privacy attack simulation in `db/tests/privacy.test.mjs` |
-| Schemathesis fuzzing, oasdiff breaking-change check | `test:contract` runs the authz matrix and IDOR/contract tests (responses validated against OpenAPI) |
-| Migration lint, "old schema from `main` + seed + new migrations" | Not run |
-| REQ-to-test traceability (`trace-check`) | Job removed. Tests carry no REQ ids |
+| Spectral ruleset on OpenAPI | `lint:openapi`: the generated client matches the spec |
+| fast-check property tests | `test:property`: the privacy attack simulation in `db/tests/privacy.test.mjs` |
+| Schemathesis fuzzing, oasdiff breaking-change check | `test:contract`: authz matrix and IDOR/contract tests (responses validated against OpenAPI) |
+| Migration lint, old schema from `main` + seed + new migrations | Not run |
+| REQ-to-test traceability (`trace-check`) | Not run. Tests carry no REQ ids |
 | axe on the protected SPA | `test:a11y` covers the public site only |
-| Export/import round trip (`roundtrip.yml`) | Schedule removed. A manual run fails on purpose: the tools do not exist |
-| CI itself | Runs on GitHub for pull requests (PR #1 merged, PR #7 open). Jobs were being fixed on 2026-11-14 (`cms-guard`, container scan, SBOM, licence check); a fully green run is not claimed here. The database jobs assume PostgreSQL 16 binaries at `/usr/lib/postgresql/16/bin` on `ubuntu-24.04` runners (UNVERIFIED) |
+| Export/import round trip (`roundtrip.yml`) | Manual only. It fails on purpose: the tools do not exist |
+| Actions pinned to commit SHAs | Pinned by tag. List: [`.github/SHA-PINNING-TODO.md`](../.github/SHA-PINNING-TODO.md) |
 
-## Not built in the protected app
-Invite accept (`/invite/:token`), password reset, recovery-code page, sample edit page, request coordination page, audit export page, user detail, invitations, committee settings, content admin, admin health, notifications, metrics dashboards. The API may expose some of these; the UI does not. The Phase 1 acceptance checklist (`plan/04-product-workflow/07-phase1-acceptance-checklist.md`) must be re-checked against this list.
+## Unverified
 
-## Unverified (UNVERIFIED)
-- Render: database user rights (`CREATEROLE`), `preDeployCommand` on free instances, `RENDER_EXTERNAL_URL` and `RENDER_GIT_COMMIT` in every service, redirect to an external URL from a static site, `NODE_VERSION` handling. Plan slugs (`pro-4gb`, `starter`, `free`), valid disk sizes, PITR window and whether it meets RPO 15 min, `IS_PULL_REQUEST` in previews, preview cron opt-out, name uniqueness across Blueprints, `render blueprints validate`. `render.com` was not reachable from the build session.
-- Render has no built-in approval gate. The GitHub Environment plus deploy hook design needs the owner's acceptance.
-- A fully green CI run on GitHub is not claimed. Lighthouse CI (`apps/public-site/lighthouserc.json`) was not run. No axe or Lighthouse scores are claimed.
-- Pen-test, DAST and the privacy attack simulation at scale were not run on a deployed stack.
-- Performance: p95 800 ms at 50,000 records (C-12) is a target. A test exists in `db/tests/perf.test.mjs`; no deployed measurement.
+- **Render:** `CREATEROLE` for the database user; `preDeployCommand` on free instances; `RENDER_EXTERNAL_URL` and `RENDER_GIT_COMMIT` in every service; redirect to an external URL from a static site; `NODE_VERSION` handling; plan slugs (`pro-4gb`, `starter`); disk sizes; PITR window and whether it meets RPO 15 min; `IS_PULL_REQUEST` in previews; preview cron opt-out; name uniqueness across Blueprints; `render blueprints validate`; free Postgres lifetime (30 days).
+- **Approval gate:** Render has no built-in approval gate. The GitHub Environment plus deploy hook design needs the owner's acceptance.
+- **Quality:** Lighthouse CI (`apps/public-site/lighthouserc.json`) was not run. No Lighthouse scores are claimed.
+- **Security testing:** pen-test, DAST and the privacy attack simulation at scale were not run on a deployed stack.
+- **Performance:** p95 800 ms at 50,000 records (C-12) is a target. `db/tests/perf.test.mjs` measures about 850 ms locally. No deployed measurement.
 
 ## Content and design
-- Fonts (Heebo, Rubik, Assistant) are not bundled. Licence is UNVERIFIED (`packages/design-system/fonts/README.md`). System fallbacks are used.
-- Hebrew copy (UI, public site, legal pages) is a machine draft. A Hebrew editor must review it. Diagnosis vocabulary and Hebrew labels need clinical sign-off (GATE-SCHEMA).
-- Partner logos are not shipped. Shaare Zedek logo needs permission (`OPEN-LOGO-PERMISSION`, `plan/05-design-brand/partner-logos/README.md`). Logo concept choice is open.
-- Accessibility statement and the binding Israeli standard edition need legal review (OPEN-A5-02). Screen reader testing with real users was not done.
 
-## Legal and compliance (L)
-All items need legal review: retention periods (C-07), GDPR and Israeli privacy law applicability to coded data, HIPAA, region (Frankfurt, GATE-REGION), DPA with Render and sub-processors, breach notice windows, privacy and terms pages, consent and analytics text. `GATE-PROD-DATA` stays closed: no real data in any environment.
+- Fonts (Heebo, Rubik, Assistant) are not bundled. The licence is UNVERIFIED ([`packages/design-system/fonts/README.md`](../packages/design-system/fonts/README.md)). System fallbacks are used.
+- Hebrew copy (UI, public site, legal pages) is a machine draft. A Hebrew editor must review it. The diagnosis vocabulary and Hebrew labels need clinical sign-off (GATE-SCHEMA).
+- Partner logos are not shipped. The Shaare Zedek logo needs permission (`OPEN-LOGO-PERMISSION`). The logo concept is open.
+- Screen reader testing with real users was not done.
+
+## Needs legal review
+
+Retention periods (C-07); GDPR and Israeli privacy law for coded data; HIPAA; region (Frankfurt, GATE-REGION); DPA with Render and sub-processors; breach notice windows; privacy, terms, accessibility, consent and analytics pages; the binding Israeli accessibility standard edition (OPEN-A5-02). These are not legal advice.
 
 ## Open gates
-GATE-OPERATOR, GATE-BUDGET, GATE-SCHEMA, GATE-COMMITTEE, GATE-COMPLIANCE, GATE-GENOMICS, GATE-INGEST, GATE-PATHOLOGY, GATE-PROD-DATA. See `plan/decision-register.md`.
 
-## Documentation
-- The plan folders keep their original text under short "Superseded by C-xx" notes where they differ from the build. Where an old plan file and `plan/11-integration/canonical-decisions.md` differ, the canonical file wins.
-- `plan/07-devops-cicd/examples/` holds the original drafts. The live copies are `render.yaml`, `infra/`, `.github/workflows/`, `scripts/`.
+GATE-OPERATOR, GATE-BUDGET, GATE-SCHEMA, GATE-COMMITTEE, GATE-COMPLIANCE, GATE-GENOMICS, GATE-INGEST, GATE-PATHOLOGY, GATE-PROD-DATA. `GATE-PROD-DATA` blocks real data in every environment. Details: [`plan/decision-register.md`](../plan/decision-register.md).

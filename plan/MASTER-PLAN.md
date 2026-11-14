@@ -1,6 +1,6 @@
 # ARI-PST Portal — Master Plan
 
-Version 0.3 (plan complete, Phase 1 built and in verification). Date: 2026-11-13. Canonical fixes: `plan/11-integration/canonical-decisions.md`.
+Version 0.3 (plan complete, Phase 1 built). Date: 2026-11-13. Canonical fixes: `plan/11-integration/canonical-decisions.md`.
 Review findings from R1 and R2 are patched in later. Status of each is in `plan/10-review/`.
 Needs legal review: every legal and regulatory item in this plan.
 
@@ -120,27 +120,19 @@ Each has measurable criteria in the plan: user friendly (`04`, `05`), reliable (
 1. **Owner:** answer the open items: approval-gate design, logo concept, Shaare Zedek logo permission, committee composition.
 2. **Clinical leads:** review schema v1, age bands, diagnosis list, usability targets.
 3. **Legal counsel:** review the compliance map. First question: is coded or aggregated data "personal information"?
-4. **Orchestrator:** R1 and R2 findings are patched into `canonical-decisions.md`. Phase 1 is built (see Build status).
+4. **Orchestrator:** R1 and R2 findings are patched into `canonical-decisions.md`. Phase 1 is built (see Status).
 5. **Owner:** the free demo runs (Blueprint `ari-pst-demo` from `infra/render.free.yaml`, service `ari-demo-api-7teo`). Delete the broken hand-made service `ARI-PST`. For the paid production Blueprint (New → Blueprint, `main`, `render.yaml`) read `docs/deployment.md` sections 12 and 13 first.
 6. **Orchestrator:** close the items in `docs/KNOWN-ISSUES.md`, then run UAT (`plan/08-vnv/04-validation-uat.md`).
 
-## Build status (Phase 1, updated 2026-11-14)
-Plan is complete (waves 1 to 3). The Phase 1 build is done and in verification, on synthetic data only. Authority if anything differs: canonical-decisions, then the code.
+## Status
+This plan is a design-time record. The current system is described in [`../docs/README.md`](../docs/README.md).
 
-**What exists in the repo**
-| Area | Where | State |
-|---|---|---|
-| Monorepo, CI, architecture rule | `package.json`, `.dependency-cruiser.cjs`, `.github/workflows/*` | Built. CI runs on GitHub pull requests; jobs were being fixed on 2026-11-14 |
-| Domain core and ports | `packages/domain` | Built (request state, k-anonymity, roles, voting, staleness) |
-| Contract | `packages/contracts/openapi.yaml`, `packages/api-client` (generated) | Built, with `x-roles` |
-| Database | `db/` (bootstrap, 10 forward-only migrations, runner, seed, 134 tests) | Built. Tests need local PostgreSQL 16 |
-| API | `apps/api` (ten modules, adapters, jobs: staleness, audit-verify, purge, export, snapshot, seed-synthetic) | Built. Blueprint and code variable names match (`scripts/verify-render-yaml.py`) |
-| Protected app | `apps/web` (route table in `route-table.tsx`, he/en, mock server, Playwright) | Built subset of the route table |
-| Public site | `apps/public-site` (Astro, he/en, Decap CMS, consent analytics) | Built |
-| Design system, i18n, synthetic data | `packages/design-system`, `packages/i18n`, `packages/synthetic-data` | Built |
-| Render Blueprint | `render.yaml` (one `ari-api` serves API and SPA), `infra/render.staging.yaml`, `infra/render.free.yaml`, `infra/policy` | `render.yaml` and staging not applied. Free demo applied (Blueprint `ari-pst-demo`, Frankfurt) |
-| Docs and runbooks | `docs/architecture.md`, `docs/deployment.md`, `docs/ops-model.md`, `docs/runbooks/` | Built |
-| QA evidence | `docs/qa/` (screenshots, sweep results, scripts) | Partial. UI fixes verified in `docs/qa/BUGS.md` (Fix verification) |
-| Code review | `docs/REVIEW-2026-11.md` | Two fixes made, other findings open |
-
-**Not built or not verified.** Password-reset page (no API operation). Step-up dialog. Demo banner. Metrics, notifications and admin-health pages. Fonts are not bundled (`packages/design-system/fonts/README.md`). Hebrew copy is a machine draft and needs a Hebrew editor. Lighthouse was not run. Render plan slugs, PITR window and preview variables are UNVERIFIED. Partner logos are not shipped (`OPEN-LOGO-PERMISSION`). All legal items need legal review. Full list: `docs/KNOWN-ISSUES.md`. What was built: `docs/CHANGELOG.md`. Deploy: `docs/deployment.md`. QA: `docs/qa/`.
+| Item | State |
+|---|---|
+| Plan | Complete (waves 1 to 3). Authority: `11-integration/canonical-decisions.md`, then the code |
+| Phase 1 build | Done, synthetic data only. PRs #1 and #7 merged. CI `ci-gate` green |
+| Live demo | Render Blueprint `ari-pst-demo` (`infra/render.free.yaml`), service `ari-demo-api-7teo`, Frankfurt, manual deploy |
+| Production Blueprint | `render.yaml` (paid plans), not applied |
+| Google Cloud | Migration guide [`../docs/migration/google-cloud.md`](../docs/migration/google-cloud.md) |
+| Open gaps and findings | [`../docs/KNOWN-ISSUES.md`](../docs/KNOWN-ISSUES.md), [`../docs/REVIEW-2026-11.md`](../docs/REVIEW-2026-11.md) |
+| Real data | Blocked until `GATE-PROD-DATA` closes. Legal items need legal review |

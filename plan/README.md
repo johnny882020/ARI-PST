@@ -1,5 +1,7 @@
 # ARI-PST Portal — Plan index
 
+> The files in this folder are design-time records. [`../docs/`](../docs/README.md) is the source of truth for the current system. Two files stay binding: `00-contract-pack.md` and `11-integration/canonical-decisions.md`.
+
 Reading order:
 1. `MASTER-PLAN.md` — 10-minute summary.
 2. `00-contract-pack.md` — binding requirements, roles, gates, rules.
@@ -23,7 +25,9 @@ Reading order:
 | `10-review/` | R1, R2 | Findings |
 | `11-integration/` | Orchestrator | `canonical-decisions.md` (wins over every plan) |
 
-Status: plan complete. Phase 1 built and in verification (synthetic data only). Build status and gaps: `MASTER-PLAN.md` (Build status), `../docs/KNOWN-ISSUES.md`, `../docs/CHANGELOG.md`. Operator docs: `../docs/deployment.md`, `../docs/architecture.md`, `../docs/runbooks/`. QA evidence: `../docs/qa/`. Documentation audit: `../docs/DOCS-AUDIT.md`. Code review: `../docs/REVIEW-2026-11.md`. Live demo: free Render Blueprint `../infra/render.free.yaml` (`../docs/deployment.md` section 13).
-
-Wave 3 files: `11-integration/canonical-decisions.md`, `decision-register.md`, `traceability-matrix.csv` (REQ coverage: design 72/72, tests 63/72; 9 REQs are Phase 0 or later gate items).
-Not yet verified: Render facts (docs were unreachable), legal items. Mermaid blocks were parse-checked on 2026-11-13 and 2026-11-14 (see `../docs/DOCS-AUDIT.md`).
+## Status
+- Plan: complete (waves 1 to 3). The area plans `01-` to `10-` and `requests/` are kept as history and are not updated.
+- Build: Phase 1 is built, on synthetic data only. CI `ci-gate` is green. `GATE-PROD-DATA` still blocks real data.
+- Live demo: Render Blueprint `ari-pst-demo` (`../infra/render.free.yaml`), service `ari-demo-api-7teo`. The production Blueprint `../render.yaml` is not applied.
+- Current documentation: [`../docs/README.md`](../docs/README.md). Gaps: [`../docs/KNOWN-ISSUES.md`](../docs/KNOWN-ISSUES.md). Deployment: [`../docs/deployment.md`](../docs/deployment.md). Google Cloud: [`../docs/migration/google-cloud.md`](../docs/migration/google-cloud.md).
+- Decisions and gates: [`decision-register.md`](decision-register.md). REQ coverage: `traceability-matrix.csv`.

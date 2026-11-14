@@ -1,22 +1,39 @@
 # RB-01 Bad deploy or failing health check
-Trigger: deploy failed, `/readyz` failing, error rate up after a deploy marker. Severity: Sev2.
+
+## When to use
+- A deploy failed.
+- `/readyz` fails.
+- The error rate rose after a deploy.
+
+Severity: Sev2.
+
+## Prerequisites
+- Access to the Render Dashboard for the service (`ari-api`, or `ari-demo-api-7teo` for the free demo).
+- Permission to set GitHub repository variables.
+- The git SHA of the last good release.
 
 ## Steps
-1. Look at the latest deploy of `ari-api` in Render (Events). Did the error rate jump at the deploy time?
-2. If a deploy is still building: cancel it in Render.
-3. Pause further deploys: set GitHub repo variable `DEPLOY_PAUSED=true`. Production auto-deploy is already off for `ari-api`.
-4. Roll back: Render, `ari-api`, Deploys, choose the last good deploy, Rollback. The workflow `deploy-protected` also rolls back by itself when its smoke step fails and rollback credentials exist.
-5. Run `BASE_URL=https://<host> bash scripts/smoke.sh --wait 60`. Check login probe and error rate.
-6. If a migration ran: do not roll back the schema. Check the old code works on the new schema (expand/contract). If not, switch the feature flag off or fix forward. Use RB-02 only if data is damaged.
-7. Open a revert PR. Merge after CI. Set `DEPLOY_PAUSED=false`. Deploy through the normal approval.
-8. Post in chat. Start a post-mortem if impact was over 15 minutes.
+1. Open the service in Render, Events. Check if the error rate rose at the deploy time.
+2. If a deploy is still building, cancel it.
+3. Pause further deploys: set repository variable `DEPLOY_PAUSED=true`.
+4. Roll back: Render, the service, Deploys, the last good deploy, Rollback.
+5. Run `BASE_URL=https://<host> bash scripts/smoke.sh --wait 60`.
+6. If a migration ran, do not roll back the schema. Check that the old code works on the new schema (expand/contract). If not, turn the feature flag off or fix forward. Use RB-02 only if data is damaged.
+7. Open a revert pull request. Merge after CI.
+8. Set `DEPLOY_PAUSED=false`. Deploy through the normal approval.
+9. Tell the team. Start a post-mortem if the impact was over 15 minutes.
 
-Public site: roll back `ari-public` the same way, or merge a `git revert` PR (checksPass redeploys).
+Public site: roll back `ari-public` the same way, or merge a revert pull request.
 
-Free demo (`infra/render.free.yaml`): the service is `ari-demo-api-7teo`. Roll back the same way in Render. Its start command runs `scripts/render-predeploy.mjs` before the API, so a failing pre-deploy step shows as a failed start in its logs, not as a failed pre-deploy. `DEPLOY_PAUSED` and `deploy-protected` do not apply: the demo deploys by hand.
+Free demo: roll back `ari-demo-api-7teo` the same way. Its start command runs `scripts/render-predeploy.mjs` first, so a failing pre-deploy step shows as a failed start in the logs. `DEPLOY_PAUSED` and `deploy-protected` do not apply to the demo.
 
 ## Verify
-30 minutes of normal SLIs. `/readyz` OK. Version in `/readyz` equals the intended git SHA.
+- `/readyz` returns 200.
+- The `version` in `/readyz` equals the intended git SHA.
+- Normal error rate and latency for 30 minutes.
 
-## Escalate
-Incident commander, if rollback fails or the old version also fails. Then suspect the database or Render: RB-02 or RB-08.
+## Rollback
+If the rollback makes things worse, deploy the newest version again from Deploys. Then go to Escalation.
+
+## Escalation
+Incident commander, if the rollback fails or the old version also fails. Then suspect the database or Render: RB-02 or RB-08.

@@ -1,7 +1,7 @@
 # Migration guide: Render to Google Cloud
 
 Status: plan, not a decision. Prepared 2026-11-14. Synthetic data only.
-Owner of this file: GCP-1. Supporting files: `docs/migration/gcp/`.
+Supporting files: [`gcp/`](gcp/).
 Rule: `plan/11-integration/canonical-decisions.md` wins over this guide. This guide changes no canonical decision.
 
 This guide tells you how to move every part of the ARI-PST Portal from Render to Google Cloud (GCP).
@@ -432,7 +432,7 @@ On a restore, `docs/migration/gcp/restore-into-cloudsql.sh` replays the privileg
   - `DATABASE_URL` (API, `app_runtime`), `DATABASE_URL_BG` (crons, `app_readonly_bg`), `DATABASE_URL_OWNER` (predeploy) as secrets, each ending in `?sslmode=verify-ca&uselibpqcompat=true&sslrootcert=/etc/ari/db-ca/server-ca.pem`.
   - Store the Cloud SQL server CA (`gcloud sql instances describe ari-db --format='value(serverCaCert.cert)'`) as secret `ari-db-server-ca` and mount it as a file at `/etc/ari/db-ca/server-ca.pem`.
   - The predeploy script derives the migrator URL from the owner URL and keeps the query string, so it inherits the setting.
-  - Cleaner option for later: ask the API owner for a `DB_SSLROOTCERT` variable in `db-url.ts` (cross-agent request, not done here).
+  - Cleaner option for later: ask the API owner for a `DB_SSLROOTCERT` variable in `db-url.ts` (open change, not done).
 - Alternative: the Cloud SQL Auth Proxy as a sidecar (`--private-ip`) on `127.0.0.1:5432`. It adds IAM-checked mTLS. Community reports show issues with private-IP-only setups; test before you choose it (UNVERIFIED).
 
 ### 4.3 Secrets
@@ -503,7 +503,7 @@ Key settings and why:
 | Liveness probe | `GET /livez`, every 15 s, 4 failures | Restarts a hung process only. Liveness starts after the startup probe passes (VERIFIED-DOCS). Not on `/readyz`: a short DB outage must not restart every instance. |
 | Readiness probe | `/readyz` (optional) | Preview at last official check; a third-party page says GA on 2026-06-29 (UNVERIFIED). Add it when your gcloud accepts it. |
 | Shutdown | `SIGTERM`, then ~10 s | `server.ts` handles `SIGTERM` (stops the worker, closes the server and pool). Render allowed 60 s; long requests (imports) SHOULD finish within 10 s or be retried. UNVERIFIED grace period on the day. |
-| `trustProxy: true` (in code) | unchanged | Behind GFE + LB the client IP is in `X-Forwarded-For`. `trustProxy: true` trusts the left-most value, which a client can forge. Same as on Render. Cloud Armor rate limits use the real client IP. A hop-count setting is a code change for the API owner (cross-agent request). |
+| `trustProxy: true` (in code) | unchanged | Behind GFE + LB the client IP is in `X-Forwarded-For`. `trustProxy: true` trusts the left-most value, which a client can forge. Same as on Render. Cloud Armor rate limits use the real client IP. A hop-count setting is an open code change (review R-04). |
 
 Create from the template:
 
@@ -577,7 +577,7 @@ Previews and crons: on Render, crons do not run in previews. Same here: create n
 6. On the API side set `PUBLIC_SITE_ORIGIN=https://$SITE_HOST` (the only cross-origin caller, only `POST /api/v1/public/forms/*`).
 7. Check headers after deploy: `curl -sI https://$SITE_HOST/he/ | grep -i content-security` and `curl -sI https://$SITE_HOST/admin/ | grep -i -E 'content-security|robots'`. Firebase applies every matching header rule; confirm that `/admin/*` gets the admin CSP and not the global one (UNVERIFIED precedence).
 
-`scripts/verify-render-yaml.py` compares `render.yaml` headers to `_headers`. Add the same comparison for `firebase.json` when you adopt it (cross-agent request to DevOps).
+`scripts/verify-render-yaml.py` compares `render.yaml` headers to `_headers`. Add the same comparison for `firebase.json` when you adopt it (open change).
 
 ### 4.9 Load balancer, Cloud Armor, custom domains and certificates
 
@@ -860,7 +860,7 @@ During the window (freeze, ~1 hour for Phase 1 size, UNVERIFIED):
 
 | ID | Finding | Effect | Proposed path (owner decides) |
 |---|---|---|---|
-| F-1 | No Cloud SQL role can take a full logical dump: no superuser, no `BYPASSRLS` (assumed), `app_migrator` has no read grant on audit tables, `FORCE ROW LEVEL SECURITY` on 30 tables (VERIFIED-LOCAL with the role model). | `scripts/backup-export.sh` (DR offsite dump, DR-4 cold standby, exit path back to Render) does not work on Cloud SQL. The same is true on Render today (only Render's own export has full rights). | (a) Test `gcloud sql export sql --offload` on staging: it may run with internal rights (UNVERIFIED). (b) Use Cloud SQL backups + cross-project restore for DR. (c) DB owner (B1) designs an audited export role (like break-glass, but for all tables). Log in `docs/KNOWN-ISSUES.md`. |
+| F-1 | No Cloud SQL role can take a full logical dump: no superuser, no `BYPASSRLS` (assumed), `app_migrator` has no read grant on audit tables, `FORCE ROW LEVEL SECURITY` on 30 tables (VERIFIED-LOCAL with the role model). | `scripts/backup-export.sh` (DR offsite dump, DR-4 cold standby, exit path back to Render) does not work on Cloud SQL. The same is true on Render today (only Render's own export has full rights). | (a) Test `gcloud sql export sql --offload` on staging: it may run with internal rights (UNVERIFIED). (b) Use Cloud SQL backups + cross-project restore for DR. (c) The database owner designs an audited export role (like break-glass, but for all tables). Log in `docs/KNOWN-ISSUES.md`. |
 | F-2 | PostgreSQL 16 may need Cloud SQL Enterprise Plus. | Higher cost, or an ADR for PostgreSQL 17. | Check with 4.2.1. |
 | F-3 | TLS: `sslmode=require` fails against Cloud SQL private IP in `node-pg`. | Phase 1 uses `no-verify`. | Before real data: `verify-ca` with the instance CA (4.2.6), or a `DB_SSLROOTCERT` variable (API owner). |
 | F-4 | `render.yaml` export cron has no `PUBLIC_ORIGIN`. | The Render export cron may fail at config load. | DevOps owner to check; GCP job sets it. |
@@ -897,7 +897,7 @@ Because of F-1, keep the first weeks after cutover **synthetic only** (this is a
 
 Checklist:
 
-- [ ] No service-account keys anywhere (org policy `iam.disableServiceAccountKeyCreation`). The only long-lived key is the GCS HMAC key; replace it with a native GCS adapter using the service account (cross-agent request to the API owner).
+- [ ] No service-account keys anywhere (org policy `iam.disableServiceAccountKeyCreation`). The only long-lived key is the GCS HMAC key; replace it with a native GCS adapter using the service account (open change).
 - [ ] No basic roles (`Owner`, `Editor`, `Viewer`) for people on `ari-pst-prod`. Use groups and predefined roles. Use **Privileged Access Manager** (just-in-time, approved, time-boxed) for admin and DB access (UNVERIFIED availability per org tier).
 - [ ] Separation of duties stays: the GCP role that runs the app has no path to sample data outside the app's own DB rules. GCP admins can still read Secret Manager and connect to the DB; treat GCP org admin as a break-glass identity with alerts on use.
 - [ ] Role grants and `k` changes still need a second approver in the app (unchanged). IAM changes on `ari-pst-prod` need a PR (if you manage IAM in Terraform) or a two-person change ticket.
@@ -1027,7 +1027,7 @@ Mark each with date, person and result. Counts and hashes only, no data.
 - [ ] Predeploy job: `roles ok`, migrations applied or `up to date`.
 - [ ] `/readyz` through the LB: `status: ok`, `migrations: ok`, `version` = release SHA, `data: synthetic`.
 - [ ] `BASE_URL=https://$PORTAL_HOST bash scripts/smoke.sh --wait 120 --expect-sha <SHA>` → `OK`.
-- [ ] Full-stack e2e against the new URL: the browser flow of `scripts/e2e-fullstack.mjs` (every role signs in with password + TOTP; a researcher searches and submits; the request goes to `closed`). The script starts its own local stack today; running it against a remote URL needs a `--base-url` mode (cross-agent request to the QA/DevOps owner). Until then run the Playwright suite of `apps/web` against `$PORTAL_HOST` with synthetic users.
+- [ ] Full-stack e2e against the new URL: the browser flow of `scripts/e2e-fullstack.mjs` (every role signs in with password + TOTP; a researcher searches and submits; the request goes to `closed`). Run it against the new host: `BASE_URL=https://$PORTAL_HOST SEED_USER_PASSWORD=... node scripts/e2e-fullstack.mjs` (needs a seeded stack with synthetic users).
 - [ ] External researcher roles see "Too few to show" for small cells, never a number below k and never the threshold.
 - [ ] Public site: headers equal `apps/public-site/public/_headers` plus the portal origin in `connect-src`/`form-action`; `/app/` redirects; join/contact forms reach `POST /api/v1/public/forms/*`; CORS allows only `$SITE_HOST`.
 - [ ] Each cron job executed once by hand (`gcloud run jobs execute … --wait`) → `"ok":true`; Scheduler next-run times correct in UTC.

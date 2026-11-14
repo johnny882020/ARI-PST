@@ -1,7 +1,15 @@
-# ARI-PST database (B1)
+# ARI-PST database
 
-PostgreSQL 16. Forward-only SQL migrations, a runner, tests that run as the real non-superuser roles, synthetic seed, and a full export/import.
-Synthetic data only until GATE-PROD-DATA. Canonical decisions (`plan/11-integration/canonical-decisions.md`) win over this file.
+PostgreSQL 16. Forward-only SQL migrations, a runner, tests that run as the real non-superuser roles, a synthetic seed, and a full export and import.
+Synthetic data only until `GATE-PROD-DATA` closes. [`plan/11-integration/canonical-decisions.md`](../plan/11-integration/canonical-decisions.md) wins over this file.
+
+## Commands
+| Command | What it does |
+|---|---|
+| `pnpm --filter @ari/db test` | Throwaway PostgreSQL 16 on port 55432: bootstrap, migrations as `app_migrator`, then the SQL tests |
+| `pnpm --filter @ari/db migrate` | Runs `migrate.mjs` (needs `DATABASE_URL_MIGRATOR`) |
+| `pnpm --filter @ari/db migrate:dry` | Shows pending migrations, changes nothing |
+| `pnpm --filter @ari/db seed` | Local synthetic seed (needs `DATABASE_URL_ADMIN` and `DATABASE_URL_RUNTIME`) |
 
 ## Layout
 | Path | Purpose |
@@ -95,7 +103,7 @@ Request free text wiped 24 months after close, record purged after 7 years, soft
 - Audit chain key lives in the DB (not an external KMS). Daily external anchor is a job outside the DB (`audit.anchor()` provides the material). No key rotation function yet (`key_version` column is ready).
 - Denial events are written by the API in a new transaction; there is no DB-side rate limit on `audit.record_denial`.
 - `seed.mjs` needs a role that bypasses RLS (superuser or BYPASSRLS). Render does not allow this. On Render the API job `apps/api/src/jobs/seed-synthetic.ts` seeds instead (run by `scripts/render-predeploy.mjs`).
-- `app_core` has no `EXECUTE` on `search.norm()`, so the pre-deploy step cannot load the vocabulary as `app_core`; the synthetic seed loads it (`plan/requests/INT-to-B1.md`, item 1).
-- xlsx import files and the importer itself are not part of B1. `makeImportFile` produces CSV corpus only. No `diagnosis_map` table.
+- `app_core` has no `EXECUTE` on `search.norm()`, so the pre-deploy step cannot load the vocabulary as `app_core`; the synthetic seed loads it. Fix: a new migration (`docs/REVIEW-2026-11.md`, R-13).
+- The importer lives in the API (`center-ingestion`, CSV and xlsx). The synthetic test corpus (`makeImportFile`) is CSV only. There is no `diagnosis_map` table.
 - Export signature (detached `manifest.json.sig`) and `docs/data-dictionary.md` generation are not built. `authn.*`, `ops.*` and `agg.*` are excluded from export by design.
 - Needs legal review: all retention periods, break-glass governance, and the whole coded-data regime.
