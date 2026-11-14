@@ -6,7 +6,11 @@
 ALTER TABLE portal.request_agreements
   ADD COLUMN status text NOT NULL DEFAULT 'signed' CHECK (status IN ('draft','sent','signed')),
   ADD COLUMN signed_month text CHECK (signed_month ~ '^[0-9]{4}-(0[1-9]|1[0-2])$');
+-- The table has FORCE ROW LEVEL SECURITY and app_migrator has no policy on it: as app_migrator this UPDATE would change 0 rows and the
+-- CHECK below would fail on any existing agreement. Backfill as app_core (policy core_all).
+SET LOCAL ROLE app_core;
 UPDATE portal.request_agreements SET signed_month = to_char(signed_at AT TIME ZONE 'UTC', 'YYYY-MM') WHERE signed_month IS NULL;
+RESET ROLE;
 ALTER TABLE portal.request_agreements ADD CONSTRAINT agr_signed_needs_month CHECK (status <> 'signed' OR signed_month IS NOT NULL);
 
 CREATE FUNCTION portal.request_record_agreement(p_id text, p_center_id text, p_kind text, p_doc_ref text, p_status text, p_signed_month text)

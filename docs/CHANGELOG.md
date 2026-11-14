@@ -24,6 +24,7 @@ Every release uses synthetic data only.
 - `pnpm test:e2e:flows` flow f runs through the UI only (no `[api]` steps). The script always rebuilds `apps/api`.
 
 ### Fixed
+- Migration `0011` failed on a database that already held MTA/DTA agreements (the live demo): the backfill ran as `app_migrator`, which row-level security blocks, so the new CHECK failed. The backfill now runs as `app_core`. Render kept the previous version live.
 - "Mark coordination done" failed with a validation error because no `centerId` was sent. The coordinator now answers per center.
 - The cart showed the raw token `10_plus`. It now says "10 or more" (`lt10`: "Fewer than 10").
 - Another center's record showed "Something went wrong". It now shows a "Not available" page.
