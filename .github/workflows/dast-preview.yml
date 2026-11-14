@@ -29,7 +29,7 @@ jobs:
             https://*.onrender.com|https://*.onrender.com/*) echo "target=$t" >> "$GITHUB_OUTPUT" ;;
             *) echo "Refusing to scan a non-preview host"; exit 1 ;;
           esac
-      - uses: zaproxy/action-baseline@v0.14.0
+      - uses: zaproxy/action-baseline@v0.15.0
         with:
           target: ${{ steps.url.outputs.target }}
           rules_file_name: infra/ci/zap-rules.tsv
