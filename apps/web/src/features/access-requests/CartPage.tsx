@@ -10,6 +10,7 @@ import { ErrorPanel } from "../../shared/errors";
 import { problemMessageKey } from "../../shared/problem-message";
 import { useCenters, useDiagnoses, useEnumLabel } from "../../shared/enums";
 import type { SearchFilters } from "@ari/api-client";
+import type { MessageKey } from "@ari/i18n";
 import { useEffect, useRef, useState } from "react";
 
 export function useCriteriaText() {
@@ -29,6 +30,10 @@ export function useCriteriaText() {
     return out;
   };
 }
+
+/** Count band stored with a cart item ("10_plus", "lt10"). Known bands get the approved band wording; never a threshold. */
+const COUNT_BANDS: Record<string, MessageKey> = { "10_plus": "cart.count.10_plus", lt10: "cart.count.lt10" };
+export function countBandKey(label: string): MessageKey | null { return COUNT_BANDS[label] ?? null; }
 
 export function CartPage() {
   const t = useT();
@@ -73,7 +78,7 @@ export function CartPage() {
                   footer={<Button size="sm" variant="secondary" loading={remove.isPending && remove.variables?.id === it.id} onClick={() => remove.mutate(it)}>{t("cart.item.remove")}</Button>}>
                   <div className="row">
                     <span className="muted">{t("cart.item.snapshot")}</span>
-                    {it.snapshot.suppressed ? <SuppressedCell /> : <bdi dir="ltr">{it.snapshot.label}</bdi>}
+                    {it.snapshot.suppressed ? <SuppressedCell /> : countBandKey(it.snapshot.label) ? <span>{t(countBandKey(it.snapshot.label)!)}</span> : <bdi dir="ltr">{it.snapshot.label}</bdi>}
                     <Badge tone="neutral">{t("cart.item.mayChange")}</Badge>
                   </div>
                 </Card>
