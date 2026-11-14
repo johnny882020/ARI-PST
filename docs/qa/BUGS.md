@@ -127,3 +127,14 @@ Other runs: `@ari/design-system` 114 tests, `@ari/web` 48 unit tests and 30 Play
 | QA-014 | Not fixed | Needs a product decision. The tokens already support `data-theme`, but a switch without a flash needs a script in `apps/public-site/public` and a check against the site's content security policy. |
 | QA-016 | No change, by design | The visible countdown is `aria-hidden`; the second text is a visually hidden live region that speaks in steps of 30 or 10 seconds. A screen reader hears one of them. `innerText` shows both. |
 | Web axe, 4 odd rules on `/search` (`document-title`, `html-has-lang`, `landmark-one-main`, `page-has-heading-one`) | Not reproduced | They did not come back in the re-run. The same four rules appeared once on three public pages during a re-run while another build was rewriting `dist` (the pages answered 404), and were gone on the next run. Most likely a page read during a rebuild. |
+
+## Status of the INT-1 items (checked against the code on 2026-11-14)
+
+| ID | Status | Evidence |
+|---|---|---|
+| QA-001 | Not reproduced | The cart step passes on the production-like stack in `scripts/e2e-fullstack.mjs`. Likely cause was QA's hand-made seed (`docs/KNOWN-ISSUES.md`, item 12). |
+| QA-002 | Fixed | `apps/api/src/jobs/snapshot.ts` runs `agg.refresh_snapshot()`; cron `ari-cron-snapshot` in `render.yaml` (hourly, minute 5). The free demo has no crons: the snapshot is refreshed at every start (seed) and after a coordinator import. |
+| QA-010 | Fixed in the Blueprint | `render.yaml` sets `PUBLIC_PORTAL_URL` for `ari-public` and redirects `/app/*`. The code default in `apps/public-site/src/lib/env.ts` is still `/app/`. |
+| QA-013 | Not fixed | Unchanged. API and contract decision. |
+| QA-015 | Fixed | `db/README.md` and `docs/KNOWN-ISSUES.md` exist. |
+| QA-003 note | Still open | `Session` in `packages/contracts/openapi.yaml` still has no `mfaEnrolled`; `docs/REVIEW-2026-11.md` R-06. |
