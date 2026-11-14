@@ -1,0 +1,48 @@
+{
+  "hosting": {
+    "public": "dist",
+    "trailingSlash": true,
+    "cleanUrls": false,
+    "ignore": ["firebase.json", "**/.*"],
+    "redirects": [
+      { "source": "/app/**", "destination": "https://PORTAL_HOST/", "type": 301 },
+      { "source": "/app", "destination": "https://PORTAL_HOST/", "type": 301 }
+    ],
+    "rewrites": [
+      { "source": "/he/**", "destination": "/he/index.html" },
+      { "source": "/en/**", "destination": "/en/index.html" }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://PORTAL_HOST; object-src 'none'; base-uri 'self'; form-action 'self' https://PORTAL_HOST; frame-ancestors 'none'; upgrade-insecure-requests" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "X-Frame-Options", "value": "DENY" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()" },
+          { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+          { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" },
+          { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
+          { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        ]
+      },
+      {
+        "source": "/_astro/**",
+        "headers": [ { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" } ]
+      },
+      {
+        "source": "/uploads/**",
+        "headers": [ { "key": "Cache-Control", "value": "public, max-age=86400" } ]
+      },
+      {
+        "source": "/admin/**",
+        "headers": [
+          { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://avatars.githubusercontent.com https://*.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://api.github.com https://cms-auth.ari-pst.example; frame-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" },
+          { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+          { "key": "Cache-Control", "value": "no-store" }
+        ]
+      }
+    ]
+  }
+}

@@ -43,8 +43,10 @@ jobs:
         env:
           PROJECT: ${{ vars.FIREBASE_PROJECT }}
           PR: ${{ github.event.pull_request.number }}
-        working-directory: docs/migration/gcp/firebase
         run: |
+          # firebase.json says "public": "dist", so it must sit next to the built site.
+          cp docs/migration/gcp/firebase/firebase.json apps/public-site/firebase.json
+          cd apps/public-site
           npx --yes firebase-tools@14 --version
           if [ -n "$PR" ]; then
             npx --yes firebase-tools@14 hosting:channel:deploy "pr-$PR" --expires 3d --project "$PROJECT" --non-interactive
